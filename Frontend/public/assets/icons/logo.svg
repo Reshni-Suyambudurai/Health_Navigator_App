@@ -1,0 +1,8 @@
+<svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Diagonal line: Green -->
+  <path d="M5.95 5.95L28.05 28.05" stroke="#C5DD6F" stroke-width="5.525" stroke-linecap="round"/>
+  <!-- Top-right corner: Cyan -->
+  <path d="M19.55 4.675V14.45H29.325" stroke="#26A5DE" stroke-width="5.525" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Bottom-left corner: Dark Blue -->
+  <path d="M4.675 19.55H14.45V29.325" stroke="#0072B4" stroke-width="5.525" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

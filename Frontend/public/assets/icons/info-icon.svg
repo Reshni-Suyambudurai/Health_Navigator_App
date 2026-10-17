@@ -1,0 +1,5 @@
+<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Info Icon -->
+  <circle cx="8" cy="8" r="7" fill="none" stroke="#0072B4" stroke-width="1.33333"/>
+  <path d="M8 5V8M8 11V11.5" stroke="#0072B4" stroke-width="1.33333" stroke-linecap="round"/>
+</svg>

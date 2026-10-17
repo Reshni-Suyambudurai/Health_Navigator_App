@@ -1,0 +1,31 @@
+<section class="ai-chat" aria-labelledby="ai-chat-title">
+  <header class="ai-chat__header">
+    <div class="ai-chat__avatar" aria-hidden="true">AI</div>
+    <div>
+      
+      <h2 id="ai-chat-title">Health Navigator</h2>
+      <span class="ai-chat__status"><span></span> Online</span>
+    </div>
+    <span class="ai-chat__badge">Preview</span>
+  </header>
+
+  <div class="ai-chat__messages" aria-live="polite">
+    <p class="ai-chat__date">Today</p>
+    <article
+      *ngFor="let message of messages"
+      class="ai-chat__message"
+      [class.ai-chat__message--patient]="message.sender === 'patient'"
+    >
+      <div class="ai-chat__bubble">{{ message.text }}</div>
+      <time>{{ message.time }}</time>
+    </article>
+  </div>
+
+  <footer class="ai-chat__footer">
+    <p class="ai-chat__disclaimer">This assistant provides general information and is not a doctor. It is not for emergencies.</p>
+    <div class="ai-chat__composer" aria-label="Chat input unavailable in preview">
+      <span>Ask about your care plan...</span>
+      <button type="button" disabled aria-label="Send message">&#8593;</button>
+    </div>
+  </footer>
+</section>

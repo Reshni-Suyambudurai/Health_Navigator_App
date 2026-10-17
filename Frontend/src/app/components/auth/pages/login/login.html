@@ -1,0 +1,137 @@
+<div class="login-container">
+  <div class="login-branding">
+    <div class="logo-section">
+      <img src="assets/icons/logo.svg" alt="KANINI Logo" class="logo-icon" />
+      <span class="logo-text">KANINI</span>
+    </div>
+
+    <div class="shape shape-a"></div>
+    <div class="shape shape-b"></div>
+    <div class="shape shape-c"></div>
+
+    <div class="branding-content">
+      <p class="subtitle">WELCOME</p>
+      <h1 class="main-title">Your health, organized</h1>
+      <p class="description">
+        Access your health information, appointments, and care resources in one secure place.
+      </p>
+
+      <div class="gradient-bar"></div>
+
+      <div class="roles-section">
+        <div class="role-item">
+          <span class="role-icon">⚕</span>
+          <span class="role-label">Health information</span>
+        </div>
+        <div class="role-item">
+          <span class="role-icon">⎈</span>
+          <span class="role-label">Care reminders</span>
+        </div>
+        <div class="role-item">
+          <span class="role-icon">◫</span>
+          <span class="role-label">Appointments</span>
+        </div>
+        <div class="role-item">
+          <span class="role-icon">⌁</span>
+          <span class="role-label">Personalized support</span>
+        </div>
+        <div class="role-item">
+          <span class="role-icon">▥</span>
+          <span class="role-label">Population health</span>
+        </div>
+        <div class="role-item">
+          <span class="role-icon">◉</span>
+          <span class="role-label">Secure access</span>
+        </div>
+      </div>
+    </div>
+
+    <p class="footer-text">© 2026 KANINI Software Solutions · Use Case HC-03 · POC build 0.9</p>
+  </div>
+
+  <div class="login-form-section">
+    <div class="form-header">
+      <h2>Sign in</h2>
+      <p class="form-subtitle">Health · Care team access</p>
+    </div>
+
+    <div class="form-group">
+      <label for="email" class="form-label">Work email</label>
+      <input
+        type="email"
+        id="email"
+        class="form-input"
+        placeholder="sarah.collins@northbrookhealth.org"
+        [ngModel]="email()"
+        (ngModelChange)="email.set($event)"
+      />
+    </div>
+
+    <div class="form-group">
+      <div class="password-header">
+        <label for="password" class="form-label">Password</label>
+        <a href="#" class="forgot-password">Forgot password?</a>
+      </div>
+      <div class="password-input-wrapper">
+        <input
+          [type]="showPassword() ? 'text' : 'password'"
+          id="password"
+          class="form-input"
+          placeholder="••••••••••••"
+          [ngModel]="password()"
+          (ngModelChange)="password.set($event)"
+        />
+        <button
+          type="button"
+          class="toggle-password"
+          (click)="togglePasswordVisibility()"
+          aria-label="Toggle password visibility"
+        >
+          <svg *ngIf="!showPassword()" class="eye-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M2 12C4.2 7.8 7.7 5.5 12 5.5C16.3 5.5 19.8 7.8 22 12C19.8 16.2 16.3 18.5 12 18.5C7.7 18.5 4.2 16.2 2 12Z" stroke="currentColor" stroke-width="1.6"/>
+            <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/>
+          </svg>
+          <svg *ngIf="showPassword()" class="eye-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M3 3L21 21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            <path d="M9.7 9.7C9.3 10.3 9 11.1 9 12C9 13.7 10.3 15 12 15C12.9 15 13.7 14.7 14.3 14.3" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M6.1 6.1C4.4 7.3 3 9.2 2 12C4.2 16.2 7.7 18.5 12 18.5C14.1 18.5 16 18 17.7 17" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M10.8 5.6C11.2 5.6 11.6 5.5 12 5.5C16.3 5.5 19.8 7.8 22 12C21.3 13.3 20.5 14.4 19.6 15.3" stroke="currentColor" stroke-width="1.6"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="checkbox-group">
+      <input
+        type="checkbox"
+        id="remember"
+        class="checkbox"
+        [ngModel]="rememberMe()"
+        (ngModelChange)="rememberMe.set($event)"
+      />
+      <label for="remember" class="checkbox-label">Keep me signed in on this device for 8 hours</label>
+    </div>
+
+    <button class="btn btn-primary" type="button" [disabled]="loading()" (click)="signIn()">
+      {{ loading() ? 'Signing in...' : 'Sign in' }}
+    </button>
+
+    <div class="alert alert-info" *ngIf="showAlert()">
+      <span class="alert-icon" aria-hidden="true">🔒</span>
+      <p class="alert-text">
+        Multi-factor authentication is required. Access is logged and monitored. This system
+        contains protected health information (PHI) under HIPAA.
+      </p>
+    </div>
+
+    <div class="form-footer">
+      <a href="#">Privacy</a>
+      <span class="footer-dot">·</span>
+      <a href="#">Terms</a>
+      <span class="footer-dot">·</span>
+      <a href="#">Accessibility</a>
+      <span class="footer-dot">·</span>
+      <a href="#">Help desk</a>
+    </div>
+  </div>
+</div>

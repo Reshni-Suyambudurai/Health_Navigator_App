@@ -1,0 +1,5 @@
+<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Eye Icon for password visibility -->
+  <circle cx="8" cy="8" r="2.5" fill="none" stroke="#9CA3AF" stroke-width="1.33333"/>
+  <path d="M1 8C2 4 5 2 8 2C11 2 14 4 15 8C14 12 11 14 8 14C5 14 2 12 1 8Z" fill="none" stroke="#9CA3AF" stroke-width="1.33333"/>
+</svg>

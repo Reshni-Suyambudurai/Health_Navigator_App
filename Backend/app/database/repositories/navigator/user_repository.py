@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_
 from typing import Optional, List
 from app.database.models.user import User, UserStatus
+from app.database.models.role import Role, RoleName
 
 
 class UserRepository:
@@ -37,6 +38,16 @@ class UserRepository:
     def find_by_status(self, status: UserStatus) -> List[User]:
         """Find users by status"""
         return self.db.query(User).filter(User.status == status).all()
+
+    def find_active_by_role(self, role_name: RoleName) -> List[User]:
+        """Find active users assigned to a role."""
+        return (
+            self.db.query(User)
+            .join(Role, User.role_id == Role.role_id)
+            .filter(User.status == UserStatus.ACTIVE, Role.role_name == role_name)
+            .order_by(User.first_name.asc(), User.last_name.asc())
+            .all()
+        )
     
     def save(self, user: User) -> User:
         """Save or update user (like save in Spring)"""

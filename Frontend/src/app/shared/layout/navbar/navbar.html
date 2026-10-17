@@ -1,0 +1,24 @@
+<header class="top-navbar">
+  <div class="search-wrap">
+    <input type="search" placeholder="Search patients, MRN, escalation ID..." />
+  </div>
+
+  <div class="right-actions">
+    <span class="status-pill">All systems operational</span>
+    <button type="button" class="icon-btn" aria-label="Notifications">
+      <img src="/assets/icons/notification.svg" alt="Notifications" class="icon-image" />
+    </button>
+    <button
+      type="button"
+      class="icon-btn"
+      aria-label="Toggle theme"
+      (click)="toggleTheme()"
+    >
+      <img
+        [src]="theme() === 'light' ? '/assets/icons/moon.svg' : '/assets/icons/sun.svg'"
+        alt="Theme"
+        class="icon-image"
+      />
+    </button>
+  </div>
+</header>

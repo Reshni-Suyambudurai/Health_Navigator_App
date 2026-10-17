@@ -19,8 +19,6 @@ class OrganizationType(enum.Enum):
     HOSPITAL = "HOSPITAL"
     CLINIC = "CLINIC"
     HEALTHCARE_GROUP = "HEALTHCARE_GROUP"
-    PHARMACY = "PHARMACY"
-    HEALTH_PLAN = "HEALTH_PLAN"
     PAYER = "PAYER"
     ACO = "ACO"
 

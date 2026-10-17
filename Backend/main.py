@@ -5,6 +5,7 @@ FastAPI main application entry point for Patient AI Health Navigator
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, status
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.utils.logger import setup_logging
 from app.database.connection import check_database_connection, check_monster_database_connection
@@ -12,6 +13,8 @@ from app.api.routes.navigator import user_routes
 from app.api.routes.navigator import patient_profile_routes
 from app.api.routes.navigator import patient_consent_record_routes
 from app.api.routes.navigator import patient_enrollment_routes
+from app.api.routes.navigator import patient_intake_routes
+from app.api.routes.navigator import patient_onboarding_routes
 from app.api.routes.patientFHIR import patient_fhir_routes
 from app.core.exception_handlers import register_exception_handlers  # Import exception handlers
 import logging
@@ -58,11 +61,22 @@ app = FastAPI(
 # Register global exception handlers
 register_exception_handlers(app)
 
+# Enable CORS for frontend applications
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ALLOWED_ORIGINS,
+    allow_credentials=settings.CORS_ALLOW_CREDENTIALS,
+    allow_methods=settings.CORS_ALLOW_METHODS,
+    allow_headers=settings.CORS_ALLOW_HEADERS,
+)
+
 # Include API routers
 app.include_router(user_routes.router, prefix="/api/v1")
 app.include_router(patient_profile_routes.router, prefix="/api/v1")
 app.include_router(patient_consent_record_routes.router, prefix="/api/v1")
 app.include_router(patient_enrollment_routes.router, prefix="/api/v1")
+app.include_router(patient_intake_routes.router, prefix="/api/v1")
+app.include_router(patient_onboarding_routes.router, prefix="/api/v1")
 app.include_router(patient_fhir_routes.router, prefix="/api/v1")
 
 

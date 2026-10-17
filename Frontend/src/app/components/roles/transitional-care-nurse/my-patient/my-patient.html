@@ -1,0 +1,217 @@
+<section class="my-patient-page">
+	<header class="page-head">
+		<h1>My patients</h1>
+		<button type="button" class="ui-icon-btn" (click)="reload()" aria-label="Refresh enrolled patients">
+			<span aria-hidden="true">↻</span>
+		</button>
+	</header>
+
+	<div class="ui-toolbar">
+		<div class="ui-search">
+			<input
+				type="text"
+				placeholder="Search by FHIR Patient ID (e.g., 2310)"
+				[value]="searchFhirId()"
+				(input)="searchFhirId.set($any($event.target).value)"
+				(keydown.enter)="onSearchEnter($event)"
+			/>
+			<button type="button" (click)="searchByFhirId()" [disabled]="searching()">Search</button>
+		</div>
+	</div>
+
+	<p class="state" *ngIf="searching()">Searching patient...</p>
+	<p class="state error" *ngIf="searchError()">{{ searchError() }}</p>
+
+	<div class="ui-table-shell" *ngIf="searchedPatient()">
+		<table class="ui-table">
+			<thead>
+				<tr>
+					<th>FHIR ID</th>
+					<th>Name</th>
+					<th>DOB</th>
+					<th>Gender</th>
+					<th>Phone</th>
+					<th>Email</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr class="clickable-row" (click)="openIntakeModal()">
+					<td>{{ searchedPatient()?.fhir_patient_id }}</td>
+					<td>{{ searchedPatient()?.first_name }} {{ searchedPatient()?.last_name }}</td>
+					<td>{{ searchedPatient()?.date_of_birth || 'N/A' }}</td>
+					<td>{{ searchedPatient()?.gender || 'N/A' }}</td>
+					<td>{{ searchedPatient()?.phone || 'N/A' }}</td>
+					<td>{{ searchedPatient()?.email || 'N/A' }}</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+
+	<p class="state" *ngIf="loading()">Loading enrolled patients...</p>
+	<p class="state error" *ngIf="!loading() && error()">{{ error() }}</p>
+	<p class="state error" *ngIf="metadataError()">{{ metadataError() }}</p>
+	<p class="state success" *ngIf="actionMessage()">{{ actionMessage() }}</p>
+
+	<div class="ui-table-shell" *ngIf="!loading() && !error()">
+		<h3 class="table-name">Enrolled patients</h3>
+		<table class="ui-table" *ngIf="enrollments().length > 0; else emptyState">
+			<thead>
+				<tr>
+					<th>Enrollment ID</th>
+					<th>Patient ID</th>
+					<th>Program</th>
+					<th>Status</th>
+					<th>Enrolled On</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr class="clickable-row" *ngFor="let item of enrollments()" (click)="openEnrollmentDetails(item.patient_id)">
+					<td>{{ item.enrollment_id }}</td>
+					<td>{{ item.patient_id }}</td>
+					<td>{{ item.enrollment_program }}</td>
+					<td>{{ item.enrollment_status }}</td>
+					<td>{{ item.enrollment_date ? (item.enrollment_date | date: 'medium') : 'N/A' }}</td>
+				</tr>
+			</tbody>
+		</table>
+
+		<ng-template #emptyState>
+			<p class="state">No enrolled patients found.</p>
+		</ng-template>
+	</div>
+
+	<div class="ui-modal-backdrop" *ngIf="modalOpen()">
+		<div class="ui-modal-card">
+			<div class="ui-modal-head">
+				<h3>Create Navigator Intake</h3>
+				<button type="button" class="ui-icon-btn" (click)="closeIntakeModal()" aria-label="Close intake form">
+					<span aria-hidden="true">✕</span>
+				</button>
+			</div>
+
+			<div class="ui-form-grid" *ngIf="intakeMetadata() as meta">
+				<label class="ui-field">
+					<span>FHIR Patient ID</span>
+					<input [(ngModel)]="form.fhir_patient_id" name="fhir_patient_id" readonly />
+				</label>
+				<label class="ui-field">
+					<span>Organization</span>
+					<select [(ngModel)]="form.organization_id" name="organization_id">
+						<option *ngFor="let option of meta.organizations" [ngValue]="option.organization_id">
+							{{ option.organization_name }}
+						</option>
+					</select>
+				</label>
+
+				<label class="ui-field">
+					<span>First Name</span>
+					<input [(ngModel)]="form.first_name" name="first_name" />
+				</label>
+				<label class="ui-field">
+					<span>Last Name</span>
+					<input [(ngModel)]="form.last_name" name="last_name" />
+				</label>
+
+				<label class="ui-field">
+					<span>Email</span>
+					<input [(ngModel)]="form.email" name="email" />
+				</label>
+				<label class="ui-field">
+					<span>Phone</span>
+					<input [(ngModel)]="form.phone" name="phone" />
+				</label>
+
+				<label class="ui-field">
+					<span>Date of Birth</span>
+					<input type="date" [(ngModel)]="form.date_of_birth" name="date_of_birth" />
+				</label>
+				<label class="ui-field">
+					<span>Gender</span>
+					<select [(ngModel)]="form.gender" name="gender">
+						<option *ngFor="let option of meta.genders" [value]="option">{{ option }}</option>
+					</select>
+				</label>
+
+				<label class="ui-field">
+					<span>Enrollment Program</span>
+					<select [(ngModel)]="form.enrollment_program" name="enrollment_program">
+						<option *ngFor="let option of meta.enrollment_programs" [value]="option">{{ option }}</option>
+					</select>
+				</label>
+				<label class="ui-field">
+					<span>Enrollment Status</span>
+					<select [(ngModel)]="form.enrollment_status" name="enrollment_status">
+						<option *ngFor="let option of meta.enrollment_statuses" [value]="option">{{ option }}</option>
+					</select>
+				</label>
+
+				<label class="ui-field">
+					<span>Episode Type</span>
+					<select [(ngModel)]="form.episode_type" name="episode_type">
+						<option *ngFor="let option of meta.episode_types" [value]="option">{{ option }}</option>
+					</select>
+				</label>
+				<label class="ui-field">
+					<span>Trigger Type</span>
+					<select [(ngModel)]="form.trigger_type" name="trigger_type">
+						<option *ngFor="let option of meta.trigger_types" [value]="option">{{ option }}</option>
+					</select>
+				</label>
+
+				<label class="ui-field">
+					<span>Episode Status</span>
+					<select [(ngModel)]="form.episode_status" name="episode_status">
+						<option *ngFor="let option of meta.episode_statuses" [value]="option">{{ option }}</option>
+					</select>
+				</label>
+				<label class="ui-field">
+					<span>Owner Staff</span>
+					<select [(ngModel)]="form.owner_staff_id" name="owner_staff_id">
+						<option [ngValue]="null">None</option>
+						<option *ngFor="let option of meta.owner_staff" [ngValue]="option.staff_id">
+							{{ option.display_name }}
+						</option>
+					</select>
+				</label>
+
+				<label class="ui-field">
+					<span>Preferred Contact</span>
+					<select [(ngModel)]="form.preferred_contact_method" name="preferred_contact_method">
+						<option *ngFor="let option of meta.contact_methods" [value]="option">{{ option }}</option>
+					</select>
+				</label>
+				<label class="ui-field">
+					<span>Risk Tier</span>
+					<select [(ngModel)]="form.risk_tier" name="risk_tier">
+						<option *ngFor="let option of meta.risk_tiers" [value]="option">{{ option }}</option>
+					</select>
+				</label>
+
+				<label class="ui-field">
+					<span>Trigger Reference</span>
+					<input [(ngModel)]="form.trigger_reference" name="trigger_reference" />
+				</label>
+				<label class="ui-field">
+					<span>Emergency Contact Name</span>
+					<input [(ngModel)]="form.emergency_contact_name" name="emergency_contact_name" />
+				</label>
+
+				<label class="ui-field">
+					<span>Emergency Contact Phone</span>
+					<input [(ngModel)]="form.emergency_contact_phone" name="emergency_contact_phone" />
+				</label>
+				<label class="ui-field">
+					<span>Initial Password</span>
+					<input [(ngModel)]="form.initial_password" name="initial_password" />
+				</label>
+			</div>
+
+			<div class="ui-modal-actions">
+				<button type="button" class="secondary" (click)="closeIntakeModal()">Cancel</button>
+				<button type="button" (click)="submitIntake()" [disabled]="submitLoading() || metadataLoading()">
+					{{ submitLoading() ? 'Saving...' : 'Create Intake' }}
+				</button>
+			</div>
+		</div>
+	</div>
+</section>

@@ -1,0 +1,33 @@
+<aside class="role-sidebar">
+ 
+  <p class="section-title">Health Navigator</p>
+  <p class="section-subtitle">Care Team Console</p>
+  <p class="role-chip">{{ roleConfig.label }}</p>
+
+  <nav class="topic-nav">
+    <a
+      *ngFor="let topic of topics"
+      class="topic-link"
+      [routerLink]="topic.route ?? roleConfig.route"
+      [class.topic-link--active]="!topic.route && activeTopic() === topic.label"
+      [routerLinkActive]="topic.route ? 'topic-link--active' : ''"
+      [routerLinkActiveOptions]="{ exact: true }"
+      (click)="selectTopic(topic.label)"
+    >
+      <span class="topic-name">{{ topic.label }}</span>
+      <span *ngIf="topic.badge" class="topic-badge">{{ topic.badge }}</span>
+    </a>
+  </nav>
+
+  <div class="sidebar-user" (click)="toggleUserMenu($event)">
+    <span class="avatar">{{ initials }}</span>
+    <div class="user-meta">
+      <p class="user-name">{{ displayName }}</p>
+      <p class="user-role">{{ displayRole }}</p>
+    </div>
+ 
+    <div class="user-menu" *ngIf="showUserMenu()" (click)="$event.stopPropagation()">
+      <button type="button" class="logout-item" (click)="logout()">Logout</button>
+    </div>
+  </div>
+</aside>

@@ -9,7 +9,7 @@ from app.database.connection import get_db
 from app.services.navigator.user_service import UserService
 from app.database.models.user import User
 from app.core.response_models import SuccessResponse
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 import logging
 
 logger = logging.getLogger(__name__)
@@ -40,14 +40,14 @@ class UserCreateRequest(BaseModel):
     role_id: int
     first_name: str
     last_name: str
-    email: EmailStr
+    email: str
     password: str
     phone: str | None = None
 
 
 class LoginRequest(BaseModel):
     """Request DTO for user login"""
-    email: EmailStr
+    email: str
     password: str
 
 
@@ -67,12 +67,22 @@ async def login_user(
     
     # Business logic handled in service layer
     login_data = service.login(login_request.email, login_request.password)
+
+    response_data = {
+        "userId": login_data.get("user_id"),
+        "email": login_data.get("email"),
+        "roleId": login_data.get("role_id"),
+        "roleName": login_data.get("role_name"),
+        "firstName": login_data.get("first_name"),
+        "lastName": login_data.get("last_name"),
+        "username": login_data.get("username"),
+    }
     
     # Return standardized success response
     return SuccessResponse(
         status="success",
         message="Login successful",
-        data=login_data
+        data=response_data
     )
 
 
@@ -199,4 +209,26 @@ async def get_active_users(db: Session = Depends(get_db)):
         status="success",
         message="Active users retrieved successfully",
         data={"users": users, "count": len(users)}
+    )
+
+
+@router.get("/by-role/{role_name}", response_model=SuccessResponse)
+async def get_active_users_by_role(role_name: str, db: Session = Depends(get_db)):
+    """Return active users for a role with contact details for care-team display."""
+    service = UserService(db)
+    users = service.get_active_users_by_role(role_name)
+    data = [
+        {
+            "user_id": user.user_id,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "phone": user.phone,
+            "role_name": role_name.upper(),
+        }
+        for user in users
+    ]
+    return SuccessResponse(
+        status="success",
+        message="Active role users retrieved successfully",
+        data={"users": data, "count": len(data)},
     )

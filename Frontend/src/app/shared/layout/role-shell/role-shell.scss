@@ -1,0 +1,42 @@
+.roles-layout {
+  height: 100vh;
+  display: flex;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.layout-main {
+  flex: 1;
+  margin-left: 230px;
+  height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  overflow: hidden;
+}
+
+.layout-content {
+  padding-left: 1rem;
+  padding-right: 1rem;
+  background: var(--surface);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+@media (max-width: 1100px) {
+  .roles-layout {
+    height: auto;
+    min-height: 100vh;
+    flex-direction: column;
+    overflow: visible;
+  }
+
+  .layout-main {
+    margin-left: 0;
+    height: auto;
+    overflow: visible;
+  }
+
+  .layout-content {
+    overflow: visible;
+  }
+}

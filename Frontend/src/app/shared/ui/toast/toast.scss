@@ -1,0 +1,53 @@
+:host {
+  pointer-events: none;
+}
+
+.toast-container {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-width: 280px;
+  max-width: 420px;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--radius-sm);
+  color: #ffffff;
+  box-shadow: var(--shadow-md);
+}
+
+.toast.success {
+  background: #2f855a;
+}
+
+.toast.error {
+  background: #c53030;
+}
+
+.toast.info {
+  background: var(--primary);
+}
+
+.toast.warning {
+  background: #b7791f;
+}
+
+.toast button {
+  min-width: 24px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.18);
+  color: inherit;
+}

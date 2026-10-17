@@ -7,6 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
 from urllib.parse import quote_plus
 from pathlib import Path
+from pydantic import field_validator
 
 
 BACKEND_ENV_FILE = Path(__file__).resolve().parents[1] / ".env"
@@ -38,6 +39,19 @@ class Settings(BaseSettings):
     # Server Configuration
     HOST: str = "0.0.0.0"
     PORT: int = 8000
+
+    # CORS Configuration
+    CORS_ALLOWED_ORIGINS: list[str] = ["http://localhost:4200", "http://127.0.0.1:4200"]
+    CORS_ALLOW_CREDENTIALS: bool = True
+    CORS_ALLOW_METHODS: list[str] = ["*"]
+    CORS_ALLOW_HEADERS: list[str] = ["*"]
+
+    @field_validator("CORS_ALLOWED_ORIGINS", mode="before")
+    @classmethod
+    def parse_cors_allowed_origins(cls, value: object) -> object:
+        if isinstance(value, str):
+            return [origin.strip() for origin in value.split(",") if origin.strip()]
+        return value
     
     model_config = SettingsConfigDict(
         env_file=str(BACKEND_ENV_FILE),

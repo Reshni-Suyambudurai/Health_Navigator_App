@@ -1,0 +1,166 @@
+
+<section class="my-patient-details-page">
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <a routerLink="/transitional-care-nurse/my-patient">
+      My Patients
+    </a>
+    <span aria-hidden="true">&gt;</span>
+    <span>Patient Details</span>
+  </nav>
+
+  <ng-container *ngIf="profile() as p">
+    <header class="page-head">
+      <div>
+        <h1>{{ patientName }}</h1>
+        <p class="page-kicker">Patient Overview</p>
+        <p>Patient ID: {{ p.patient_id }}</p>
+      </div>
+
+      <span
+        class="risk-badge"
+        *ngIf="p.risk_tier"
+        [attr.data-risk]="p.risk_tier.toLowerCase()">
+        {{ p.risk_tier }} Risk
+      </span>
+    </header>
+
+    <p class="state" *ngIf="loading()">
+      Loading patient details...
+    </p>
+
+    <p class="state error" *ngIf="!loading() && error()">
+      {{ error() }}
+    </p>
+
+    <div
+      class="details-grid"
+      *ngIf="!loading() && !error()">
+
+      <!-- Patient information -->
+      <section class="card">
+        <h2>Patient Information</h2>
+
+        <dl class="details-list">
+          <div>
+            <dt>Date of Birth</dt>
+            <dd>{{ p.date_of_birth || 'Not available' }}</dd>
+          </div>
+
+          <div>
+            <dt>Gender</dt>
+            <dd>{{ p.gender || 'Not available' }}</dd>
+          </div>
+
+          <div>
+            <dt>Preferred Language</dt>
+            <dd>{{ p.preferred_language || 'Not available' }}</dd>
+          </div>
+
+          <div>
+            <dt>Preferred Contact</dt>
+            <dd>
+              {{ p.preferred_contact_method || 'Not available' }}
+            </dd>
+          </div>
+
+          <div>
+            <dt>Emergency Contact</dt>
+            <dd>
+              {{ p.emergency_contact_name || 'Not available' }}
+            </dd>
+          </div>
+
+          <div>
+            <dt>Emergency Phone</dt>
+            <dd>
+              {{ p.emergency_contact_phone || 'Not available' }}
+            </dd>
+          </div>
+        </dl>
+      </section>
+
+      <!-- Relevant context summary -->
+      <section class="card">
+        <h2>Clinical Highlights</h2>
+
+        <table
+          class="ui-table"
+          *ngIf="summaryEntries.length > 0; else noSummary">
+          <thead>
+            <tr>
+              <th>Information</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of summaryEntries">
+              <td>{{ item[0] }}</td>
+              <td>{{ formatValue(item[1]) }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <ng-template #noSummary>
+          <p class="state">
+            No clinical highlights available.
+          </p>
+        </ng-template>
+      </section>
+
+      <!-- Conditions -->
+      <section class="card card-wide">
+        <h2>Conditions</h2>
+
+        <table class="ui-table" *ngIf="conditions().length > 0; else noConditions">
+          <thead>
+            <tr>
+              <th *ngFor="let column of conditionColumns">{{ column }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let condition of conditions()">
+              <td *ngFor="let column of conditionColumns">
+                <span [class]="statusClass(condition[column])">
+                  {{ recordValue(condition, column) }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <ng-template #noConditions>
+          <p class="state">No condition information available.</p>
+        </ng-template>
+      </section>
+
+      <!-- Medications -->
+      <section class="card card-wide">
+        <h2>Medications</h2>
+
+        <table class="ui-table" *ngIf="medications().length > 0; else noMedications">
+          <thead>
+            <tr>
+              <th *ngFor="let column of medicationColumns">{{ column }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let medication of medications()">
+              <td *ngFor="let column of medicationColumns">
+                <span [class]="statusClass(medication[column])">
+                  {{ recordValue(medication, column) }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <ng-template #noMedications>
+          <p class="state">
+            No medication information available.
+          </p>
+        </ng-template>
+      </section>
+
+    </div>
+  </ng-container>
+</section>

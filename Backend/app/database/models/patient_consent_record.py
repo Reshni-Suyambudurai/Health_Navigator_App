@@ -1,8 +1,30 @@
 """Patient consent record model."""
 
+import enum
 from sqlalchemy import Column, BigInteger, String, ForeignKey, TIMESTAMP
 from sqlalchemy.sql import func
 from app.database.connection import Base
+
+
+class ConsentType(enum.Enum):
+    AI_DISCLOSURE = "AI_DISCLOSURE"
+    AI_INTERACTION = "AI_INTERACTION"
+    OUTREACH = "OUTREACH"
+    DATA_USE = "DATA_USE"
+
+
+class ConsentStatus(enum.Enum):
+    ACCEPTED = "ACCEPTED"
+    DECLINED = "DECLINED"
+    REVOKED = "REVOKED"
+    PENDING = "PENDING"
+
+
+class CapturedChannel(enum.Enum):
+    PORTAL = "PORTAL"
+    SMS = "SMS"
+    PHONE = "PHONE"
+    IN_PERSON = "IN_PERSON"
 
 
 class PatientConsentRecord(Base):

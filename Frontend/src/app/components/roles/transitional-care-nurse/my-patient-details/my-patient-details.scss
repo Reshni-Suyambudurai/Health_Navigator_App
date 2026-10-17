@@ -1,0 +1,207 @@
+.my-patient-details-page {
+  display: grid;
+  gap: 1rem;
+}
+
+.page-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.page-head h1 {
+  margin: 0;
+  font-size: 1.45rem;
+}
+
+.page-head p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.page-head .page-kicker {
+  margin-top: 0.2rem;
+  color: var(--primary);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.risk-badge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 0.28rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.risk-badge[data-risk='low'] {
+  color: #147a46;
+  background: #e9f8ef;
+}
+
+.risk-badge[data-risk='medium'],
+.risk-badge[data-risk='moderate'] {
+  color: #8a6100;
+  background: #fff8db;
+}
+
+.risk-badge[data-risk='high'],
+.risk-badge[data-risk='critical'] {
+  color: #b42318;
+  background: #fdecec;
+}
+
+.risk-badge:not([data-risk='low']):not([data-risk='medium']):not([data-risk='moderate']):not([data-risk='high']):not([data-risk='critical']) {
+  color: var(--muted);
+  background: var(--surface);
+}
+
+:root[data-theme='dark'] .risk-badge[data-risk='low'] {
+  color: #98e3b4;
+  background: #203527;
+}
+
+:root[data-theme='dark'] .risk-badge[data-risk='medium'],
+:root[data-theme='dark'] .risk-badge[data-risk='moderate'] {
+  color: #f3d77a;
+  background: #40381b;
+}
+
+:root[data-theme='dark'] .risk-badge[data-risk='high'],
+:root[data-theme='dark'] .risk-badge[data-risk='critical'] {
+  color: #ffb4b4;
+  background: #422326;
+}
+
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.92rem;
+  color: var(--muted);
+}
+
+.breadcrumbs a {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.breadcrumbs a:hover {
+  text-decoration: underline;
+}
+
+.details-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(280px, 1fr));
+}
+
+.card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-strong);
+  padding: 1rem;
+  overflow: hidden;
+}
+
+.card-wide {
+  grid-column: 1 / -1;
+}
+
+.card h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+}
+
+.card dl {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.card dl div {
+  display: grid;
+  grid-template-columns: minmax(160px, 220px) 1fr;
+  gap: 0.6rem;
+}
+
+.card dt {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.card dd {
+  margin: 0;
+  color: var(--text);
+  word-break: break-word;
+}
+
+.chips {
+  margin: 0 0 0.75rem;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.24rem 0.65rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+  background: var(--surface);
+}
+
+.record-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0.75rem;
+}
+
+.record-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--table-bg);
+}
+
+.record-card .ui-table tbody td {
+  padding: 0.5rem 0.7rem;
+}
+
+.record-card .ui-table tbody td:first-child {
+  width: 38%;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.state {
+  margin: 0;
+  color: var(--muted);
+}
+
+.state.error {
+  color: #b42318;
+}
+
+@media (max-width: 760px) {
+  .page-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .card dl div {
+    grid-template-columns: 1fr;
+    gap: 0.2rem;
+  }
+}

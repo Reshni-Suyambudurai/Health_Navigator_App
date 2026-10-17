@@ -20,6 +20,45 @@ It supports:
 - Pydantic Settings
 - Uvicorn
 
+## Frontend Setup
+
+The frontend is an Angular 22 standalone application located in `Frontend/`.
+
+### 1. Prerequisites
+
+- Node.js and npm
+- Backend API running at `http://localhost:8000`
+
+### 2. Install frontend dependencies
+
+```powershell
+cd Frontend
+npm install
+```
+
+### 3. Run the development server
+
+```powershell
+npm start
+```
+
+Open `http://localhost:4200` in a browser. The development environment uses the API base URL:
+
+```text
+http://localhost:8000/api/v1
+```
+
+This is configured in `Frontend/src/environments/environment.development.ts`.
+
+### 4. Build and test
+
+```powershell
+npm run build
+npm test
+```
+
+Use `npm run build -- --configuration development` when validating a development build.
+
 ## Setup Instructions for Local and Monster Application DB
 
 ### 1. Prerequisites
@@ -93,17 +132,24 @@ cd backend
 
 ## Mock Data Credentials
 
-Default mock password used in seeded users:
+Seeded users and login password:
 
-- `Test@1234`
+| Email | Password | Role |
+|---|---|---|
+| `john.doe@example.com` | `Test@1234` | `PATIENT` |
+| `sarah.johnson@cityhospital.com` | `Test@1234` | `CARE_MANAGER` |
+| `michael.chen@communityclinic.com` | `Test@1234` | `TRANSITIONAL_CARE_NURSE` |
+| `emma.williams@midwesthealthcare.com` | `Test@1234` | `SYSTEM_ADMIN` |
+| `demo.admin@patientai.local` | `Test@1234` | `SYSTEM_ADMIN` |
+| `care.manager@patientai.local` | `Test@1234` | `CARE_MANAGER` |
+| `aguns790.2310@patientai.local` | `Test@1234` | `PATIENT` |
+| `bettyann83.3942@patientai.local` | `Test@1234` | `PATIENT` |
+| `carl856.5991@patientai.local` | `Test@1234` | `PATIENT` |
 
-Seeded workflow/demo users:
+Notes:
 
-- `demo.admin@patientai.local`
-- `care.manager@patientai.local`
-- `aguns790.2310@patientai.local`
-- `bettyann83.3942@patientai.local`
-- `carl856.5991@patientai.local`
+- Yes, all users above are intended to use the same password: `Test@1234`.
+- If your DB was seeded before bcrypt hash corrections, run migrations/refresh seed data or reset these users' `password_hash` values.
 
 ## Backend Folder Structure
 

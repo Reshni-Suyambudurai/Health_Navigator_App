@@ -1,7 +1,15 @@
 """Conversation message model."""
 
-from sqlalchemy import Column, BigInteger, String, Text, Boolean, ForeignKey, TIMESTAMP, Integer, Index, JSON
+import enum
+from sqlalchemy import Column, BigInteger, String, Text, Boolean, ForeignKey, TIMESTAMP, Integer, Index, JSON, Enum as SQLEnum
 from app.database.connection import Base
+
+
+class SenderType(enum.Enum):
+    PATIENT = "PATIENT"
+    AI = "AI"
+    STAFF = "STAFF"
+    SYSTEM = "SYSTEM"
 
 
 class ConversationMessage(Base):
@@ -9,7 +17,7 @@ class ConversationMessage(Base):
 
     message_id = Column(BigInteger, primary_key=True, index=True)
     thread_id = Column(BigInteger, ForeignKey("conversation_threads.thread_id", ondelete="CASCADE"), nullable=False, index=True)
-    sender_type = Column(String(20), nullable=False, index=True)
+    sender_type = Column(SQLEnum(SenderType, name="sender_type"), nullable=False, index=True)
     sender_user_id = Column(BigInteger, ForeignKey("users.user_id", ondelete="SET NULL"), index=True)
     ai_model_name = Column(String(80))
     ai_model_version = Column(String(40))

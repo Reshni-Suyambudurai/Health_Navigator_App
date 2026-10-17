@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from typing import Optional, List
 from app.database.repositories.navigator.user_repository import UserRepository
 from app.database.models.user import User, UserStatus
+from app.database.models.role import RoleName
 from app.core.exceptions import (
     AuthenticationException,
     AuthorizationException,
@@ -31,7 +32,7 @@ class UserService:
     def login(self, email: str, password: str) -> dict:
         """
         Login user - verify email, password, and active status
-        Returns: dict with role_id and username
+        Returns: dict with role and basic identity details for UI routing
         Raises: AuthenticationException, AuthorizationException
         """
         logger.info(f"Login attempt for email: {email}")
@@ -43,10 +44,22 @@ class UserService:
             logger.warning(f"Login failed: User not found for email {email}")
             raise AuthenticationException("Invalid email or password")
         
-        # Check if user is active
-        if user.status.value != "ACTIVE":
-            logger.warning(f"Login failed: User {email} is not active (status: {user.status.value})")
-            raise AuthorizationException("User account is not active")
+        # Check if user is active and return tailored account-status message.
+        if user.status != UserStatus.ACTIVE:
+            status_value = user.status.value
+            logger.warning(f"Login failed: User {email} is not active (status: {status_value})")
+
+            if user.status == UserStatus.INACTIVE:
+                raise AuthorizationException(
+                    "Your account is inactive. Please contact support or your administrator."
+                )
+
+            if user.status == UserStatus.SUSPENDED:
+                raise AuthorizationException(
+                    "Your account is suspended. Please contact support or your administrator."
+                )
+
+            raise AuthorizationException(f"Your account is not active (status: {status_value}).")
         
         # Verify password
         if not bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
@@ -54,10 +67,19 @@ class UserService:
             raise AuthenticationException("Invalid email or password")
         
         logger.info(f"Login successful for user: {email}")
+
+        role_name = None
+        if user.role and user.role.role_name:
+            role_name = user.role.role_name.value
         
         return {
+            "user_id": user.user_id,
+            "email": user.email,
             "role_id": user.role_id,
-            "username": f"{user.first_name} {user.last_name}"
+            "role_name": role_name,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "username": f"{user.first_name} {user.last_name}",
         }
     
     def get_user_by_id(self, user_id: int) -> Optional[User]:
@@ -158,3 +180,12 @@ class UserService:
         """
         logger.info("Fetching all active users")
         return self.repository.find_by_status(UserStatus.ACTIVE)
+
+    def get_active_users_by_role(self, role_name: str) -> List[User]:
+        """Return active users for a validated role name."""
+        try:
+            role = RoleName(role_name.upper())
+        except ValueError as exc:
+            raise NotFoundException("Role not found", "ROLE_NOT_FOUND") from exc
+
+        return self.repository.find_active_by_role(role)
