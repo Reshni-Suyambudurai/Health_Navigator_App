@@ -216,3 +216,37 @@ backend/
 ├── requirements.txt
 └── .env
 ```
+
+## Frontend Folder Structure
+
+```text
+Frontend/
+├── angular.json                         # Angular workspace configuration
+├── package.json                          # npm scripts and dependencies
+├── public/                               # Static public assets
+└── src/
+	├── environments/                     # API and build environment settings
+	├── main.ts                            # Angular bootstrap entry point
+	├── styles.scss                        # Shared theme, dark mode, tables, and UI styles
+	└── app/
+		├── api/
+		│   ├── navigator/                # Navigator API clients
+		│   ├── patientfhir/              # Patient FHIR API clients
+		│   └── tokenstore.ts             # Session and local-storage access
+		├── components/
+		│   └── roles/                    # Role-specific screens and components
+		├── shared/
+		│   ├── layout/                   # Shell, sidebar, navbar, and shared layout
+		│   ├── types/                    # Shared API and domain interfaces
+		│   ├── ui/                       # Toasts and reusable UI components
+		│   └── utils/                    # Theme and routing utilities
+		├── app.config.ts                 # Application providers
+		└── app.ts                         # Root component and application routes
+```
+
+Frontend conventions:
+
+- Keep API calls in `src/app/api/` and related interfaces in `src/app/shared/types/`.
+- Place role-specific components under `src/app/components/roles/<role-name>/`.
+- Reuse `src/styles.scss`, the shared toast service, and `tokenstore.ts`.
+- Add routes in `src/app/app.ts`.
