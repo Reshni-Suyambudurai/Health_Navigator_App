@@ -21,6 +21,8 @@ class OrganizationType(enum.Enum):
     HEALTHCARE_GROUP = "HEALTHCARE_GROUP"
     PHARMACY = "PHARMACY"
     HEALTH_PLAN = "HEALTH_PLAN"
+    PAYER = "PAYER"
+    ACO = "ACO"
 
 
 class Organization(Base):
@@ -32,10 +34,12 @@ class Organization(Base):
     organization_id = Column(BigInteger, primary_key=True, index=True)
     organization_name = Column(String(255), nullable=False, unique=True)
     organization_type = Column(SQLEnum(OrganizationType, name="organization_type"), nullable=False)
+    npi_number = Column(String(20), index=True)
     address = Column(String(500))
     phone = Column(String(20))
     status = Column(SQLEnum(OrganizationStatus, name="organization_status"), nullable=False, default=OrganizationStatus.ACTIVE)
     created_at = Column(TIMESTAMP, nullable=False, server_default=func.current_timestamp())
+    updated_at = Column(TIMESTAMP, nullable=False, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
 
     def __repr__(self):
         return f"<Organization(id={self.organization_id}, name='{self.organization_name}', type={self.organization_type})>"

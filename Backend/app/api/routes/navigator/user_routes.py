@@ -5,9 +5,8 @@ Similar to Spring Boot's @RestController
 
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
-from typing import List
 from app.database.connection import get_db
-from app.services.user_service import UserService
+from app.services.navigator.user_service import UserService
 from app.database.models.user import User
 from app.core.response_models import SuccessResponse
 from pydantic import BaseModel, EmailStr
@@ -149,7 +148,7 @@ async def create_user(
         first_name=user_request.first_name,
         last_name=user_request.last_name,
         email=user_request.email,
-        password_hash=user_request.password,  # Should be hashed in production
+        password_hash=user_request.password,
         phone=user_request.phone
     )
     

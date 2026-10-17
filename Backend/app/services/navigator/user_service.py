@@ -5,13 +5,12 @@ Similar to Spring Boot's @Service
 
 from sqlalchemy.orm import Session
 from typing import Optional, List
-from app.database.repositories.user_repository import UserRepository
-from app.database.models.user import User
+from app.database.repositories.navigator.user_repository import UserRepository
+from app.database.models.user import User, UserStatus
 from app.core.exceptions import (
     AuthenticationException,
     AuthorizationException,
     NotFoundException,
-    ValidationException,
     ConflictException
 )
 import bcrypt
@@ -71,7 +70,7 @@ class UserService:
         
         if not user:
             logger.warning(f"User not found: {user_id}")
-            return None
+            raise NotFoundException("User not found", "USER_NOT_FOUND")
         
         return user
     
@@ -101,7 +100,13 @@ class UserService:
         # Business logic: Check if email already exists
         if self.repository.exists_by_email(user.email):
             logger.error(f"Email already exists: {user.email}")
-            raise ValueError(f"User with email {user.email} already exists")
+            raise ConflictException("User with this email already exists", "USER_EMAIL_EXISTS")
+
+        # Hash password before persisting
+        user.password_hash = bcrypt.hashpw(
+            user.password_hash.encode("utf-8"),
+            bcrypt.gensalt()
+        ).decode("utf-8")
         
         # Save user
         created_user = self.repository.save(user)

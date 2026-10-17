@@ -12,8 +12,9 @@ from alembic import context
 # Add parent directory to Python path so we can import app modules
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-# Load environment variables from .env
-load_dotenv()
+# Load environment variables from backend/.env regardless of CWD
+backend_env = Path(__file__).resolve().parent.parent / ".env"
+load_dotenv(dotenv_path=backend_env)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -22,7 +23,8 @@ config = context.config
 # Set sqlalchemy.url from environment variable
 database_url = os.getenv("DATABASE_URL")
 if database_url:
-    config.set_main_option("sqlalchemy.url", database_url)
+    # Alembic uses ConfigParser interpolation, so percent signs must be escaped.
+    config.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
@@ -37,6 +39,23 @@ from app.database.models.user import User
 from app.database.models.patient_profile import PatientProfile
 from app.database.models.staff_profile import StaffProfile
 from app.database.models.audit_log import AuditLog
+from app.database.models.patient_consent_record import PatientConsentRecord
+from app.database.models.patient_enrollment import PatientEnrollment
+from app.database.models.care_navigation_episode import CareNavigationEpisode
+from app.database.models.conversation_thread import ConversationThread
+from app.database.models.conversation_message import ConversationMessage
+from app.database.models.clinical_guardrail import ClinicalGuardrail
+from app.database.models.clinical_guardrail_rule import ClinicalGuardrailRule
+from app.database.models.conversation_guardrail_hit import ConversationGuardrailHit
+from app.database.models.emergency_event import EmergencyEvent
+from app.database.models.care_team_queue import CareTeamQueue
+from app.database.models.queue_membership import QueueMembership
+from app.database.models.escalation import Escalation
+from app.database.models.escalation_assignment import EscalationAssignment
+from app.database.models.escalation_action import EscalationAction
+from app.database.models.outreach_campaign import OutreachCampaign
+from app.database.models.outreach_workflow import OutreachWorkflow
+from app.database.models.outreach_event import OutreachEvent
 
 target_metadata = Base.metadata
 

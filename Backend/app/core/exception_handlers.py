@@ -9,7 +9,8 @@ from app.core.exceptions import (
     AuthorizationException,
     NotFoundException,
     ValidationException,
-    ConflictException
+    ConflictException,
+    PatientFHIRException
 )
 from app.core.response_models import ErrorResponse
 import logging
@@ -82,6 +83,19 @@ async def conflict_exception_handler(request: Request, exc: ConflictException):
     )
 
 
+async def patient_fhir_exception_handler(request: Request, exc: PatientFHIRException):
+    """Handle PatientFHIR source exceptions (503)"""
+    logger.error(f"PatientFHIR source error: {exc.message}")
+    return JSONResponse(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        content=ErrorResponse(
+            status="error",
+            message=exc.message,
+            error_code=exc.error_code
+        ).model_dump()
+    )
+
+
 def register_exception_handlers(app):
     """Register all exception handlers with FastAPI app"""
     app.add_exception_handler(AuthenticationException, authentication_exception_handler)
@@ -89,5 +103,6 @@ def register_exception_handlers(app):
     app.add_exception_handler(NotFoundException, not_found_exception_handler)
     app.add_exception_handler(ValidationException, validation_exception_handler)
     app.add_exception_handler(ConflictException, conflict_exception_handler)
+    app.add_exception_handler(PatientFHIRException, patient_fhir_exception_handler)
     
     logger.info("Global exception handlers registered")

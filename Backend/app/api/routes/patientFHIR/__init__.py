@@ -1,0 +1,3 @@
+"""
+PatientFHIR API route package.
+"""

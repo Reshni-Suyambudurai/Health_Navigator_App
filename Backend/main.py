@@ -2,12 +2,17 @@
 FastAPI main application entry point for Patient AI Health Navigator
 """
 
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, status
 from fastapi.responses import JSONResponse
 from app.config import settings
 from app.utils.logger import setup_logging
-from app.database.connection import check_database_connection
-from app.api.routes import user_routes  # Import user routes
+from app.database.connection import check_database_connection, check_monster_database_connection
+from app.api.routes.navigator import user_routes
+from app.api.routes.navigator import patient_profile_routes
+from app.api.routes.navigator import patient_consent_record_routes
+from app.api.routes.navigator import patient_enrollment_routes
+from app.api.routes.patientFHIR import patient_fhir_routes
 from app.core.exception_handlers import register_exception_handlers  # Import exception handlers
 import logging
 
@@ -15,12 +20,39 @@ import logging
 setup_logging()
 logger = logging.getLogger(__name__)
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifecycle handler for startup/shutdown logic."""
+    logger.info(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}")
+
+    # Check local application DB connection
+    if check_database_connection():
+        logger.info("Database connection verified")
+    else:
+        logger.error("Database connection failed - application may not function properly")
+
+    # Check Monster DB connection (read-only patient FHIR source)
+    if check_monster_database_connection():
+        logger.info("Monster database connection verified")
+    else:
+        logger.warning("Monster database connection unavailable - PatientFHIR endpoints may not function")
+
+    yield
+
+    logger.info(f"Shutting down {settings.APP_NAME}")
+
+
 # Create FastAPI application
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
     description="Patient AI Health Navigator - Backend API for between-visit patient support",
-    debug=settings.DEBUG
+    debug=settings.DEBUG,
+    lifespan=lifespan,
+    openapi_url="/openapi.json",
+    docs_url="/docs",
+    redoc_url="/redoc",
 )
 
 # Register global exception handlers
@@ -28,27 +60,10 @@ register_exception_handlers(app)
 
 # Include API routers
 app.include_router(user_routes.router, prefix="/api/v1")
-
-@app.on_event("startup")
-async def startup_event():
-    """
-    Application startup event
-    """
-    logger.info(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}")
-    
-    # Check database connection
-    if check_database_connection():
-        logger.info("Database connection verified")
-    else:
-        logger.error("Database connection failed - application may not function properly")
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """
-    Application shutdown event
-    """
-    logger.info(f"Shutting down {settings.APP_NAME}")
+app.include_router(patient_profile_routes.router, prefix="/api/v1")
+app.include_router(patient_consent_record_routes.router, prefix="/api/v1")
+app.include_router(patient_enrollment_routes.router, prefix="/api/v1")
+app.include_router(patient_fhir_routes.router, prefix="/api/v1")
 
 
 @app.get("/", tags=["Health"])

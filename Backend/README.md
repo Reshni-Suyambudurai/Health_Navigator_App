@@ -1,209 +1,172 @@
 # Patient AI Health Navigator - Backend
 
-Backend API for the Patient AI Health Navigator system - a healthcare care-navigation platform providing between-visit patient support.
+## Objective
+
+This backend provides APIs and data workflows for patient care-navigation.
+It supports:
+
+- authentication and user management
+- patient navigation workflows (episodes, threads, guardrails, escalations, outreach)
+- dual database usage:
+	- application DB for platform data
+	- Monster/FHIR source DB for patientFHIR read access
 
 ## Tech Stack
 
-- **FastAPI 0.115.0** - Modern web framework for building APIs
-- **SQLAlchemy 2.0.35** - SQL toolkit and ORM
-- **PostgreSQL** - Relational database
-- **Alembic 1.13.2** - Database migration tool
-- **Pydantic** - Data validation
-- **Uvicorn** - ASGI server
+- FastAPI
+- SQLAlchemy
+- PostgreSQL
+- Alembic
+- Pydantic Settings
+- Uvicorn
 
-## Project Structure
+## Setup Instructions for Local and Monster Application DB
 
+### 1. Prerequisites
+
+- Python 3.12+
+- PostgreSQL access (local and/or cloud)
+- Virtual environment created at project root (`.venv`)
+
+### 2. Install dependencies
+
+```powershell
+cd backend
+../.venv/Scripts/python.exe -m pip install -r requirements.txt
 ```
+
+### 3. Configure `DATABASE_URL` in `.env`
+
+Create `.env` from template first:
+
+```powershell
+copy .env.example .env
+```
+
+Only one `DATABASE_URL` should be active (uncommented) at a time.
+
+Local application DB:
+
+```env
+DATABASE_URL=postgresql://<local_user>:<local_password>@localhost:5432/patientnavigator
+```
+
+Monster/cloud application DB:
+
+```env
+DATABASE_URL=postgresql://db74082:F-y96bP%23R3_e@db74082.public.databaseasp.net:5432/db74082?sslmode=prefer
+```
+
+If using local DB, create local PostgreSQL database and user before migrations:
+
+```sql
+CREATE USER <local_user> WITH PASSWORD '<local_password>';
+CREATE DATABASE patientnavigator OWNER <local_user>;
+GRANT ALL PRIVILEGES ON DATABASE patientnavigator TO <local_user>;
+```
+
+### 4. Run migrations for whichever DB is enabled
+
+```powershell
+cd backend
+../.venv/Scripts/python.exe -m alembic -c alembic.ini upgrade head
+../.venv/Scripts/python.exe -m alembic -c alembic.ini current
+```
+
+Notes:
+
+- migrations are idempotent where `ON CONFLICT` is used in seed scripts
+- Alembic `env.py` handles URL escaping for encoded passwords (e.g. `%23`)
+
+### 5. Run backend API
+
+```powershell
+cd backend
+../.venv/Scripts/python.exe main.py
+```
+
+## Swagger
+
+- Swagger UI: `http://localhost:8000/docs`
+- OpenAPI JSON: `http://localhost:8000/openapi.json`
+- ReDoc: `http://localhost:8000/redoc`
+
+## Mock Data Credentials
+
+Default mock password used in seeded users:
+
+- `Test@1234`
+
+Seeded workflow/demo users:
+
+- `demo.admin@patientai.local`
+- `care.manager@patientai.local`
+- `aguns790.2310@patientai.local`
+- `bettyann83.3942@patientai.local`
+- `carl856.5991@patientai.local`
+
+## Backend Folder Structure
+
+```text
 backend/
-├── alembic/                         # Alembic migration environment
-│   ├── versions/                    # Migration version files
+├── alembic/                                  # Alembic migration environment
+│   ├── versions/                             # Migration version files
 │   │   ├── ba266a56e651_initial_schema_with_auth_tables.py
-│   │   └── 880a89792d14_insert_mock_data.py
-│   ├── env.py                       # Migration environment config
-│   ├── README                       # Alembic instructions
-│   └── script.py.mako              # Migration template
+│   │   ├── 880a89792d14_insert_mock_data.py
+│   │   ├── c3f7a91d2b10_expand_schema_to_dbml_models.py
+│   │   └── e8a6c1f4b2d3_seed_app_data_from_patient_fhir.py
+│   ├── env.py                                # Migration environment config
+│   ├── README                                # Alembic instructions
+│   └── script.py.mako                        # Migration template
 ├── app/
 │   ├── __init__.py
-│   ├── config.py                    # Configuration management
+│   ├── config.py                             # Configuration management
 │   ├── api/
 │   │   ├── __init__.py
 │   │   └── routes/
 │   │       ├── __init__.py
-│   │       └── user_routes.py       # User/auth endpoints
+│   │       ├── user_routes.py                # User/auth endpoints
+│   │       └── patientFHIR/                  # PatientFHIR route modules
 │   ├── core/
 │   │   ├── __init__.py
-│   │   ├── exceptions.py            # Custom exception classes
-│   │   ├── exception_handlers.py   # Global exception handlers
-│   │   └── response_models.py      # Standardized response formats
+│   │   ├── exceptions.py                     # Custom exception classes
+│   │   ├── exception_handlers.py             # Global exception handlers
+│   │   └── response_models.py                # Standardized response formats
 │   ├── database/
 │   │   ├── __init__.py
-│   │   ├── connection.py            # Database connection and session
-│   │   ├── models/                  # SQLAlchemy models
+│   │   ├── connection.py                     # Database engines and session management
+│   │   ├── models/                           # SQLAlchemy models (one table per file)
 │   │   │   ├── __init__.py
 │   │   │   ├── organization.py
 │   │   │   ├── role.py
 │   │   │   ├── user.py
 │   │   │   ├── patient_profile.py
 │   │   │   ├── staff_profile.py
-│   │   │   └── audit_log.py
-│   │   └── repositories/            # Data access layer
-│   │       ├── __init__.py
-│   │       └── user_repository.py
-│   ├── services/                    # Business logic layer
-│   │   ├── __init__.py
-│   │   └── user_service.py
-│   └── utils/
-│       ├── __init__.py
-│       └── logger.py                # Logging configuration
+│   │   │   ├── audit_log.py
+│   │   │   ├── patient_consent_record.py
+│   │   │   ├── patient_enrollment.py
+│   │   │   ├── care_navigation_episode.py
+│   │   │   ├── conversation_thread.py
+│   │   │   ├── conversation_message.py
+│   │   │   ├── clinical_guardrail.py
+│   │   │   ├── clinical_guardrail_rule.py
+│   │   │   ├── conversation_guardrail_hit.py
+│   │   │   ├── emergency_event.py
+│   │   │   ├── care_team_queue.py
+│   │   │   ├── queue_membership.py
+│   │   │   ├── escalation.py
+│   │   │   ├── escalation_assignment.py
+│   │   │   ├── escalation_action.py
+│   │   │   ├── outreach_campaign.py
+│   │   │   ├── outreach_workflow.py
+│   │   │   └── outreach_event.py
+│   │   └── repositories/                     # Data access layer
+│   ├── services/                             # Business logic layer
+│   └── utils/                                # Utility modules (logging/helpers)
 ├── tests/
 │   └── __init__.py
-├── .claude.md                       # Architecture instructions for AI
-├── .env.example                     # Environment variables template
-├── .gitignore
-├── alembic.ini                      # Alembic configuration file
-├── main.py                          # Application entry point
+├── alembic.ini                               # Alembic configuration file
+├── main.py                                   # Application entry point
 ├── requirements.txt
-└── README.md
+└── .env
 ```
-
-## Setup Instructions
-
-### 1. Prerequisites
-
-- **Python 3.8+** installed
-- **PostgreSQL** installed and running
-- **Git** for version control
-
-### 2. Clone Repository
-
-```powershell
-git clone <repository-url>
-cd Patient_Health_Analyzer_PoC/backend
-```
-
-### 3. Create Virtual Environment
-
-```powershell
-# Create virtual environment
-python -m venv venv
-
-# Activate virtual environment (PowerShell)
-.\venv\Scripts\Activate.ps1
-
-# Or for Command Prompt
-.\venv\Scripts\activate.bat
-```
-
-### 4. Install Dependencies
-
-```powershell
-pip install -r requirements.txt
-```
-
-### 5. Configure Environment Variables
-
-```powershell
-# Copy the example environment file
-copy .env.example .env
-
-# Edit .env with your actual database credentials
-notepad .env
-```
-
-**Update the following in your `.env` file:**
-```env
-DATABASE_URL=postgresql://your_username:your_password@localhost:5432/your_database_name
-APP_NAME="Patient AI Health Navigator"
-APP_VERSION="0.1.0"
-DEBUG=True
-LOG_LEVEL=INFO
-HOST=localhost
-PORT=8000
-```
-
-**IMPORTANT**: 
-- The `DATABASE_URL` is **required** and must be set in your `.env` file
-- Never commit your `.env` file to Git (it's already in `.gitignore`)
-- Use `.env.example` as a template for what variables are needed
-
-### 6. Initialize Database with Alembic
-
-```powershell
-# Run all pending migrations (creates tables + inserts mock data)
-alembic upgrade head
-```
-
-**What this does:**
-- ✅ Creates all database tables with proper constraints
-- ✅ Sets up enum types for status fields
-- ✅ Inserts mock data (4 rows per table)
-- ✅ Sets up database triggers for auto-updating timestamps
-
-### 7. Verify Setup
-
-```powershell
-# Start the application
-python main.py
-
-# Or with uvicorn directly
-uvicorn main:app --reload --host localhost --port 8000
-```
-
-Access the API documentation at: http://localhost:8000/docs
-
-## Running the Application
-
-### Development Mode (with auto-reload)
-
-```powershell
-# Make sure virtual environment is activated
-python main.py
-```
-
-Or using uvicorn directly:
-```powershell
-uvicorn main:app --reload --host localhost --port 8000
-```
-
-### Access the Application
-
-- **API**: http://localhost:8000
-- **API Documentation (Swagger)**: http://localhost:8000/docs
-- **Alternative Documentation (ReDoc)**: http://localhost:8000/redoc
-
-## API Endpoints
-
-### Health Check Endpoints
-
-- `GET /` - Root endpoint with basic application info
-- `GET /health` - Health check endpoint with database status
-
-### User/Auth Endpoints
-
-- `POST /api/v1/users/login` - User login (email + password)
-- `GET /api/v1/users/{user_id}` - Get user by ID
-- `GET /api/v1/users/` - Get all users (with pagination)
-- `POST /api/v1/users/` - Create new user
-- `DELETE /api/v1/users/{user_id}` - Delete user
-- `GET /api/v1/users/status/active` - Get all active users
-
-## Database Schema
-
-The application uses 6 main tables:
-
-1. **organizations** - Healthcare organizations (4 mock rows)
-2. **roles** - User roles - 9 types aligned with BRD
-3. **users** - All system users (4 mock rows: 1 patient + 3 staff)
-4. **patient_profiles** - Extended patient information (1 mock row)
-5. **staff_profiles** - Extended staff information (3 mock rows)
-6. **audit_logs** - Audit trail for system actions (4 mock rows)
-
-### Mock Data Credentials
-
-All mock users have the same password: **`Test@1234`**
-
-Mock users:
-- **Patient**: john.doe@example.com
-- **Care Manager**: sarah.johnson@cityhospital.com
-- **Transitional Care Nurse**: michael.chen@communityclinic.com
-- **System Admin**: emma.williams@midwesthealthcare.com

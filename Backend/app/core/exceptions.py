@@ -38,3 +38,9 @@ class ConflictException(BaseAPIException):
     """Raised when there's a conflict (409 Conflict)"""
     def __init__(self, message: str = "Resource conflict", error_code: str = "CONFLICT"):
         super().__init__(message, error_code)
+
+
+class PatientFHIRException(BaseAPIException):
+    """Raised for PatientFHIR/Monster DB access failures (503 Service Unavailable)."""
+    def __init__(self, message: str = "PatientFHIR data source unavailable", error_code: str = "PATIENT_FHIR_001"):
+        super().__init__(message, error_code)
