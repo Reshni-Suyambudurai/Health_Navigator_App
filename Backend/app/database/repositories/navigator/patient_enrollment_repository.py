@@ -2,7 +2,10 @@
 
 from typing import List, Optional
 from sqlalchemy.orm import Session
+from app.database.models.care_navigation_episode import CareNavigationEpisode
 from app.database.models.patient_enrollment import PatientEnrollment
+from app.database.models.patient_profile import PatientProfile
+from app.database.models.user import User
 
 
 class PatientEnrollmentRepository:
@@ -22,6 +25,33 @@ class PatientEnrollmentRepository:
 
     def find_all(self, organization_id: Optional[int] = None, status: Optional[str] = None, skip: int = 0, limit: int = 100) -> List[PatientEnrollment]:
         query = self.db.query(PatientEnrollment)
+        if organization_id is not None:
+            query = query.filter(PatientEnrollment.organization_id == organization_id)
+        if status:
+            query = query.filter(PatientEnrollment.enrollment_status == status)
+        return query.order_by(PatientEnrollment.created_at.desc()).offset(skip).limit(limit).all()
+
+    def find_all_with_details(
+        self,
+        organization_id: Optional[int] = None,
+        status: Optional[str] = None,
+        skip: int = 0,
+        limit: int = 100,
+    ):
+        query = (
+            self.db.query(
+                PatientEnrollment,
+                User.first_name,
+                User.last_name,
+                CareNavigationEpisode.episode_type,
+            )
+            .join(PatientProfile, PatientProfile.patient_id == PatientEnrollment.patient_id)
+            .join(User, User.user_id == PatientProfile.user_id)
+            .outerjoin(
+                CareNavigationEpisode,
+                CareNavigationEpisode.enrollment_id == PatientEnrollment.enrollment_id,
+            )
+        )
         if organization_id is not None:
             query = query.filter(PatientEnrollment.organization_id == organization_id)
         if status:

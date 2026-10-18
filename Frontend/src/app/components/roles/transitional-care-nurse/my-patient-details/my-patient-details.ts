@@ -1,12 +1,13 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { forkJoin, of } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
 import { PatientProfileApi } from '../../../../api/navigator/patient-profile.api';
 import { FhirDataApi } from '../../../../api/patientfhir/fhir.data.api';
 import { PatientProfileRecord } from '../../../../shared/types/navigator/patient-profile';
 import { FhirRecord } from '../../../../shared/types/patientfhir/fhir';
+import { Breadcrumb, BreadcrumbItem } from '../../../../shared/ui/breadcrumb/breadcrumb';
 import { ToastState } from '../../../../shared/ui/toast/toast-state';
 
 type NullableApiResponse = { data?: FhirRecord | { conditions?: FhirRecord[]; medications?: FhirRecord[] } } | null;
@@ -20,7 +21,7 @@ interface PatientDetailsBundle {
 
 @Component({
   selector: 'app-my-patient-details',
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, Breadcrumb],
   templateUrl: './my-patient-details.html',
   styleUrl: './my-patient-details.scss',
 })
@@ -37,6 +38,10 @@ export class MyPatientDetails implements OnInit {
   readonly patientContextSummary = signal<FhirRecord | null>(null);
   readonly conditions = signal<FhirRecord[]>([]);
   readonly medications = signal<FhirRecord[]>([]);
+  readonly breadcrumbs: BreadcrumbItem[] = [
+    { label: 'My Patients', route: '/transitional-care-nurse/my-patient' },
+    { label: 'Patient Details' },
+  ];
 
   ngOnInit(): void {
     const patientIdParam = this.route.snapshot.paramMap.get('patientId');

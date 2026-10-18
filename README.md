@@ -241,7 +241,8 @@ Frontend/
 		│   ├── ui/                       # Toasts and reusable UI components
 		│   └── utils/                    # Theme and routing utilities
 		├── app.config.ts                 # Application providers
-		└── app.ts                         # Root component and application routes
+		├── app.routes.ts                 # Application routes
+		└── app.ts                         # Root application component
 ```
 
 Frontend conventions:
@@ -249,4 +250,4 @@ Frontend conventions:
 - Keep API calls in `src/app/api/` and related interfaces in `src/app/shared/types/`.
 - Place role-specific components under `src/app/components/roles/<role-name>/`.
 - Reuse `src/styles.scss`, the shared toast service, and `tokenstore.ts`.
-- Add routes in `src/app/app.ts`.
+- Add routes in `src/app/app.routes.ts`.

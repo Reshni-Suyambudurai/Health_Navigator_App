@@ -7,10 +7,13 @@ export interface ApiSuccessResponse<TData> {
 export interface PatientEnrollmentRecord {
   enrollment_id: number;
   patient_id: number;
+  first_name: string;
+  last_name: string;
   organization_id: number;
   enrollment_program: string;
   enrollment_status: string;
   enrollment_date: string | null;
+  episode_type: string | null;
 }
 
 export interface PatientEnrollmentListData {

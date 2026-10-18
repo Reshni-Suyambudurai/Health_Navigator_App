@@ -74,7 +74,7 @@ async def list_patient_enrollments(
     db: Session = Depends(get_db),
 ):
     service = PatientEnrollmentService(db)
-    enrollments = service.list_enrollments(
+    enrollments = service.list_enrollments_with_details(
         organization_id=organization_id,
         status=status_filter,
         skip=skip,
@@ -84,12 +84,15 @@ async def list_patient_enrollments(
         {
             "enrollment_id": enrollment.enrollment_id,
             "patient_id": enrollment.patient_id,
+            "first_name": first_name,
+            "last_name": last_name,
             "organization_id": enrollment.organization_id,
             "enrollment_program": enrollment.enrollment_program,
             "enrollment_status": enrollment.enrollment_status,
             "enrollment_date": enrollment.enrollment_date.isoformat() if enrollment.enrollment_date else None,
+            "episode_type": episode_type.value if episode_type else None,
         }
-        for enrollment in enrollments
+        for enrollment, first_name, last_name, episode_type in enrollments
     ]
     return SuccessResponse(
         status="success",

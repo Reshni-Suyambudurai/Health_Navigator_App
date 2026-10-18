@@ -1,0 +1,13 @@
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <ng-container *ngFor="let item of items(); let last = last">
+    <a *ngIf="item.route && !last; else currentItem" [routerLink]="item.route">
+      {{ item.label }}
+    </a>
+
+    <ng-template #currentItem>
+      <span [attr.aria-current]="last ? 'page' : null">{{ item.label }}</span>
+    </ng-template>
+
+    <span *ngIf="!last" class="breadcrumb__separator" aria-hidden="true">&gt;</span>
+  </ng-container>
+</nav>

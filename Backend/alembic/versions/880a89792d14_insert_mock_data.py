@@ -45,10 +45,10 @@ def upgrade() -> None:
     # Insert Users - Password for all: "Test@1234" (bcrypt hashed)
     op.execute("""
         INSERT INTO users (organization_id, role_id, first_name, last_name, email, password_hash, phone, status, is_verified) VALUES
-        (1, 1, 'John', 'Doe', 'john.doe@example.com', '$2b$12$fcCsO5fiP.3a6OXPnSuJoeJTqrLlGFEty.k4Uf0DMMG8uMdiY03f2', '555-1001', 'ACTIVE', TRUE),
-        (1, 2, 'Sarah', 'Johnson', 'sarah.johnson@cityhospital.com', '$2b$12$fcCsO5fiP.3a6OXPnSuJoeJTqrLlGFEty.k4Uf0DMMG8uMdiY03f2', '555-1002', 'ACTIVE', TRUE),
-        (2, 3, 'Michael', 'Chen', 'michael.chen@communityclinic.com', '$2b$12$fcCsO5fiP.3a6OXPnSuJoeJTqrLlGFEty.k4Uf0DMMG8uMdiY03f2', '555-1003', 'ACTIVE', TRUE),
-        (3, 9, 'Emma', 'Williams', 'emma.williams@midwesthealthcare.com', '$2b$12$fcCsO5fiP.3a6OXPnSuJoeJTqrLlGFEty.k4Uf0DMMG8uMdiY03f2', '555-1004', 'ACTIVE', TRUE)
+        (1, 1, 'John', 'Doe', 'john.doe@example.com', '$2b$12$V12E2/Wv1pmO2pQo/dUW/uR/3QpaluMOXPREt3TyJEcwEly/8jNcS', '555-1001', 'ACTIVE', TRUE),
+        (1, 2, 'Sarah', 'Johnson', 'sarah.johnson@cityhospital.com', '$2b$12$V12E2/Wv1pmO2pQo/dUW/uR/3QpaluMOXPREt3TyJEcwEly/8jNcS', '555-1002', 'ACTIVE', TRUE),
+        (2, 3, 'Michael', 'Chen', 'michael.chen@communityclinic.com', '$2b$12$V12E2/Wv1pmO2pQo/dUW/uR/3QpaluMOXPREt3TyJEcwEly/8jNcS', '555-1003', 'ACTIVE', TRUE),
+        (3, 9, 'Emma', 'Williams', 'emma.williams@midwesthealthcare.com', '$2b$12$V12E2/Wv1pmO2pQo/dUW/uR/3QpaluMOXPREt3TyJEcwEly/8jNcS', '555-1004', 'ACTIVE', TRUE)
     """)
     
     # Insert Patient Profile

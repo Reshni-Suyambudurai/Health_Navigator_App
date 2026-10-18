@@ -55,7 +55,7 @@ def upgrade() -> None:
             'Demo',
             'Admin',
             'demo.admin@patientai.local',
-            '$2b$12$fcCsO5fiP.3a6OXPnSuJoeJTqrLlGFEty.k4Uf0DMMG8uMdiY03f2',
+            '$2b$12$V12E2/Wv1pmO2pQo/dUW/uR/3QpaluMOXPREt3TyJEcwEly/8jNcS',
             '555-1100',
             'ACTIVE',
             TRUE
@@ -81,7 +81,7 @@ def upgrade() -> None:
             'Care',
             'Manager',
             'care.manager@patientai.local',
-            '$2b$12$fcCsO5fiP.3a6OXPnSuJoeJTqrLlGFEty.k4Uf0DMMG8uMdiY03f2',
+            '$2b$12$V12E2/Wv1pmO2pQo/dUW/uR/3QpaluMOXPREt3TyJEcwEly/8jNcS',
             '555-1200',
             'ACTIVE',
             TRUE
@@ -120,7 +120,7 @@ def upgrade() -> None:
             user_id, organization_id, role_id, first_name, last_name, email, password_hash, phone, status, is_verified
         )
         SELECT 910001, o.organization_id, r.role_id, 'Agnus790', 'Brown30', 'aguns790.2310@patientai.local',
-             '$2b$12$fcCsO5fiP.3a6OXPnSuJoeJTqrLlGFEty.k4Uf0DMMG8uMdiY03f2', '555-886-8907', 'ACTIVE', TRUE
+             '$2b$12$V12E2/Wv1pmO2pQo/dUW/uR/3QpaluMOXPREt3TyJEcwEly/8jNcS', '555-886-8907', 'ACTIVE', TRUE
         FROM organizations o
         JOIN roles r ON r.role_name = 'PATIENT'
         WHERE o.organization_name = 'Patient AI Demo Org'
@@ -130,7 +130,7 @@ def upgrade() -> None:
             user_id, organization_id, role_id, first_name, last_name, email, password_hash, phone, status, is_verified
         )
         SELECT 910002, o.organization_id, r.role_id, 'Bettyann83', 'Christiansen251', 'bettyann83.3942@patientai.local',
-             '$2b$12$fcCsO5fiP.3a6OXPnSuJoeJTqrLlGFEty.k4Uf0DMMG8uMdiY03f2', '555-691-5306', 'ACTIVE', TRUE
+             '$2b$12$V12E2/Wv1pmO2pQo/dUW/uR/3QpaluMOXPREt3TyJEcwEly/8jNcS', '555-691-5306', 'ACTIVE', TRUE
         FROM organizations o
         JOIN roles r ON r.role_name = 'PATIENT'
         WHERE o.organization_name = 'Patient AI Demo Org'
@@ -140,7 +140,7 @@ def upgrade() -> None:
             user_id, organization_id, role_id, first_name, last_name, email, password_hash, phone, status, is_verified
         )
         SELECT 910003, o.organization_id, r.role_id, 'Carl856', 'Fadel536', 'carl856.5991@patientai.local',
-             '$2b$12$fcCsO5fiP.3a6OXPnSuJoeJTqrLlGFEty.k4Uf0DMMG8uMdiY03f2', '555-977-5003', 'ACTIVE', TRUE
+             '$2b$12$V12E2/Wv1pmO2pQo/dUW/uR/3QpaluMOXPREt3TyJEcwEly/8jNcS', '555-977-5003', 'ACTIVE', TRUE
         FROM organizations o
         JOIN roles r ON r.role_name = 'PATIENT'
         WHERE o.organization_name = 'Patient AI Demo Org'

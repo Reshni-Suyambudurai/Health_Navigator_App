@@ -1,12 +1,6 @@
 
 <section class="my-patient-details-page">
-  <nav class="breadcrumbs" aria-label="Breadcrumb">
-    <a routerLink="/transitional-care-nurse/my-patient">
-      My Patients
-    </a>
-    <span aria-hidden="true">&gt;</span>
-    <span>Patient Details</span>
-  </nav>
+  <app-breadcrumb [items]="breadcrumbs" />
 
   <ng-container *ngIf="profile() as p">
     <header class="page-head">

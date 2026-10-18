@@ -57,18 +57,18 @@
 		<table class="ui-table" *ngIf="enrollments().length > 0; else emptyState">
 			<thead>
 				<tr>
-					<th>Enrollment ID</th>
-					<th>Patient ID</th>
-					<th>Program</th>
+					<th>Patient name</th>
+					<th>Enrollment program</th>
+					<th>Episode type</th>
 					<th>Status</th>
 					<th>Enrolled On</th>
 				</tr>
 			</thead>
 			<tbody>
 				<tr class="clickable-row" *ngFor="let item of enrollments()" (click)="openEnrollmentDetails(item.patient_id)">
-					<td>{{ item.enrollment_id }}</td>
-					<td>{{ item.patient_id }}</td>
+					<td>{{ item.first_name }} {{ item.last_name }}</td>
 					<td>{{ item.enrollment_program }}</td>
+					<td>{{ item.episode_type || 'N/A' }}</td>
 					<td>{{ item.enrollment_status }}</td>
 					<td>{{ item.enrollment_date ? (item.enrollment_date | date: 'medium') : 'N/A' }}</td>
 				</tr>

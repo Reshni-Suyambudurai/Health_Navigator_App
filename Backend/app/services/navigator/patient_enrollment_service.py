@@ -54,6 +54,20 @@ class PatientEnrollmentService:
     ) -> List[PatientEnrollment]:
         return self.repository.find_all(organization_id=organization_id, status=status, skip=skip, limit=limit)
 
+    def list_enrollments_with_details(
+        self,
+        organization_id: Optional[int],
+        status: Optional[str],
+        skip: int,
+        limit: int,
+    ):
+        return self.repository.find_all_with_details(
+            organization_id=organization_id,
+            status=status,
+            skip=skip,
+            limit=limit,
+        )
+
     def list_by_patient(self, patient_id: int) -> List[PatientEnrollment]:
         return self.repository.find_by_patient_id(patient_id)
 

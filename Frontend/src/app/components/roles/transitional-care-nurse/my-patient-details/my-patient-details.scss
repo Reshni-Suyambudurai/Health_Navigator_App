@@ -81,23 +81,6 @@
   background: #422326;
 }
 
-.breadcrumbs {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  font-size: 0.92rem;
-  color: var(--muted);
-}
-
-.breadcrumbs a {
-  color: var(--text);
-  text-decoration: none;
-}
-
-.breadcrumbs a:hover {
-  text-decoration: underline;
-}
-
 .details-grid {
   display: grid;
   gap: 1rem;
