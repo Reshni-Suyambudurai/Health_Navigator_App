@@ -1,4 +1,19 @@
-<aside class="role-sidebar">
+<button
+  type="button"
+  class="sidebar-toggle"
+  [class.sidebar-toggle--open]="sidebarOpen()"
+  (click)="toggleSidebar()"
+  [attr.aria-expanded]="sidebarOpen()"
+  aria-controls="role-sidebar"
+  aria-label="Toggle navigation menu">
+  <span aria-hidden="true"></span>
+  <span aria-hidden="true"></span>
+  <span aria-hidden="true"></span>
+</button>
+
+<div class="sidebar-scrim" *ngIf="sidebarOpen()" (click)="closeSidebar()" aria-hidden="true"></div>
+
+<aside id="role-sidebar" class="role-sidebar" [class.role-sidebar--open]="sidebarOpen()">
  
   <p class="section-title">Health Navigator</p>
   <p class="section-subtitle">Care Team Console</p>

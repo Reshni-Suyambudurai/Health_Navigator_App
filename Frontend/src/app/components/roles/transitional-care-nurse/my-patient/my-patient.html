@@ -54,23 +54,41 @@
 
 	<div class="ui-table-shell" *ngIf="!loading() && !error()">
 		<h3 class="table-name">Enrolled patients</h3>
-		<table class="ui-table" *ngIf="enrollments().length > 0; else emptyState">
+		<table class="ui-table patient-enrollment-table" *ngIf="enrollments().length > 0; else emptyState">
 			<thead>
 				<tr>
-					<th>Patient name</th>
-					<th>Enrollment program</th>
-					<th>Episode type</th>
-					<th>Status</th>
-					<th>Enrolled On</th>
+					<th scope="col">Patient</th>
+					<th scope="col">Program</th>
+					<th scope="col">Episode</th>
+					<th scope="col">Status</th>
+					<th scope="col">Enrolled</th>
+					<th scope="col">Last login</th>
+					<th scope="col">Consent</th>
+					<th scope="col">Captured</th>
+					<th scope="col">Channel</th>
 				</tr>
 			</thead>
 			<tbody>
-				<tr class="clickable-row" *ngFor="let item of enrollments()" (click)="openEnrollmentDetails(item.patient_id)">
-					<td>{{ item.first_name }} {{ item.last_name }}</td>
-					<td>{{ item.enrollment_program }}</td>
-					<td>{{ item.episode_type || 'N/A' }}</td>
-					<td>{{ item.enrollment_status }}</td>
-					<td>{{ item.enrollment_date ? (item.enrollment_date | date: 'medium') : 'N/A' }}</td>
+				<tr
+					class="clickable-row"
+					*ngFor="let item of enrollments()"
+					(click)="openEnrollmentDetails(item.patient_id)"
+					(keydown.enter)="openEnrollmentDetails(item.patient_id)"
+					tabindex="0"
+					role="link"
+				>
+					<td data-label="Patient">
+						<strong class="patient-name">{{ item.first_name }} {{ item.last_name }}</strong>
+						<span class="patient-id">Patient ID {{ item.patient_id }}</span>
+					</td>
+					<td data-label="Program"><span class="table-value">{{ item.enrollment_program }}</span></td>
+					<td data-label="Episode"><span class="table-value">{{ item.episode_type || 'N/A' }}</span></td>
+					<td data-label="Status"><span class="status-pill" [ngClass]="enrollmentStatusClass(item.enrollment_status)">{{ item.enrollment_status }}</span></td>
+					<td data-label="Enrolled"><time *ngIf="item.enrollment_date; else missingEnrollmentDate" [dateTime]="item.enrollment_date">{{ item.enrollment_date | date: 'mediumDate' }}</time><small *ngIf="item.enrollment_date">{{ item.enrollment_date | date: 'shortTime' }}</small></td>
+					<td data-label="Last login"><ng-container *ngIf="item.last_login_at; else neverLoggedIn"><time [dateTime]="item.last_login_at">{{ item.last_login_at | date: 'mediumDate' }}</time><small>{{ item.last_login_at | date: 'shortTime' }}</small></ng-container></td>
+					<td data-label="Consent"><span class="status-pill" [ngClass]="consentStatusClass(item.consent_status)">{{ item.consent_status || 'N/A' }}</span></td>
+					<td data-label="Captured"><ng-container *ngIf="item.consent_captured_at; else noConsentCapture"><time [dateTime]="item.consent_captured_at">{{ item.consent_captured_at | date: 'mediumDate' }}</time><small>{{ item.consent_captured_at | date: 'shortTime' }}</small></ng-container></td>
+					<td data-label="Channel"><span class="table-value">{{ consentChannelLabel(item.captured_channel) }}</span></td>
 				</tr>
 			</tbody>
 		</table>
@@ -78,6 +96,9 @@
 		<ng-template #emptyState>
 			<p class="state">No enrolled patients found.</p>
 		</ng-template>
+		<ng-template #missingEnrollmentDate>N/A</ng-template>
+		<ng-template #neverLoggedIn><span class="muted-value">Never</span></ng-template>
+		<ng-template #noConsentCapture><span class="muted-value">N/A</span></ng-template>
 	</div>
 
 	<div class="ui-modal-backdrop" *ngIf="modalOpen()">

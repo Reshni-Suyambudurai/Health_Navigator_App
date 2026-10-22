@@ -183,10 +183,12 @@ app-root {
   border-radius: var(--radius-md);
   background: var(--table-bg);
   overflow: auto;
+  box-shadow: 0 8px 24px rgba(17, 38, 56, 0.06);
 }
 
 .ui-table {
   width: 100%;
+  min-width: 720px;
   border-collapse: collapse;
   background: var(--table-bg);
 }
@@ -199,6 +201,8 @@ app-root {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   padding: 0.75rem 0.85rem;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border);
 }
 
 .ui-table tbody td {
@@ -207,6 +211,7 @@ app-root {
   text-align: left;
   padding: 0.72rem 0.85rem;
   border-bottom: 1px solid var(--table-row-border);
+  vertical-align: middle;
 }
 
 .ui-table tbody th {
@@ -230,6 +235,50 @@ app-root {
   border-bottom: 0;
 }
 
+.ui-table .clickable-row {
+  transition: background-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.ui-table .clickable-row:hover td,
+.ui-table .clickable-row:focus-visible td {
+  background: var(--hover-bg);
+  color: var(--text);
+}
+
+.ui-table .clickable-row:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+.ui-table .patient-name,
+.ui-table .patient-id,
+.ui-table .table-value,
+.ui-table td time,
+.ui-table td small {
+  display: block;
+}
+
+.ui-table .patient-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.ui-table .patient-id,
+.ui-table td small,
+.ui-table .muted-value {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.ui-table td small {
+  margin-top: 0.12rem;
+}
+
+.ui-table .table-value {
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
 .ui-table .status-positive,
 .ui-table .status-critical,
 .ui-table .status-negative,
@@ -242,6 +291,14 @@ app-root {
   padding: 0.18rem 0.55rem;
   font-weight: 700;
   line-height: 1.2;
+}
+
+.ui-table .status-pill {
+  white-space: nowrap;
+  background: var(--table-bg);
+  padding: 0.14rem 0.42rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.01em;
 }
 
 .ui-table .status-positive {
@@ -258,4 +315,54 @@ app-root {
 
 .ui-table .status-warning {
   color: var(--status-warning-text);
+}
+
+@media (max-width: 760px) {
+  .ui-table-shell {
+    overflow: visible;
+    border: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  .ui-table.patient-enrollment-table {
+    min-width: 0;
+    display: block;
+  }
+
+  .patient-enrollment-table thead {
+    display: none;
+  }
+
+  .patient-enrollment-table tbody,
+  .patient-enrollment-table tr,
+  .patient-enrollment-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .patient-enrollment-table tr {
+    margin-bottom: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: 0 6px 18px rgba(17, 38, 56, 0.06);
+  }
+
+  .patient-enrollment-table tbody td {
+    display: grid;
+    grid-template-columns: 7rem minmax(0, 1fr);
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.68rem 0.8rem;
+  }
+
+  .patient-enrollment-table tbody td::before {
+    content: attr(data-label);
+    color: var(--muted);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
 }

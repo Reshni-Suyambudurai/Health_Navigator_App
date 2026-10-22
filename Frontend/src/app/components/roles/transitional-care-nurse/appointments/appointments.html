@@ -1,0 +1,143 @@
+<section class="appointments-page">
+	<header class="page-head appointments-page__head">
+		<div>
+			
+			<h1>Appointments</h1>
+			<p class="page-summary">Review your assigned visits and keep your availability current.</p>
+		</div>
+		<button type="button" (click)="openAvailability()">Set availability</button>
+	</header>
+
+	<div class="page-actions">
+		<button type="button" class="secondary" (click)="loadPage()" [disabled]="loading()">Refresh appointments</button>
+	</div>
+
+	<p class="state" *ngIf="loading()">Loading appointments...</p>
+	<p class="state error" *ngIf="!loading() && error()">{{ error() }}</p>
+
+	<section class="appointment-section" aria-labelledby="upcoming-heading">
+		<div class="section-heading">
+			<div>
+				<p class="eyebrow">Assigned to you</p>
+				<h2 id="upcoming-heading">Upcoming appointments</h2>
+			</div>
+			<span class="section-count">{{ upcoming().length }}</span>
+		</div>
+
+		<div class="ui-table-shell" *ngIf="upcoming().length > 0; else upcomingEmpty">
+			<table class="ui-table appointments-table">
+				<thead>
+					<tr>
+						<th scope="col">Patient</th>
+						<th scope="col">When</th>
+						<th scope="col">Type</th>
+						<th scope="col">Channel</th>
+						<th scope="col">Status</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr *ngFor="let appointment of upcoming()">
+						<td data-label="Patient"><strong>{{ appointment.patient_name }}</strong><small>Patient {{ appointment.patient_id }}</small></td>
+						<td data-label="When">{{ formatDateTime(appointment.appointment_datetime) }}<small>Ends {{ formatDateTime(appointment.end_datetime) }}</small></td>
+						<td data-label="Type">{{ appointment.appointment_type.replace('_', ' ') }}</td>
+						<td data-label="Channel">{{ appointment.location_or_channel || appointment.booking_method.replace('_', ' ') }}</td>
+						<td data-label="Status"><span class="status-pill" [ngClass]="statusClass(appointment.status)">{{ appointment.status }}</span></td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+		<ng-template #upcomingEmpty><p class="empty-state">No upcoming appointments are assigned to you.</p></ng-template>
+	</section>
+
+	<section class="appointment-section" aria-labelledby="history-heading">
+		<div class="section-heading">
+			<div>
+				<p class="eyebrow">Completed and closed visits</p>
+				<h2 id="history-heading">Previous history</h2>
+			</div>
+			<span class="section-count">{{ history().length }}</span>
+		</div>
+
+		<div class="ui-table-shell" *ngIf="history().length > 0; else historyEmpty">
+			<table class="ui-table appointments-table">
+				<thead>
+					<tr>
+						<th scope="col">Patient</th>
+						<th scope="col">When</th>
+						<th scope="col">Type</th>
+						<th scope="col">Reason</th>
+						<th scope="col">Status</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr *ngFor="let appointment of history()">
+						<td data-label="Patient"><strong>{{ appointment.patient_name }}</strong><small>Patient {{ appointment.patient_id }}</small></td>
+						<td data-label="When">{{ formatDateTime(appointment.appointment_datetime) }}</td>
+						<td data-label="Type">{{ appointment.appointment_type.replace('_', ' ') }}</td>
+						<td data-label="Reason">{{ appointment.reason || 'N/A' }}</td>
+						<td data-label="Status"><span class="status-pill" [ngClass]="statusClass(appointment.status)">{{ appointment.status }}</span></td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+		<ng-template #historyEmpty><p class="empty-state">No previous appointments found.</p></ng-template>
+	</section>
+
+	<div class="ui-modal-backdrop" *ngIf="availabilityModalOpen()" (click)="$event.target === $event.currentTarget && closeAvailability()">
+		<section class="ui-modal-card availability-modal" role="dialog" aria-modal="true" aria-labelledby="availability-title">
+			<div class="ui-modal-head">
+				<div>
+					<p class="eyebrow">Your working hours</p>
+					<h2 id="availability-title">Set availability</h2>
+				</div>
+				<button type="button" class="ui-icon-btn" (click)="closeAvailability()" aria-label="Close availability form"><span aria-hidden="true">&#10005;</span></button>
+			</div>
+
+			<p class="state error" *ngIf="availabilityError()">{{ availabilityError() }}</p>
+			<div class="availability-layout">
+				<div class="ui-form-grid availability-form">
+					<label class="ui-field"><span>Day</span><select [(ngModel)]="availabilityForm.day_of_week" name="day_of_week"><option *ngFor="let day of days" [value]="day">{{ day === 'WEEKDAYS' ? 'Weekdays (Monday-Friday)' : day }}</option></select></label>
+					<label class="ui-field"><span>Active</span><select [(ngModel)]="availabilityForm.is_active" name="is_active"><option [ngValue]="true">Active</option><option [ngValue]="false">Inactive</option></select></label>
+					<label class="ui-field"><span>Start time</span><span class="picker-control"><input #startTimeInput type="time" step="900" [(ngModel)]="availabilityForm.start_time" name="start_time" /><button type="button" class="picker-button" (click)="openPicker(startTimeInput)" aria-label="Open start time picker">&#128336;</button></span></label>
+					<label class="ui-field"><span>End time</span><span class="picker-control"><input #endTimeInput type="time" step="900" [(ngModel)]="availabilityForm.end_time" name="end_time" /><button type="button" class="picker-button" (click)="openPicker(endTimeInput)" aria-label="Open end time picker">&#128336;</button></span></label>
+					<label class="ui-field"><span>Lunch starts <small>(optional)</small></span><span class="picker-control"><input #lunchStartInput type="time" step="900" [(ngModel)]="availabilityForm.lunch_start_time" name="lunch_start_time" /><button type="button" class="picker-button" (click)="openPicker(lunchStartInput)" aria-label="Open lunch start time picker">&#128336;</button></span></label>
+					<label class="ui-field"><span>Lunch ends <small>(optional)</small></span><span class="picker-control"><input #lunchEndInput type="time" step="900" [(ngModel)]="availabilityForm.lunch_end_time" name="lunch_end_time" /><button type="button" class="picker-button" (click)="openPicker(lunchEndInput)" aria-label="Open lunch end time picker">&#128336;</button></span></label>
+					<label class="ui-field"><span>Effective from</span><span class="picker-control"><input #effectiveFromInput type="date" [min]="today" [(ngModel)]="availabilityForm.effective_from" name="effective_from" /><button type="button" class="picker-button" (click)="openPicker(effectiveFromInput)" aria-label="Open effective from date picker">&#128197;</button></span></label>
+					<label class="ui-field"><span>Effective until</span><span class="picker-control"><input #effectiveUntilInput type="date" [min]="availabilityForm.effective_from || today" [(ngModel)]="availabilityForm.effective_until" name="effective_until" /><button type="button" class="picker-button" (click)="openPicker(effectiveUntilInput)" aria-label="Open effective until date picker">&#128197;</button></span></label>
+				</div>
+
+				<div class="saved-availability" *ngIf="availability().length > 0">
+					<h3>Saved availability</h3>
+					<div class="saved-availability-grid">
+						<article class="saved-availability-row" *ngFor="let item of availability()">
+							<div class="availability-card-head">
+								<strong>{{ item.day_of_week }}</strong>
+								<button
+									type="button"
+									class="availability-toggle"
+									[class.active]="item.is_active"
+									[disabled]="updatingAvailabilityIds().has(item.availability_id)"
+									[attr.aria-checked]="item.is_active"
+									[attr.aria-label]="(item.is_active ? 'Deactivate ' : 'Activate ') + item.day_of_week + ' availability'"
+									(click)="toggleAvailabilityStatus(item)"
+									role="switch">
+									<span class="availability-toggle__thumb" aria-hidden="true"></span>
+								</button>
+							</div>
+							<span>{{ item.start_time.slice(0, 5) }}–{{ item.end_time.slice(0, 5) }}</span>
+							<div class="availability-detail-row">
+								<span>{{ item.lunch_start_time && item.lunch_end_time ? 'Lunch ' + item.lunch_start_time.slice(0, 5) + '–' + item.lunch_end_time.slice(0, 5) : 'No lunch' }}</span>
+								<span class="availability-status" [class.inactive]="!item.is_active">{{ item.is_active ? 'Active' : 'Inactive' }}</span>
+							</div>
+						</article>
+					</div>
+				</div>
+			</div>
+
+			<div class="ui-modal-actions">
+				<button type="button" class="secondary" (click)="closeAvailability()">Cancel</button>
+				<button type="button" (click)="saveAvailability()" [disabled]="savingAvailability()">{{ savingAvailability() ? 'Saving...' : 'Save availability' }}</button>
+			</div>
+		</section>
+	</div>
+</section>

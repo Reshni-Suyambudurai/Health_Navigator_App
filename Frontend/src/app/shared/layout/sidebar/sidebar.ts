@@ -16,6 +16,7 @@ import { initializeThemeMode } from '../../utils/theme';
 })
 export class RoleSidebar {
   readonly showUserMenu = signal(false);
+  readonly sidebarOpen = signal(false);
   readonly sessionUser = getSessionUser();
   readonly roleConfig = this.getRoleConfig();
   readonly topics = this.roleConfig.topics;
@@ -41,6 +42,15 @@ export class RoleSidebar {
 
   selectTopic(label: string): void {
     this.activeTopic.set(label);
+    this.closeSidebar();
+  }
+
+  toggleSidebar(): void {
+    this.sidebarOpen.update((open) => !open);
+  }
+
+  closeSidebar(): void {
+    this.sidebarOpen.set(false);
   }
 
   private getRoleConfig() {

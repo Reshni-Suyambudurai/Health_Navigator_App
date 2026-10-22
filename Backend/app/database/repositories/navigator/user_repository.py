@@ -4,10 +4,15 @@ Similar to Spring Boot's UserRepository interface
 """
 
 from sqlalchemy.orm import Session
+from datetime import datetime
 from sqlalchemy import and_
 from typing import Optional, List
 from app.database.models.user import User, UserStatus
 from app.database.models.role import Role, RoleName
+from app.database.models.care_navigation_episode import CareNavigationEpisode, EpisodeStatus
+from app.database.models.patient_enrollment import EnrollmentStatus, PatientEnrollment
+from app.database.models.patient_consent_record import CapturedChannel, ConsentStatus, ConsentType, PatientConsentRecord
+from app.database.models.patient_profile import PatientProfile
 
 
 class UserRepository:
@@ -48,6 +53,60 @@ class UserRepository:
             .order_by(User.first_name.asc(), User.last_name.asc())
             .all()
         )
+
+    def has_active_patient_enrollment(self, user_id: int) -> bool:
+        """Return whether the patient linked to a user has an ACTIVE enrollment."""
+        return (
+            self.db.query(PatientEnrollment.enrollment_id)
+            .join(PatientProfile, PatientProfile.patient_id == PatientEnrollment.patient_id)
+            .filter(PatientProfile.user_id == user_id)
+            .filter(PatientEnrollment.enrollment_status == EnrollmentStatus.ACTIVE)
+            .first()
+            is not None
+        )
+
+    def initialize_patient_login(self, user_id: int) -> None:
+        """Seed first-login consent rows and activate the patient's current episode."""
+        profile = self.db.query(PatientProfile).filter(PatientProfile.user_id == user_id).first()
+        if not profile:
+            return
+
+        consent_types = (ConsentType.AI_DISCLOSURE.value, ConsentType.AI_INTERACTION.value)
+        existing_types = {
+            consent_type
+            for (consent_type,) in self.db.query(PatientConsentRecord.consent_type)
+            .filter(
+                PatientConsentRecord.patient_id == profile.patient_id,
+                PatientConsentRecord.consent_type.in_(consent_types),
+            )
+            .all()
+        }
+        initialized = False
+        now = datetime.utcnow()
+        for consent_type in consent_types:
+            if consent_type not in existing_types:
+                self.db.add(PatientConsentRecord(
+                    patient_id=profile.patient_id,
+                    consent_type=consent_type,
+                    consent_status=ConsentStatus.PENDING.value,
+                    consent_text_version="v1.0",
+                    effective_at=now,
+                    captured_channel=CapturedChannel.PORTAL.value,
+                    captured_by_user_id=user_id,
+                ))
+                initialized = True
+
+        if initialized:
+            self.db.query(CareNavigationEpisode).filter(
+                CareNavigationEpisode.patient_id == profile.patient_id,
+                CareNavigationEpisode.status != EpisodeStatus.CLOSED,
+            ).update(
+                {CareNavigationEpisode.status: EpisodeStatus.IN_PROGRESS},
+                synchronize_session=False,
+            )
+
+        if initialized:
+            self.db.commit()
     
     def save(self, user: User) -> User:
         """Save or update user (like save in Spring)"""

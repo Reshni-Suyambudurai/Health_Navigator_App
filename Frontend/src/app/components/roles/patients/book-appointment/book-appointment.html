@@ -1,0 +1,72 @@
+<div class="booking-backdrop" (click)="$event.target === $event.currentTarget && close()">
+  <section class="booking-modal" role="dialog" aria-modal="true" aria-labelledby="booking-modal-title">
+    <header class="booking-modal__head">
+      <div>
+        <p class="eyebrow">Routine care</p>
+        <h2 id="booking-modal-title">Book an appointment</h2>
+      </div>
+      <button type="button" class="close-button" (click)="close()" aria-label="Close booking form">&#10005;</button>
+    </header>
+
+    <form class="booking-form" (ngSubmit)="bookRoutineAppointment()">
+      <label class="booking-field">
+        <span>Appointment type</span>
+        <select [(ngModel)]="bookingForm.appointment_type" name="appointment_type" required>
+          <option value="NURSE_FOLLOWUP">Nurse follow-up</option>
+          <option value="POST_DISCHARGE">Post-discharge follow-up</option>
+          <option value="CARE_MANAGER_CALL">Care manager call</option>
+        </select>
+      </label>
+
+      <label class="booking-field">
+        <span>Date</span>
+        <span class="picker-control">
+          <input #appointmentDateInput type="date" [ngModel]="bookingForm.appointment_date" (ngModelChange)="changeAppointmentDate($event)" name="appointment_date" [min]="today" required />
+          <button type="button" class="picker-button" (click)="openPicker(appointmentDateInput)" aria-label="Open appointment date picker">&#128197;</button>
+        </span>
+      </label>
+
+      <label class="booking-field">
+        <span>Duration</span>
+        <select [ngModel]="bookingForm.duration_minutes" (ngModelChange)="changeDuration($event)" name="duration_minutes" required>
+          <option [ngValue]="30">30 minutes</option>
+          <option [ngValue]="45">45 minutes</option>
+          <option [ngValue]="60">60 minutes</option>
+        </select>
+      </label>
+
+      <label class="booking-field">
+        <span>Channel</span>
+        <select [(ngModel)]="bookingForm.location_or_channel" name="location_or_channel">
+          <option value="Phone call">Phone call</option>
+          <option value="Video call">Video call</option>
+          <option value="In person">In person</option>
+        </select>
+      </label>
+
+      <fieldset class="slot-picker booking-field--wide">
+        <legend>Available times</legend>
+        <p class="slot-state" *ngIf="slotsLoading()">Checking nurse availability...</p>
+        <p class="slot-state slot-state--error" *ngIf="!slotsLoading() && slotsError()">{{ slotsError() }}</p>
+        <p class="slot-state" *ngIf="!slotsLoading() && !slotsError() && availableSlots().length === 0">No times are available for this date and duration.</p>
+        <div class="slot-grid" *ngIf="!slotsLoading() && availableSlots().length > 0">
+          <button type="button" class="slot-option" *ngFor="let slot of availableSlots()" [class.selected]="selectedSlot()?.start === slot.start" [attr.aria-pressed]="selectedSlot()?.start === slot.start" (click)="selectSlot(slot)">
+            {{ formatSlotTime(slot.start) }}
+          </button>
+        </div>
+      </fieldset>
+
+      <label class="booking-field booking-field--wide">
+        <span>Reason <small>(optional)</small></span>
+        <textarea [(ngModel)]="bookingForm.reason" name="reason" rows="3" maxlength="500" placeholder="Briefly describe what you need help with"></textarea>
+      </label>
+
+      <p class="booking-error booking-field--wide" *ngIf="bookingError()">{{ bookingError() }}</p>
+
+      <footer class="booking-actions booking-field--wide">
+        <button type="button" class="secondary" (click)="close()" [disabled]="booking()">Cancel</button>
+        <button type="submit" [disabled]="booking() || !selectedSlot()">{{ booking() ? 'Booking...' : 'Book appointment' }}</button>
+      </footer>
+    </form>
+  </section>
+</div>

@@ -28,7 +28,8 @@ export interface LoginRequest {
 }
 
 export interface LoginData {
-	userId: number;
+	user_id: number;
+	userId?: number;
 	email: string;
 	roleId: number;
 	roleName?: string | null;

@@ -75,7 +75,8 @@ export class Login {
 
   private toSessionUser(loginData: LoginData): SessionUser {
     return {
-      userId: loginData.userId,
+      user_id: loginData.user_id,
+      userId: loginData.user_id,
       email: loginData.email,
       roleId: loginData.roleId,
       roleName: loginData.roleName ?? null,

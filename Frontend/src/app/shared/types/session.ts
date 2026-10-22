@@ -1,6 +1,7 @@
 export type ThemeMode = 'light' | 'dark';
 
 export interface SessionUser {
+  user_id: number;
   userId: number;
   email: string;
   roleId: number;

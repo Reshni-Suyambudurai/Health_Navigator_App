@@ -1,0 +1,219 @@
+:host {
+  display: block;
+}
+
+.patient-feature {
+  display: grid;
+  gap: 1.25rem;
+  max-width: 1240px;
+  margin: 0 auto;
+}
+
+.feature-header,
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.feature-header {
+  border-bottom: 1px solid var(--border);
+  padding: 1.5rem 0 1.25rem;
+}
+
+.eyebrow {
+  margin: 0 0 0.35rem;
+  color: var(--primary);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.feature-header h1,
+.section-heading h2 {
+  margin: 0;
+}
+
+.feature-header h1 {
+  font-size: clamp(1.6rem, 3vw, 2.3rem);
+}
+
+.feature-header > div > p:last-child {
+  max-width: 620px;
+  margin: 0.65rem 0 0;
+  color: var(--muted);
+}
+
+.book-action {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.book-action span {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.appointments-section {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-strong);
+  box-shadow: var(--shadow-md);
+}
+
+.section-heading {
+  padding: 1rem 1.15rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.section-heading h2 {
+  font-size: 1.05rem;
+}
+
+.section-count {
+  display: grid;
+  min-width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--primary);
+  background: var(--surface);
+  font-weight: 800;
+}
+
+.appointments-table-shell {
+  overflow-x: auto;
+}
+
+.appointments-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+}
+
+.appointments-table th,
+.appointments-table td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.appointments-table th {
+  color: var(--muted);
+  background: var(--surface);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+.appointments-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.appointments-table td strong,
+.appointments-table td small {
+  display: block;
+}
+
+.appointments-table td small {
+  margin-top: 0.2rem;
+  color: var(--muted);
+}
+
+.due-label,
+.status-pill {
+  display: inline-flex;
+  margin-top: 0.35rem;
+  border-radius: var(--radius-sm);
+  padding: 0.22rem 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.due-label {
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+}
+
+.status-pill {
+  margin-top: 0;
+  color: var(--status-positive-text);
+  background: color-mix(in srgb, var(--status-positive-text) 10%, var(--surface));
+}
+
+.empty-state,
+.state-message {
+  margin: 0;
+  padding: 1rem 1.15rem;
+  color: var(--muted);
+}
+
+.state-message {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.state-message--error {
+  color: var(--status-critical-text);
+}
+
+@media (max-width: 760px) {
+  .feature-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .book-action {
+    align-self: flex-end;
+  }
+
+  .appointments-table-shell {
+    overflow: visible;
+  }
+
+  .appointments-table,
+  .appointments-table tbody,
+  .appointments-table tr,
+  .appointments-table td {
+    display: block;
+  }
+
+  .appointments-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .appointments-table tr {
+    padding: 0.8rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .appointments-table tbody tr:last-child {
+    border-bottom: 0;
+  }
+
+  .appointments-table td {
+    display: grid;
+    grid-template-columns: minmax(6rem, 35%) 1fr;
+    gap: 0.75rem;
+    border: 0;
+    padding: 0.45rem 0;
+  }
+
+  .appointments-table td::before {
+    content: attr(data-label);
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+}

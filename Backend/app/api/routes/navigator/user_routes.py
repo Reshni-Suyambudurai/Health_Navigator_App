@@ -87,6 +87,7 @@ async def login_user(
     login_data = service.login(login_request.email, login_request.password)
 
     response_data = {
+        "user_id": login_data.get("user_id"),
         "userId": login_data.get("user_id"),
         "email": login_data.get("email"),
         "roleId": login_data.get("role_id"),

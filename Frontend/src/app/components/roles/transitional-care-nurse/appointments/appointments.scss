@@ -1,0 +1,363 @@
+:host {
+	display: block;
+}
+
+.appointments-page {
+	display: grid;
+	gap: 1.25rem;
+	max-width: 1180px;
+	margin: 0 auto;
+}
+
+.appointments-page__head {
+	display: flex;
+	justify-content: space-between;
+	gap: 1.5rem;
+	align-items: flex-start;
+	border-bottom: 1px solid var(--border);
+	padding-bottom: 1.25rem;
+}
+
+.eyebrow {
+	margin: 0 0 0.35rem;
+	color: var(--primary);
+	font-size: 0.7rem;
+	font-weight: 700;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+}
+
+.page-summary {
+	margin-top: 0.55rem;
+	color: var(--muted);
+}
+
+.page-actions {
+	display: flex;
+	justify-content: flex-end;
+}
+
+button.secondary {
+	border-color: var(--border);
+	background: var(--surface-strong);
+	color: var(--text);
+}
+
+button.secondary:hover {
+	background: var(--hover-bg);
+}
+
+.appointment-section {
+	display: grid;
+	gap: 0.75rem;
+}
+
+.section-heading {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+}
+
+.section-heading h2 {
+	font-size: 1.2rem;
+}
+
+.section-count {
+	display: inline-grid;
+	min-width: 2rem;
+	height: 2rem;
+	place-items: center;
+	border: 1px solid var(--border);
+	border-radius: 999px;
+	background: var(--surface-strong);
+	color: var(--primary-dark);
+	font-weight: 700;
+}
+
+.appointments-table {
+	min-width: 820px;
+}
+
+.appointments-table small {
+	color: var(--muted);
+}
+
+.empty-state,
+.state {
+	color: var(--muted);
+}
+
+.state.error {
+	color: var(--status-critical-text);
+}
+
+.ui-modal-backdrop {
+	position: fixed;
+	z-index: 20;
+	inset: 0;
+	display: grid;
+	place-items: center;
+	padding: 1rem;
+	background: rgba(15, 23, 42, 0.48);
+}
+
+.ui-modal-card {
+	width: min(100%, 680px);
+	max-height: min(90vh, 760px);
+	overflow: auto;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-md);
+	background: var(--surface-strong);
+	box-shadow: var(--shadow-md);
+	padding: 1.25rem;
+}
+
+.availability-modal {
+	width: min(100%, 1100px);
+}
+
+.ui-modal-head,
+.ui-modal-actions {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+}
+
+.ui-modal-head {
+	margin-bottom: 1rem;
+}
+
+.ui-modal-head h2 {
+	font-size: 1.2rem;
+}
+
+.ui-icon-btn {
+	display: inline-grid;
+	width: 2.25rem;
+	min-height: 2.25rem;
+	padding: 0;
+	place-items: center;
+	border: 1px solid var(--border);
+	background: var(--surface);
+	color: var(--text);
+}
+
+.ui-form-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.9rem;
+}
+
+.ui-field {
+	display: grid;
+	gap: 0.35rem;
+	color: var(--muted);
+	font-size: 0.82rem;
+	font-weight: 600;
+}
+
+.ui-field input,
+.ui-field select {
+	width: 100%;
+	color: var(--text);
+}
+
+.picker-control {
+	display: flex;
+	align-items: stretch;
+	gap: 0.35rem;
+}
+
+.picker-control input {
+	min-width: 0;
+	flex: 1;
+}
+
+.picker-button {
+	min-width: 2.5rem;
+	padding: 0.35rem;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-sm);
+	background: var(--surface);
+	color: var(--text);
+}
+
+.picker-button:hover {
+	background: var(--hover-bg);
+	color: var(--text);
+}
+
+.ui-field input[type='date'],
+.ui-field input[type='time'] {
+	min-height: 2.5rem;
+	color-scheme: light;
+}
+
+:root[data-theme='dark'] .ui-field input[type='date'],
+:root[data-theme='dark'] .ui-field input[type='time'] {
+	color-scheme: dark;
+}
+
+.availability-layout {
+	display: flex;
+	align-items: flex-start;
+	gap: 1.25rem;
+}
+
+.availability-form,
+.saved-availability {
+	flex: 1 1 0;
+	min-width: 0;
+}
+
+.availability-form {
+	min-width: 0;
+}
+
+.saved-availability {
+	min-width: 0;
+}
+
+.saved-availability h3 {
+	margin-bottom: 0.5rem;
+	font-size: 0.95rem;
+}
+
+.saved-availability-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	grid-auto-rows: minmax(3.5rem, auto);
+	gap: 0.6rem;
+	max-height: 14rem;
+	overflow-y: auto;
+	padding: 0.15rem 0.35rem 0.15rem 0;
+}
+
+.saved-availability-row {
+	display: grid;
+	align-content: center;
+	gap: 0.15rem;
+	min-height: 3.5rem;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-sm);
+	background: var(--surface);
+	padding: 0.55rem 0.7rem;
+	color: var(--muted);
+	font-size: 0.82rem;
+}
+
+.saved-availability-row strong {
+	color: var(--text);
+	font-size: 0.88rem;
+}
+
+.availability-card-head,
+.availability-detail-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+}
+
+.availability-status {
+	color: var(--status-positive-text);
+	font-size: 0.75rem;
+	font-weight: 700;
+}
+
+.availability-status.inactive {
+	color: var(--status-negative-text);
+}
+
+.availability-toggle {
+	position: relative;
+	flex: 0 0 auto;
+	width: 2.5rem;
+	height: 15px !important;
+	padding: 0;
+	border: 1px solid var(--border);
+	border-radius: 1.2rem;
+	background: var(--border);
+	box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.14);
+	cursor: pointer;
+	transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.availability-toggle.active {
+	border-color: var(--primary);
+	background: var(--primary);
+}
+
+.availability-toggle:hover:not(:disabled) {
+	box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.14), 0 0 0 2px color-mix(in srgb, var(--primary) 18%, transparent);
+}
+
+.availability-toggle:focus-visible {
+	outline: 2px solid var(--primary);
+	outline-offset: 2px;
+}
+
+.availability-toggle:disabled {
+	cursor: wait;
+	opacity: 0.55;
+}
+
+.availability-toggle__thumb {
+	position: absolute;
+	top: 50%;
+	left: -0.05rem;
+	width: 0.7rem;
+	height: 0.7rem;
+	border-radius: 50%;
+	background: #fff;
+	box-shadow: 0 1px 3px rgba(15, 23, 42, 0.35);
+	transform: translateY(-50%);
+	transition: transform 160ms ease;
+}
+
+.availability-toggle.active .availability-toggle__thumb {
+	transform: translate(1.65rem, -50%);
+}
+
+.ui-modal-actions {
+	justify-content: flex-end;
+	margin-top: 1.25rem;
+}
+
+@media (max-width: 700px) {
+	.appointments-page__head {
+		flex-direction: column;
+	}
+
+	.appointments-page__head > button {
+		align-self: flex-start;
+	}
+
+	.ui-form-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.availability-layout {
+		flex-direction: column;
+	}
+
+	.availability-form,
+	.saved-availability {
+		width: 100%;
+	}
+
+	.saved-availability {
+		min-width: 0;
+	}
+
+	.saved-availability-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.ui-modal-actions {
+		flex-direction: column-reverse;
+		align-items: stretch;
+	}
+}

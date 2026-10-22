@@ -1,0 +1,26 @@
+<section class="patient-feature">
+  <header class="feature-header">
+    <p class="eyebrow">Your support network</p>
+    <h1>Care Team</h1>
+    <p>Connect with the people helping you stay on track between visits.</p>
+  </header>
+
+  <section class="feature-panel">
+    <div class="feature-icon" aria-hidden="true">&#43;</div>
+    <div class="feature-panel__content">
+      <h2>Your care team</h2>
+      <p *ngIf="loadingCareTeam()">Loading your care team...</p>
+      <div class="team-list" *ngIf="!loadingCareTeam() && careTeam().length > 0">
+        <div class="team-member" *ngFor="let member of careTeam()">
+          <span class="team-member__avatar">{{ member.first_name.charAt(0) }}{{ member.last_name.charAt(0) }}</span>
+          <span>
+            <strong>{{ member.first_name }} {{ member.last_name }}</strong>
+            <small>Transitional care nurse</small>
+          </span>
+          <a *ngIf="member.phone" [href]="'tel:' + member.phone" [attr.aria-label]="'Call ' + member.first_name + ' ' + member.last_name">Call</a>
+        </div>
+      </div>
+      <p class="empty-state" *ngIf="!loadingCareTeam() && careTeam().length === 0">Your care team details will appear here.</p>
+    </div>
+  </section>
+</section>

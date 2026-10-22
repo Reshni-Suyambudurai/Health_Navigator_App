@@ -1,3 +1,8 @@
+.sidebar-toggle,
+.sidebar-scrim {
+  display: none;
+}
+
 .role-sidebar {
   width: 230px;
   height: 100vh;
@@ -211,16 +216,70 @@ padding:10px;
 }
 
 @media (max-width: 1100px) {
+  .sidebar-toggle {
+    position: fixed;
+    top: 0.8rem;
+    left: 0.8rem;
+    z-index: 1202;
+    display: inline-flex;
+    width: 42px;
+    height: 42px;
+    padding: 0.55rem;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface-strong);
+    color: var(--text);
+    box-shadow: var(--shadow-md);
+  }
+
+  .sidebar-toggle:hover {
+    background: var(--hover-bg);
+    color: var(--primary);
+  }
+
+  .sidebar-toggle span {
+    display: block;
+    width: 20px;
+    height: 2px;
+    border-radius: 2px;
+    background: currentColor;
+  }
+
+  .sidebar-toggle--open {
+    left: 248px;
+  }
+
+  .sidebar-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 1199;
+    display: block;
+    background: rgba(16, 24, 40, 0.42);
+  }
+
   .role-sidebar {
-    width: 100%;
-    height: auto;
-    min-height: auto;
-    border-right: 0;
-    border-bottom: 1px solid var(--border);
+    width: min(280px, 86vw);
+    height: 100vh;
+    min-height: 100vh;
+    border-right: 1px solid var(--border);
+    border-bottom: 0;
     grid-template-rows: min-content min-content min-content min-content;
-    position: relative;
-    top: auto;
-    left: auto;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1200;
+    overflow-y: auto;
+    transform: translateX(-105%);
+    transition: transform 0.2s ease;
+    box-shadow: var(--shadow-md);
+  }
+
+  .role-sidebar--open {
+    transform: translateX(0);
   }
 
   .role-sidebar::after {
@@ -228,6 +287,12 @@ padding:10px;
   }
 
   .sidebar-user {
-    display: none;
+    display: flex;
+  }
+}
+
+@media (max-width: 320px) {
+  .sidebar-toggle--open {
+    left: calc(min(280px, 86vw) - 48px);
   }
 }

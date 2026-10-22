@@ -5,9 +5,13 @@ import { ClinicalGovernanceDashbaord } from './components/roles/clinical-governa
 import { CareManagerDashbaord } from './components/roles/care-manager/dashboard/care_manager_dashbaord';
 import { PopulationHealthManagerDashbaord } from './components/roles/population-health-manager/dashboard/population_health_manager_dashbaord';
 import { PatientDashbaord } from './components/roles/patients/dashboard/patient_dashbaord';
+import { PatientAppointments } from './components/roles/patients/appointments/appointments';
+import { PatientCareTeam } from './components/roles/patients/care-team/care-team';
+import { PatientTalkToPerson } from './components/roles/patients/talk-to-person/talk-to-person';
 import { TransitionalCareNurseDashbaord } from './components/roles/transitional-care-nurse/dashboard/transitional_care_nurse_dashbaord';
 import { MyPatient } from './components/roles/transitional-care-nurse/my-patient/my-patient';
 import { MyPatientDetails } from './components/roles/transitional-care-nurse/my-patient-details/my-patient-details';
+import { TransitionalCareNurseAppointments } from './components/roles/transitional-care-nurse/appointments/appointments';
 import { PharmacistDashbaord } from './components/roles/pharmacist/dashboard/pharmacist_dashbaord';
 import { SocialWorkerDashbaord } from './components/roles/social-worker/dashboard/social_worker_dashbaord';
 import { authGuard } from './guards/guards/auth.guard';
@@ -27,9 +31,13 @@ export const routes: Routes = [
       { path: 'care-manager/dashboard', component: CareManagerDashbaord },
       { path: 'population-health-manager/dashboard', component: PopulationHealthManagerDashbaord },
       { path: 'patient/dashboard', component: PatientDashbaord },
+      { path: 'patient/appointments', component: PatientAppointments },
+      { path: 'patient/care-team', component: PatientCareTeam },
+      { path: 'patient/talk-to-person', component: PatientTalkToPerson },
       { path: 'transitional-care-nurse/dashboard', component: TransitionalCareNurseDashbaord },
       { path: 'transitional-care-nurse/my-patient', component: MyPatient },
       { path: 'transitional-care-nurse/my-patient/:patientId/details', component: MyPatientDetails },
+      { path: 'transitional-care-nurse/appointments', component: TransitionalCareNurseAppointments },
       { path: 'pharmacist/dashboard', component: PharmacistDashbaord },
       { path: 'social-worker/dashboard', component: SocialWorkerDashbaord },
     ],

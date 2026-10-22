@@ -149,6 +149,54 @@ export class MyPatient implements OnInit {
     this.router.navigate(['/transitional-care-nurse/my-patient', patientId, 'details']);
   }
 
+  enrollmentStatusClass(status: string): string {
+    const normalizedStatus = status.toLowerCase();
+
+    if (['active', 'completed', 'enrolled', 'open'].includes(normalizedStatus)) {
+      return 'status-positive';
+    }
+
+    if (['closed', 'cancelled', 'canceled', 'rejected'].includes(normalizedStatus)) {
+      return 'status-critical';
+    }
+
+    if (['pending', 'paused', 'on_hold'].includes(normalizedStatus)) {
+      return 'status-warning';
+    }
+
+    return 'status-negative';
+  }
+
+  consentStatusClass(status: string | null): string {
+    const normalizedStatus = status?.toLowerCase();
+
+    if (normalizedStatus === 'accepted') {
+      return 'status-positive';
+    }
+
+    if (['declined', 'revoked'].includes(normalizedStatus ?? '')) {
+      return 'status-critical';
+    }
+
+    if (normalizedStatus === 'pending') {
+      return 'status-warning';
+    }
+
+    return 'status-negative';
+  }
+
+  consentChannelLabel(channel: string | null): string {
+    if (!channel) {
+      return 'N/A';
+    }
+
+    return channel
+      .toLowerCase()
+      .split('_')
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ');
+  }
+
   submitIntake(): void {
     if (!this.intakeMetadata()) {
       return;

@@ -26,7 +26,18 @@ export function getSessionUser(): SessionUser | null {
 	}
 
 	try {
-		return JSON.parse(raw) as SessionUser;
+		const user = JSON.parse(raw) as Partial<SessionUser>;
+		const userId = user.user_id ?? user.userId;
+
+		if (typeof userId !== 'number') {
+			return null;
+		}
+
+		return {
+			...user,
+			user_id: userId,
+			userId,
+		} as SessionUser;
 	} catch {
 		return null;
 	}

@@ -1,0 +1,142 @@
+:host {
+  display: block;
+}
+
+.patient-feature {
+  display: grid;
+  gap: 1.25rem;
+  max-width: 1040px;
+  margin: 0 auto;
+}
+
+.feature-header {
+  border-bottom: 1px solid var(--border);
+  padding: 1.5rem 0 1.25rem;
+}
+
+.eyebrow {
+  margin: 0 0 0.45rem;
+  color: var(--primary);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.feature-header h1 {
+  margin: 0;
+  font-size: clamp(1.6rem, 3vw, 2.3rem);
+}
+
+.feature-header > p:last-child {
+  max-width: 620px;
+  margin: 0.65rem 0 0;
+  color: var(--muted);
+}
+
+.feature-panel {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-strong);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-md);
+}
+
+.feature-icon {
+  display: grid;
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  color: #ffffff;
+  background: var(--primary);
+  font-size: 1.25rem;
+}
+
+.feature-panel__content {
+  min-width: 0;
+  flex: 1;
+}
+
+.feature-panel h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.feature-panel p {
+  margin: 0.45rem 0 0;
+  color: var(--muted);
+}
+
+.team-list {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.team-member {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.65rem;
+}
+
+.team-member__avatar {
+  display: inline-flex;
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: #ffffff;
+  background: var(--primary);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.team-member > span:nth-child(2) {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 0.1rem;
+}
+
+.team-member strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.team-member small {
+  color: var(--muted);
+}
+
+.team-member a {
+  color: var(--primary-dark);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.empty-state {
+  color: var(--muted);
+}
+
+@media (max-width: 600px) {
+  .feature-header {
+    padding-top: 0.75rem;
+  }
+
+  .feature-panel {
+    padding: 1rem;
+  }
+
+  .team-member {
+    align-items: flex-start;
+  }
+}

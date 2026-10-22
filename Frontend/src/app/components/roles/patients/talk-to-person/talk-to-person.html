@@ -1,0 +1,27 @@
+<section class="patient-feature">
+  <header class="feature-header">
+    <p class="eyebrow">Human support</p>
+    <h1>Talk to a person</h1>
+    <p>Reach your care team when you need support beyond the AI assistant.</p>
+  </header>
+
+  <section class="feature-panel">
+    <div class="feature-icon" aria-hidden="true">&#9742;</div>
+    <div class="feature-panel__content">
+      <h2>Speak with your care team</h2>
+      <p>Your transitional care nurse can help with appointments, medicines, and questions about your care plan.</p>
+      <p *ngIf="loadingCareTeam()">Loading your care team...</p>
+      <div class="team-list" *ngIf="!loadingCareTeam() && careTeam().length > 0">
+        <div class="team-member" *ngFor="let member of careTeam()">
+          <span class="team-member__avatar">{{ member.first_name.charAt(0) }}{{ member.last_name.charAt(0) }}</span>
+          <span>
+            <strong>{{ member.first_name }} {{ member.last_name }}</strong>
+            <small>Available through your care team</small>
+          </span>
+          <a *ngIf="member.phone" [href]="'tel:' + member.phone" [attr.aria-label]="'Call ' + member.first_name + ' ' + member.last_name">Call</a>
+        </div>
+      </div>
+      <p class="empty-state" *ngIf="!loadingCareTeam() && careTeam().length === 0">Your care team contact options will appear here.</p>
+    </div>
+  </section>
+</section>

@@ -151,15 +151,32 @@ class PatientOnboardingService:
         existing_types = set(state["consents"])
         for consent_type in (ConsentType.AI_DISCLOSURE, ConsentType.AI_INTERACTION):
             if consent_type.value not in existing_types:
-                self.db.add(PatientConsentRecord(
-                    patient_id=profile.patient_id,
-                    consent_type=consent_type.value,
-                    consent_status=ConsentStatus.ACCEPTED.value,
-                    consent_text_version=text_version,
-                    effective_at=datetime.utcnow(),
-                    captured_channel=CapturedChannel.PORTAL.value,
-                    captured_by_user_id=user.user_id,
-                ))
+                pending_consent = (
+                    self.db.query(PatientConsentRecord)
+                    .filter(
+                        PatientConsentRecord.patient_id == profile.patient_id,
+                        PatientConsentRecord.consent_type == consent_type.value,
+                        PatientConsentRecord.consent_status == ConsentStatus.PENDING.value,
+                        PatientConsentRecord.revoked_at.is_(None),
+                    )
+                    .order_by(PatientConsentRecord.created_at.desc(), PatientConsentRecord.consent_id.desc())
+                    .first()
+                )
+                if pending_consent:
+                    pending_consent.consent_status = ConsentStatus.ACCEPTED.value
+                    pending_consent.consent_text_version = text_version
+                    pending_consent.effective_at = datetime.utcnow()
+                    pending_consent.captured_by_user_id = user.user_id
+                else:
+                    self.db.add(PatientConsentRecord(
+                        patient_id=profile.patient_id,
+                        consent_type=consent_type.value,
+                        consent_status=ConsentStatus.ACCEPTED.value,
+                        consent_text_version=text_version,
+                        effective_at=datetime.utcnow(),
+                        captured_channel=CapturedChannel.PORTAL.value,
+                        captured_by_user_id=user.user_id,
+                    ))
 
         self.db.commit()
         return self.get_state(user_id)

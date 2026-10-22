@@ -4,6 +4,7 @@ Similar to Spring Boot's @Service
 """
 
 from sqlalchemy.orm import Session
+from datetime import datetime
 from typing import Optional, List
 from app.database.repositories.navigator.user_repository import UserRepository
 from app.database.models.user import User, UserStatus
@@ -65,6 +66,25 @@ class UserService:
         if not bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
             logger.warning(f"Login failed: Invalid password for email {email}")
             raise AuthenticationException("Invalid email or password")
+
+        if not user.is_verified:
+            logger.warning(f"Login failed: User {email} is not verified")
+            raise AuthorizationException(
+                "Your account is not verified. Please verify your account before signing in.",
+                "USER_NOT_VERIFIED",
+            )
+
+        if user.role and user.role.role_name == RoleName.PATIENT:
+            if not self.repository.has_active_patient_enrollment(user.user_id):
+                logger.warning(f"Login failed: Patient {email} has no active enrollment")
+                raise AuthorizationException(
+                    "Your patient enrollment is not active. Please contact your care team.",
+                    "PATIENT_ENROLLMENT_NOT_ACTIVE",
+                )
+            self.repository.initialize_patient_login(user.user_id)
+
+        user.last_login_at = datetime.utcnow()
+        self.repository.save(user)
         
         logger.info(f"Login successful for user: {email}")
 

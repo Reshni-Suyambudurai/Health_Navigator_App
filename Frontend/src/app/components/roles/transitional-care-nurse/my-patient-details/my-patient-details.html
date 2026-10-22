@@ -10,12 +10,18 @@
         <p>Patient ID: {{ p.patient_id }}</p>
       </div>
 
-      <span
-        class="risk-badge"
-        *ngIf="p.risk_tier"
-        [attr.data-risk]="p.risk_tier.toLowerCase()">
-        {{ p.risk_tier }} Risk
-      </span>
+      <div class="page-actions">
+        <span
+          class="risk-badge"
+          *ngIf="p.risk_tier"
+          [attr.data-risk]="p.risk_tier.toLowerCase()">
+          {{ p.risk_tier }} Risk
+        </span>
+
+        <button type="button" (click)="openEditCareDialog()" [disabled]="savingCare()">
+          Edit care episode
+        </button>
+      </div>
     </header>
 
     <p class="state" *ngIf="loading()">
@@ -157,4 +163,113 @@
 
     </div>
   </ng-container>
+
+  <div class="ui-modal-backdrop" *ngIf="editCareOpen()" (click)="closeEditCareDialog()" role="presentation">
+    <section class="ui-modal-card care-details-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="edit-care-title">
+      <div class="ui-modal-head">
+        <div>
+          <p class="modal-eyebrow">Patient care record</p>
+          <h2 id="edit-care-title">Edit care episode</h2>
+        </div>
+        <button type="button" class="ui-icon-btn" (click)="$event.stopPropagation(); closeEditCareDialog()" aria-label="Close dialog">
+          <span aria-hidden="true">&#10005;</span>
+        </button>
+      </div>
+
+      <ng-container *ngIf="careForm() as form">
+        <div class="care-form-grid">
+          <label class="ui-field">
+            <span>Patient risk tier</span>
+            <select [ngModel]="form.risk_tier" (ngModelChange)="updateCareForm('risk_tier', $event)">
+              <option value="" disabled>Select risk tier</option>
+              <option *ngFor="let option of riskTierOptions" [value]="option">{{ option }}</option>
+            </select>
+          </label>
+
+          <label class="ui-field">
+            <span>Enrollment program</span>
+            <select [ngModel]="form.enrollment_program" (ngModelChange)="updateCareForm('enrollment_program', $event)">
+              <option value="" disabled>Select program</option>
+              <option *ngFor="let option of enrollmentProgramOptions" [value]="option">{{ option }}</option>
+            </select>
+          </label>
+
+          <label class="ui-field">
+            <span>Owner staff</span>
+            <select [ngModel]="form.owner_staff_id" (ngModelChange)="updateCareForm('owner_staff_id', $event)">
+              <option [ngValue]="null" disabled>Select staff member</option>
+              <option *ngFor="let option of careDetails()?.owner_staff ?? []" [ngValue]="option.staff_id">
+                {{ option.display_name }}
+              </option>
+            </select>
+          </label>
+
+          <label class="ui-field">
+            <span>Enrollment status</span>
+            <select [ngModel]="form.enrollment_status" (ngModelChange)="updateCareForm('enrollment_status', $event)">
+              <option value="" disabled>Select status</option>
+              <option *ngFor="let option of enrollmentStatusOptions" [value]="option">{{ option }}</option>
+            </select>
+          </label>
+
+          <label class="ui-field">
+            <span>Episode type</span>
+            <select [ngModel]="form.episode_type" (ngModelChange)="updateCareForm('episode_type', $event)">
+              <option value="" disabled>Select episode type</option>
+              <option *ngFor="let option of episodeTypeOptions" [value]="option">{{ option }}</option>
+            </select>
+          </label>
+
+          <label class="ui-field">
+            <span>Trigger type</span>
+            <select [ngModel]="form.trigger_type" (ngModelChange)="updateCareForm('trigger_type', $event)">
+              <option value="" disabled>Select trigger type</option>
+              <option *ngFor="let option of triggerTypeOptions" [value]="option">{{ option }}</option>
+            </select>
+          </label>
+
+          <label class="ui-field">
+            <span>Episode status</span>
+            <select [ngModel]="form.episode_status" (ngModelChange)="updateCareForm('episode_status', $event)">
+              <option value="" disabled>Select episode status</option>
+              <option *ngFor="let option of episodeStatusOptions" [value]="option">{{ option }}</option>
+            </select>
+          </label>
+
+        </div>
+
+        <div class="close-care-section" *ngIf="closeCareFieldsOpen()">
+          <div class="close-care-heading">
+            <div>
+              <p class="modal-eyebrow">End care</p>
+              <h3>Close care episode</h3>
+            </div>
+            <span class="required-note">Required</span>
+          </div>
+          <div class="care-key-value-grid">
+            <label class="ui-field">
+              <span>Close date</span>
+              <input type="date" [ngModel]="form.close_date" (ngModelChange)="updateCareForm('close_date', $event)" required />
+            </label>
+            <label class="ui-field">
+              <span>Reason</span>
+              <textarea rows="2" [ngModel]="form.closed_reason" (ngModelChange)="updateCareForm('closed_reason', $event)" required></textarea>
+            </label>
+          </div>
+        </div>
+
+        <div class="ui-modal-actions">
+          <button type="button" class="secondary" (click)="closeEditCareDialog()" [disabled]="savingCare()">
+            Cancel
+          </button>
+          <button type="button" class="secondary close-care-action" *ngIf="!closeCareFieldsOpen()" (click)="openCloseCareFields()" [disabled]="savingCare()">
+            Close care
+          </button>
+          <button type="button" (click)="saveCareDetails()" [disabled]="savingCare()">
+            {{ savingCare() ? 'Saving...' : 'Save care details' }}
+          </button>
+        </div>
+      </ng-container>
+    </section>
+  </div>
 </section>

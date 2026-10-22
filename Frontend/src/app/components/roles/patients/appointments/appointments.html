@@ -1,0 +1,106 @@
+<section class="patient-feature">
+  <header class="feature-header">
+    <div>
+      <p class="eyebrow">Your care plan</p>
+      <h1>Appointments</h1>
+      <p>Review scheduled care and request routine follow-up appointments.</p>
+    </div>
+    <button type="button" class="book-action" (click)="openBookingModal()" [disabled]="!patientId()">
+      <span aria-hidden="true">+</span>
+      Book appointment
+    </button>
+  </header>
+
+  <p class="state-message" *ngIf="loading()">Loading your appointments...</p>
+  <p class="state-message state-message--error" *ngIf="pageError()">{{ pageError() }}</p>
+
+  <section class="appointments-section" *ngIf="!loading() && patientId()" aria-labelledby="upcoming-title">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">Scheduled care</p>
+        <h2 id="upcoming-title">Upcoming appointments</h2>
+      </div>
+      <span class="section-count">{{ upcoming().length }}</span>
+    </div>
+
+    <div class="appointments-table-shell" *ngIf="upcoming().length > 0; else noAppointments">
+      <table class="appointments-table">
+        <thead>
+          <tr>
+            <th scope="col">With whom</th>
+            <th scope="col">When</th>
+            <th scope="col">Type</th>
+            <th scope="col">Channel</th>
+            <th scope="col">Reason</th>
+            <th scope="col">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let appointment of upcoming()">
+            <td data-label="With whom"><strong>{{ appointment.staff_name }}</strong><small>Transitional care nurse</small></td>
+            <td data-label="When">
+              <strong>{{ formatDateTime(appointment.appointment_datetime) }}</strong>
+              <small>Until {{ formatTime(appointment.end_datetime) }}</small>
+              <span class="due-label">{{ dueLabel(appointment.appointment_datetime) }}</span>
+            </td>
+            <td data-label="Type">{{ formatType(appointment.appointment_type) }}</td>
+            <td data-label="Channel">{{ appointment.location_or_channel || formatType(appointment.booking_method) }}</td>
+            <td data-label="Reason">{{ appointment.reason || 'Routine follow-up' }}</td>
+            <td data-label="Status"><span class="status-pill">{{ formatType(appointment.status) }}</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <ng-template #noAppointments>
+      <p class="empty-state">No upcoming appointments. Use Book appointment to schedule routine care.</p>
+    </ng-template>
+  </section>
+
+  <section class="appointments-section" *ngIf="!loading() && patientId()" aria-labelledby="history-title">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">Previous care</p>
+        <h2 id="history-title">Appointment history</h2>
+      </div>
+      <span class="section-count">{{ history().length }}</span>
+    </div>
+
+    <div class="appointments-table-shell" *ngIf="history().length > 0; else noHistory">
+      <table class="appointments-table">
+        <thead>
+          <tr>
+            <th scope="col">With whom</th>
+            <th scope="col">When</th>
+            <th scope="col">Type</th>
+            <th scope="col">Channel</th>
+            <th scope="col">Reason</th>
+            <th scope="col">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let appointment of history()">
+            <td data-label="With whom"><strong>{{ appointment.staff_name }}</strong><small>Transitional care nurse</small></td>
+            <td data-label="When"><strong>{{ formatDateTime(appointment.appointment_datetime) }}</strong><small>Until {{ formatTime(appointment.end_datetime) }}</small></td>
+            <td data-label="Type">{{ formatType(appointment.appointment_type) }}</td>
+            <td data-label="Channel">{{ appointment.location_or_channel || formatType(appointment.booking_method) }}</td>
+            <td data-label="Reason">{{ appointment.reason || 'Routine follow-up' }}</td>
+            <td data-label="Status"><span class="status-pill">{{ formatType(appointment.status) }}</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <ng-template #noHistory>
+      <p class="empty-state">No previous appointments found.</p>
+    </ng-template>
+  </section>
+
+  <ng-container *ngIf="patientId() as activePatientId">
+    <app-book-appointment
+      *ngIf="bookingModalOpen()"
+      [patientId]="activePatientId"
+      (closed)="closeBookingModal()"
+      (booked)="bookingCompleted()" />
+  </ng-container>
+</section>

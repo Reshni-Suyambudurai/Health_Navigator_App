@@ -6,6 +6,10 @@ import {
   ApiSuccessResponse,
   PatientEnrollmentListData,
   PatientEnrollmentListParams,
+  PatientEnrollmentStatusUpdateData,
+  PatientEnrollmentStatusUpdateRequest,
+  PatientCareDetailsData,
+  PatientCareDetailsUpsertRequest,
 } from '../../shared/types/navigator/patient-enrollment';
 
 @Injectable({ providedIn: 'root' })
@@ -17,6 +21,10 @@ export class PatientEnrollmentApi {
     options: PatientEnrollmentListParams = {}
   ): Observable<ApiSuccessResponse<PatientEnrollmentListData>> {
     let params = new HttpParams();
+
+    if (options.patient_id !== undefined) {
+      params = params.set('patient_id', options.patient_id);
+    }
 
     if (options.organization_id !== undefined) {
       params = params.set('organization_id', options.organization_id);
@@ -35,5 +43,31 @@ export class PatientEnrollmentApi {
     }
 
     return this.http.get<ApiSuccessResponse<PatientEnrollmentListData>>(this.baseUrl, { params });
+  }
+
+  updateStatus(
+    enrollmentId: number,
+    payload: PatientEnrollmentStatusUpdateRequest
+  ): Observable<ApiSuccessResponse<PatientEnrollmentStatusUpdateData>> {
+    return this.http.patch<ApiSuccessResponse<PatientEnrollmentStatusUpdateData>>(
+      `${this.baseUrl}/${enrollmentId}/status`,
+      payload
+    );
+  }
+
+  getCareDetails(patientId: number): Observable<ApiSuccessResponse<PatientCareDetailsData>> {
+    return this.http.get<ApiSuccessResponse<PatientCareDetailsData>>(
+      `${this.baseUrl}/patient/${patientId}/care-details`
+    );
+  }
+
+  upsertCareDetails(
+    patientId: number,
+    payload: PatientCareDetailsUpsertRequest
+  ): Observable<ApiSuccessResponse<PatientCareDetailsData>> {
+    return this.http.put<ApiSuccessResponse<PatientCareDetailsData>>(
+      `${this.baseUrl}/patient/${patientId}/care-details`,
+      payload
+    );
   }
 }
