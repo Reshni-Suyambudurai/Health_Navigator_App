@@ -139,59 +139,48 @@
 
     <ng-template #dashboardContent>
       <section class="patient-home">
-        <header class="patient-home__header">
-          <div>
-            <p class="patient-home__safety-notice" role="note">
-              You are chatting with an AI assistant, not a doctor or nurse. It is not for emergencies. Call 911 if you have chest pain or trouble breathing.
-            </p>
-          </div>
-          <span class="patient-home__status"><span></span> Care plan active</span>
-        </header>
+        <div class="patient-home__safety-notice" role="note">
+          <span><strong>You are chatting with an AI assistant,</strong> not a doctor or nurse. It is not for emergencies. Call 911 if you have chest pain or trouble breathing.</span>
+          <a *ngIf="careTeam()[0]?.phone" [href]="'tel:' + careTeam()[0].phone">Want a person? Call your care team</a>
+        </div>
 
         <div class="patient-home__layout">
           <main class="patient-chat-column">
             <app-ai-chat></app-ai-chat>
           </main>
 
-          <aside class="patient-side-panel">
-            <section class="patient-card">
-              <div class="patient-card__heading">
-                <div>
-                  <p class="eyebrow">YOUR PROFILE</p>
-                  <h2>Patient details</h2>
+          <aside class="care-plan-sidebar" aria-label="Your care plan">
+            <section class="care-plan-summary">
+              <p class="care-plan-sidebar__eyebrow">YOUR CARE PLAN</p>
+              <h2>{{ carePlanTitle }}</h2>
+              <p>{{ carePlanSubtitle }}</p>
+              <div class="care-plan-progress" aria-label="Care plan progress"><span></span></div>
+
+              <div class="care-plan-tasks" *ngIf="carePlanTasks.length > 0; else noPlanTasks">
+                <div class="care-plan-task" *ngFor="let task of carePlanTasks">
+                  <span class="care-plan-task__state" [class.care-plan-task__state--complete]="task.completed" aria-hidden="true">{{ task.completed ? '✓' : '!' }}</span>
+                  <span><strong>{{ task.title }}</strong><small>{{ task.detail }}</small></span>
                 </div>
-                <span class="patient-card__icon" aria-hidden="true">&#9825;</span>
               </div>
-              <div class="detail-list" *ngIf="state()?.profile as profile">
-                <div><span>Patient ID</span><strong>{{ profile.patient_id }}</strong></div>
-                <div><span>Date of birth</span><strong>{{ profile.date_of_birth || 'Not provided' }}</strong></div>
-                <div><span>Preferred language</span><strong>{{ profile.preferred_language || 'Not provided' }}</strong></div>
-                <div><span>Risk tier</span><strong class="risk-badge" [class]="'risk-badge risk-badge--' + (profile.risk_tier || 'unknown').toLowerCase()">{{ profile.risk_tier || 'UNKNOWN' }}</strong></div>
-              </div>
+              <ng-template #noPlanTasks>
+                <p class="care-plan-empty" *ngIf="carePlanLoading()">Loading care plan...</p>
+                <p class="care-plan-empty" *ngIf="!carePlanLoading()">Your active care-plan tasks will appear here.</p>
+              </ng-template>
             </section>
 
-            <section class="patient-card">
-              <div class="patient-card__heading">
-                <div>
-                  <p class="eyebrow">AT HOME</p>
-                  <h2>Emergency contact</h2>
+            <section class="care-plan-section">
+              <header><p>MY MEDICINES</p><span>{{ medications().length }} active</span></header>
+              <div class="medicine-list" *ngIf="medications().length > 0; else noMedicines">
+                <div class="medicine-list__item" *ngFor="let medication of medications() | slice:0:4">
+                  <strong>{{ medicationName(medication) }}</strong>
+                  <small>{{ medicationInstruction(medication) }}</small>
                 </div>
-                <span class="patient-card__icon" aria-hidden="true">&#9742;</span>
               </div>
-              <div class="contact-detail" *ngIf="state()?.profile as profile">
-                <strong>{{ profile.emergency_contact_name || 'Not provided' }}</strong>
-                <span>{{ profile.emergency_contact_phone || 'Phone not available' }}</span>
-              </div>
+              <ng-template #noMedicines><p class="care-plan-empty">No active medicines are available.</p></ng-template>
             </section>
 
-            <section class="patient-card care-team-card">
-              <div class="patient-card__heading">
-                <div>
-                  <p class="eyebrow">YOUR SUPPORT</p>
-                  <h2>Care team</h2>
-                </div>
-                <span class="patient-card__icon" aria-hidden="true">&#43;</span>
-              </div>
+            <section class="care-plan-section care-plan-section--team">
+              <header><p>CARE TEAM</p></header>
               <div class="care-team-list" *ngIf="careTeam().length > 0; else noCareTeam">
                 <div class="care-team-member" *ngFor="let member of careTeam()">
                   <span class="care-team-member__avatar">{{ member.first_name.charAt(0) }}{{ member.last_name.charAt(0) }}</span>
@@ -199,12 +188,10 @@
                     <strong>{{ member.first_name }} {{ member.last_name }}</strong>
                     <small>Transitional care nurse</small>
                   </span>
-                  <a *ngIf="member.phone" [href]="'tel:' + member.phone" [attr.aria-label]="'Call ' + member.first_name + ' ' + member.last_name">&#9742;</a>
+                  <a *ngIf="member.phone" [href]="'tel:' + member.phone" [attr.aria-label]="'Call ' + member.first_name + ' ' + member.last_name">Call</a>
                 </div>
               </div>
-              <ng-template #noCareTeam>
-                <p class="empty-state">Your care team details will appear here.</p>
-              </ng-template>
+              <ng-template #noCareTeam><p class="care-plan-empty">Your care team details will appear here.</p></ng-template>
             </section>
           </aside>
         </div>

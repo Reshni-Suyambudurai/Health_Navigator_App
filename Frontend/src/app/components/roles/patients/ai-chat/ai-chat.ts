@@ -1,40 +1,153 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { finalize } from 'rxjs';
 
-interface DemoChatMessage {
-  sender: 'patient' | 'assistant';
-  text: string;
-  time: string;
-}
+import { ConversationApi } from '../../../../api/navigator/conversation.api';
+import { getSessionUser } from '../../../../api/tokenstore';
+import { ConversationMessage } from '../../../../shared/types/navigator/conversation';
+import { ToastState } from '../../../../shared/ui/toast/toast-state';
 
 @Component({
   selector: 'app-ai-chat',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './ai-chat.html',
   styleUrl: './ai-chat.scss',
 })
-export class AiChat {
-  readonly messages: DemoChatMessage[] = [
-    {
+export class AiChat implements OnInit {
+  private readonly conversationApi = inject(ConversationApi);
+  private readonly toast = inject(ToastState);
+  private readonly sessionUser = getSessionUser();
+
+  readonly messages = signal<ConversationMessage[]>([]);
+  readonly messageDraft = signal('');
+  readonly loading = signal(true);
+  readonly isResponding = signal(false);
+  readonly largeText = signal(false);
+  readonly historyOpen = signal(false);
+  private navigatorPrompt = this.navigationPromptFromState();
+
+  ngOnInit(): void {
+    if (!this.sessionUser) {
+      this.loading.set(false);
+      return;
+    }
+
+    this.conversationApi
+      .getHistory(this.sessionUser.userId)
+      .pipe(finalize(() => this.loading.set(false)))
+      .subscribe({
+        next: (response) => {
+          this.messages.set(response.data.messages);
+          this.sendNavigationPrompt();
+        },
+        error: () => {
+          this.toast.warning('Conversation history is temporarily unavailable.');
+          this.sendNavigationPrompt();
+        },
+      });
+  }
+
+  sendMessage(): void {
+    const text = this.messageDraft().trim();
+    if (!text || this.isResponding() || !this.sessionUser) {
+      return;
+    }
+
+    const optimisticMessage = this.optimisticPatientMessage(text);
+    this.isResponding.set(true);
+    this.messageDraft.set('');
+    this.messages.update((messages) => [...messages, optimisticMessage]);
+    this.conversationApi
+      .sendMessage(this.sessionUser.userId, text)
+      .pipe(finalize(() => this.isResponding.set(false)))
+      .subscribe({
+        next: (response) => {
+          this.messages.update((messages) => [
+            ...messages.filter((message) => message.message_id !== optimisticMessage.message_id),
+            response.data.patient_message,
+            response.data.assistant_message,
+          ]);
+        },
+        error: (error: unknown) => {
+          this.messages.update((messages) => messages.filter((message) => message.message_id !== optimisticMessage.message_id));
+          this.messageDraft.set(text);
+          this.toast.error(this.extractErrorMessage(error));
+        },
+      });
+  }
+
+  onComposerKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      this.sendMessage();
+    }
+  }
+
+  toggleLargeText(): void {
+    this.largeText.set(!this.largeText());
+  }
+
+  toggleHistory(): void {
+    this.historyOpen.set(!this.historyOpen());
+  }
+
+  acknowledgeAnswer(): void {
+    this.messageDraft.set('Thank you, that helps.');
+  }
+
+  askForSimplerExplanation(): void {
+    this.messageDraft.set('Please explain that in simpler words.');
+  }
+
+  prepareCareTeamQuestion(): void {
+    this.messageDraft.set('I have a question for my care team about this medication.');
+  }
+
+  formatTime(sentAt: string): string {
+    return new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' }).format(new Date(sentAt));
+  }
+
+  private navigationPromptFromState(): string | null {
+    const state = history.state as Record<string, unknown> | null;
+    const prompt = state?.['navigatorPrompt'];
+    if (state && typeof prompt === 'string') {
+      const { navigatorPrompt: _navigatorPrompt, ...remainingState } = state;
+      history.replaceState(remainingState, document.title);
+    }
+    return typeof prompt === 'string' && prompt.trim() ? prompt.trim() : null;
+  }
+
+  private sendNavigationPrompt(): void {
+    if (!this.navigatorPrompt) {
+      return;
+    }
+
+    this.messageDraft.set(this.navigatorPrompt);
+    this.navigatorPrompt = null;
+    this.sendMessage();
+  }
+
+  private optimisticPatientMessage(text: string): ConversationMessage {
+    return {
+      message_id: -Date.now(),
       sender: 'patient',
-      text: 'I have a question about my care plan.',
-      time: '9:14 AM',
-    },
-    {
-      sender: 'assistant',
-      text: 'I can help explain your care plan in plain language. For urgent symptoms, contact your care team or call 911.',
-      time: '9:15 AM',
-    },
-    {
-      sender: 'patient',
-      text: 'Can you remind me what I should do today?',
-      time: '9:16 AM',
-    },
-    {
-      sender: 'assistant',
-      text: 'Your next check-in is scheduled for today. You can also review your medicines and follow-up tasks in the care plan.',
-      time: '9:16 AM',
-    },
-  ];
+      text,
+      sent_at: new Date().toISOString(),
+      safety_category: null,
+      escalation_id: null,
+      is_guardrail_override: false,
+      source_labels: [],
+    };
+  }
+
+  private extractErrorMessage(error: unknown): string {
+    if (typeof error !== 'object' || error === null) {
+      return 'We could not send your message. Please try again.';
+    }
+
+    const response = error as { error?: { message?: string }; message?: string };
+    return response.error?.message ?? response.message ?? 'We could not send your message. Please try again.';
+  }
 }

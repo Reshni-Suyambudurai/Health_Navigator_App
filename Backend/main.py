@@ -15,6 +15,7 @@ from app.api.routes.navigator import patient_consent_record_routes
 from app.api.routes.navigator import patient_enrollment_routes
 from app.api.routes.navigator import patient_intake_routes
 from app.api.routes.navigator import patient_onboarding_routes
+from app.api.routes.navigator import conversation_routes
 from app.api.routes.patientFHIR import patient_fhir_routes
 from app.core.exception_handlers import register_exception_handlers  # Import exception handlers
 import logging
@@ -77,6 +78,7 @@ app.include_router(patient_consent_record_routes.router, prefix="/api/v1")
 app.include_router(patient_enrollment_routes.router, prefix="/api/v1")
 app.include_router(patient_intake_routes.router, prefix="/api/v1")
 app.include_router(patient_onboarding_routes.router, prefix="/api/v1")
+app.include_router(conversation_routes.router, prefix="/api/v1")
 app.include_router(patient_fhir_routes.router, prefix="/api/v1")
 
 

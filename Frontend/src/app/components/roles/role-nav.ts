@@ -42,7 +42,7 @@ export const ROLE_SIDEBAR_CONFIG: RoleSidebarConfig[] = [
     route: '/patient/dashboard',
     topics: [
       { label: 'Dashboard' },
-      { label: 'My medicine' },
+      { label: 'My medicine', route: '/patient/medicines' },
       { label: 'Care plan' },
       { label: 'Appointments' },
       { label: 'Care Team' },

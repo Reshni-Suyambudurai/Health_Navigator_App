@@ -5,6 +5,7 @@ import { ClinicalGovernanceDashbaord } from './components/roles/clinical-governa
 import { CareManagerDashbaord } from './components/roles/care-manager/dashboard/care_manager_dashbaord';
 import { PopulationHealthManagerDashbaord } from './components/roles/population-health-manager/dashboard/population_health_manager_dashbaord';
 import { PatientDashbaord } from './components/roles/patients/dashboard/patient_dashbaord';
+import { PatientMedicines } from './components/roles/patients/medicines/patient-medicines';
 import { TransitionalCareNurseDashbaord } from './components/roles/transitional-care-nurse/dashboard/transitional_care_nurse_dashbaord';
 import { MyPatient } from './components/roles/transitional-care-nurse/my-patient/my-patient';
 import { MyPatientDetails } from './components/roles/transitional-care-nurse/my-patient-details/my-patient-details';
@@ -27,6 +28,7 @@ export const routes: Routes = [
       { path: 'care-manager/dashboard', component: CareManagerDashbaord },
       { path: 'population-health-manager/dashboard', component: PopulationHealthManagerDashbaord },
       { path: 'patient/dashboard', component: PatientDashbaord },
+      { path: 'patient/medicines', component: PatientMedicines },
       { path: 'transitional-care-nurse/dashboard', component: TransitionalCareNurseDashbaord },
       { path: 'transitional-care-nurse/my-patient', component: MyPatient },
       { path: 'transitional-care-nurse/my-patient/:patientId/details', component: MyPatientDetails },

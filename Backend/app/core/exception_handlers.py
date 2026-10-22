@@ -10,7 +10,8 @@ from app.core.exceptions import (
     NotFoundException,
     ValidationException,
     ConflictException,
-    PatientFHIRException
+    PatientFHIRException,
+    AIProviderException
 )
 from app.core.response_models import ErrorResponse
 import logging
@@ -96,6 +97,15 @@ async def patient_fhir_exception_handler(request: Request, exc: PatientFHIRExcep
     )
 
 
+async def ai_provider_exception_handler(request: Request, exc: AIProviderException):
+    """Handle unavailable or invalid LLM provider responses."""
+    logger.error(f"AI provider error: {exc.message}")
+    return JSONResponse(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        content=ErrorResponse(status="error", message=exc.message, error_code=exc.error_code).model_dump()
+    )
+
+
 def register_exception_handlers(app):
     """Register all exception handlers with FastAPI app"""
     app.add_exception_handler(AuthenticationException, authentication_exception_handler)
@@ -104,5 +114,6 @@ def register_exception_handlers(app):
     app.add_exception_handler(ValidationException, validation_exception_handler)
     app.add_exception_handler(ConflictException, conflict_exception_handler)
     app.add_exception_handler(PatientFHIRException, patient_fhir_exception_handler)
+    app.add_exception_handler(AIProviderException, ai_provider_exception_handler)
     
     logger.info("Global exception handlers registered")

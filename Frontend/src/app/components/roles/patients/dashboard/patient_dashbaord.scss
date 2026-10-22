@@ -625,3 +625,258 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Patient chat workspace */
+.patient-home {
+  max-width: 1280px;
+}
+
+.patient-home__safety-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  padding: 0.65rem 1.1rem;
+  color: #ffffff;
+  background: #064565;
+  font-size: 0.74rem;
+}
+
+.patient-home__safety-notice a {
+  flex: 0 0 auto;
+  color: #ffffff;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.patient-home__layout {
+  height: calc(100vh - 9.8rem);
+  min-height: 560px;
+  grid-template-columns: minmax(0, 1fr) minmax(270px, 310px);
+  gap: 0;
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  border-top: 0;
+}
+
+.patient-chat-column {
+  background: var(--surface);
+}
+
+.care-plan-sidebar {
+  overflow-y: auto;
+  border-left: 1px solid var(--border);
+  background: var(--surface-strong);
+}
+
+.care-plan-summary,
+.care-plan-section {
+  padding: 1.25rem;
+}
+
+.care-plan-summary {
+  border-bottom: 1px solid var(--border);
+}
+
+.care-plan-sidebar__eyebrow,
+.care-plan-section header p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.care-plan-summary h2 {
+  margin: 0.45rem 0 0.25rem;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.98rem;
+  line-height: 1.35;
+}
+
+.care-plan-summary > p:not(.care-plan-empty) {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+
+.care-plan-progress {
+  height: 0.35rem;
+  margin: 0.85rem 0 1rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--border);
+}
+
+.care-plan-progress span {
+  display: block;
+  width: 34%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
+}
+
+.care-plan-tasks {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.care-plan-task {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  padding: 0.72rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.care-plan-task:last-child {
+  border-bottom: 0;
+}
+
+.care-plan-task__state {
+  display: grid;
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 1rem;
+  place-items: center;
+  border: 1px solid #ce8700;
+  border-radius: 50%;
+  color: #a96700;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.care-plan-task__state--complete {
+  border-color: var(--status-positive-text);
+  color: var(--status-positive-text);
+}
+
+.care-plan-task strong,
+.care-plan-task small,
+.medicine-list__item strong,
+.medicine-list__item small {
+  display: block;
+}
+
+.care-plan-task strong,
+.medicine-list__item strong {
+  font-size: 0.72rem;
+  line-height: 1.3;
+}
+
+.care-plan-task small,
+.medicine-list__item small,
+.care-plan-empty {
+  color: var(--muted);
+  font-size: 0.65rem;
+  line-height: 1.35;
+}
+
+.care-plan-empty {
+  margin: 0.8rem 0 0;
+}
+
+.care-plan-section {
+  border-bottom: 1px solid var(--border);
+}
+
+.care-plan-section header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.care-plan-section header span {
+  color: var(--primary-dark);
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
+.medicine-list {
+  margin-top: 0.6rem;
+}
+
+.medicine-list__item {
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.medicine-list__item:last-child {
+  border-bottom: 0;
+}
+
+.care-plan-section--team {
+  border-bottom: 0;
+}
+
+.care-plan-section--team .care-team-list {
+  gap: 0.7rem;
+  padding-top: 0.75rem;
+}
+
+.care-plan-section--team .care-team-member__avatar {
+  width: 1.9rem;
+  height: 1.9rem;
+  flex-basis: 1.9rem;
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.care-plan-section--team .care-team-member a {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.28rem 0.42rem;
+  color: var(--primary-dark);
+  font-size: 0.64rem;
+  font-weight: 700;
+}
+
+@media (max-width: 1050px) {
+  .patient-home__layout {
+    height: auto;
+    grid-template-columns: 1fr;
+  }
+
+  .care-plan-sidebar {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    border-top: 1px solid var(--border);
+    border-left: 0;
+  }
+
+  .care-plan-summary,
+  .care-plan-section {
+    border-right: 1px solid var(--border);
+    border-bottom: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .patient-home__safety-notice {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .patient-home__layout {
+    min-height: 0;
+  }
+
+  .patient-chat-column {
+    min-height: 540px;
+  }
+
+  .care-plan-sidebar {
+    display: block;
+  }
+
+  .care-plan-summary,
+  .care-plan-section {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+}

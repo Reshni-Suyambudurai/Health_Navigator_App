@@ -1,14 +1,16 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { finalize } from 'rxjs';
+import { catchError, finalize, forkJoin, of, switchMap } from 'rxjs';
 import { UserApi } from '../../../../api/navigator/user.api';
+import { FhirDataApi } from '../../../../api/patientfhir/fhir.data.api';
 import { getSessionUser } from '../../../../api/tokenstore';
 import {
   CareTeamMember,
   PatientOnboardingState,
   PatientProfileUpdateRequest,
 } from '../../../../shared/types/navigator/user';
+import { FhirRecord } from '../../../../shared/types/patientfhir/fhir';
 import { AiChat } from '../ai-chat/ai-chat';
 import { ToastState } from '../../../../shared/ui/toast/toast-state';
 
@@ -27,6 +29,12 @@ interface ProfileForm {
   emergencyContactPhone: string;
 }
 
+interface CarePlanTask {
+  title: string;
+  detail: string;
+  completed: boolean;
+}
+
 @Component({
   selector: 'app-patient-dashbaord',
   standalone: true,
@@ -36,6 +44,7 @@ interface ProfileForm {
 })
 export class PatientDashbaord implements OnInit {
   private readonly userApi = inject(UserApi);
+  private readonly fhirApi = inject(FhirDataApi);
   private readonly toast = inject(ToastState);
 
   readonly loading = signal(true);
@@ -44,6 +53,9 @@ export class PatientDashbaord implements OnInit {
   readonly step = signal<OnboardingStep>('profile');
   readonly state = signal<PatientOnboardingState | null>(null);
   readonly careTeam = signal<CareTeamMember[]>([]);
+  readonly medications = signal<FhirRecord[]>([]);
+  readonly activeCarePlan = signal<FhirRecord | null>(null);
+  readonly carePlanLoading = signal(false);
   readonly aiDisclosureAccepted = signal(false);
   readonly reminderAccepted = signal(false);
 
@@ -67,6 +79,41 @@ export class PatientDashbaord implements OnInit {
 
   get profileOptions(): PatientOnboardingState['options'] {
     return this.state()?.options ?? { genders: [], contact_methods: [] };
+  }
+
+  get carePlanTitle(): string {
+    return this.readRecordText(this.activeCarePlan(), ['title', 'name', 'description'], 'Your care plan');
+  }
+
+  get carePlanSubtitle(): string {
+    return this.readRecordText(this.activeCarePlan(), ['status', 'intent', 'category'], 'Your current care plan');
+  }
+
+  get carePlanTasks(): CarePlanTask[] {
+    const activities = this.activeCarePlan()?.['activity'] ?? this.activeCarePlan()?.['tasks'];
+    if (!Array.isArray(activities)) {
+      return [];
+    }
+
+    return activities.slice(0, 3).map((activity, index) => {
+      const record = this.asRecord(activity);
+      const detail = this.asRecord(record?.['detail']) ?? record;
+      const status = this.readRecordText(detail, ['status'], 'pending').toLowerCase();
+
+      return {
+        title: this.readRecordText(detail, ['description', 'title', 'name'], `Care-plan task ${index + 1}`),
+        detail: this.readRecordText(detail, ['scheduledString', 'timing', 'note'], 'Review with your care team'),
+        completed: ['completed', 'done', 'active'].includes(status),
+      };
+    });
+  }
+
+  medicationName(medication: FhirRecord): string {
+    return this.readRecordText(medication, ['medication_name', 'name', 'medication', 'display'], 'Medication');
+  }
+
+  medicationInstruction(medication: FhirRecord): string {
+    return this.readRecordText(medication, ['dosage', 'dosage_text', 'instructions', 'frequency'], 'Review instructions with your care team');
   }
 
   ngOnInit(): void {
@@ -152,6 +199,7 @@ export class PatientDashbaord implements OnInit {
           this.state.set(response.data);
           this.showOnboarding.set(false);
           this.loadCareTeam();
+          this.loadPatientFhirData(response.data.profile?.external_fhir_patient_id);
           this.toast.success('Consent recorded. Welcome to your patient dashboard.');
         },
         error: (error: unknown) => this.toast.error(this.extractErrorMessage(error)),
@@ -184,6 +232,7 @@ export class PatientDashbaord implements OnInit {
       }
     } else {
       this.loadCareTeam();
+      this.loadPatientFhirData(onboardingState.profile?.external_fhir_patient_id);
     }
   }
 
@@ -192,6 +241,85 @@ export class PatientDashbaord implements OnInit {
       next: (response) => this.careTeam.set(response.data.users),
       error: () => this.toast.warning('Care team details are temporarily unavailable.'),
     });
+  }
+
+  private loadPatientFhirData(externalFhirPatientId: string | null | undefined): void {
+    if (!externalFhirPatientId) {
+      this.medications.set([]);
+      this.activeCarePlan.set(null);
+      return;
+    }
+
+    this.carePlanLoading.set(true);
+    this.fhirApi
+      .getPatientByFhirId(externalFhirPatientId)
+      .pipe(
+        catchError(() => of(null)),
+        switchMap((patientResponse) => {
+          const fhirPatient = patientResponse?.data as FhirRecord | undefined;
+          const fhirPatientId = this.resolveFhirPatientId(fhirPatient, externalFhirPatientId);
+
+          if (!fhirPatientId) {
+            return of({ medications: null, carePlans: null });
+          }
+
+          return forkJoin({
+            medications: this.fhirApi.getPatientActiveMedications(fhirPatientId).pipe(catchError(() => of(null))),
+            carePlans: this.fhirApi.getPatientActiveCarePlans(fhirPatientId).pipe(catchError(() => of(null))),
+          });
+        }),
+        finalize(() => this.carePlanLoading.set(false))
+      )
+      .subscribe(({ medications, carePlans }) => {
+        this.medications.set(medications?.data.medications ?? []);
+        this.activeCarePlan.set(carePlans?.data.care_plans?.[0] ?? null);
+      });
+  }
+
+  private resolveFhirPatientId(fhirPatient: FhirRecord | undefined, fallbackId: string): string {
+    const fhirId = fhirPatient?.['id'];
+    return typeof fhirId === 'string' && fhirId.trim() ? fhirId : fallbackId;
+  }
+
+  private readRecordText(record: FhirRecord | null | undefined, keys: string[], fallback: string): string {
+    if (!record) {
+      return fallback;
+    }
+
+    for (const key of keys) {
+      const value = this.readValue(record[key]);
+      if (value) {
+        return value;
+      }
+    }
+
+    return fallback;
+  }
+
+  private readValue(value: unknown): string | null {
+    if (typeof value === 'string' && value.trim()) {
+      return value;
+    }
+
+    if (typeof value === 'number') {
+      return String(value);
+    }
+
+    const record = this.asRecord(value);
+    if (record) {
+      for (const key of ['text', 'display', 'value', 'code']) {
+        const nestedValue = this.readValue(record[key]);
+        if (nestedValue) {
+          return nestedValue;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private asRecord(value: unknown): FhirRecord | null {
+    return typeof value === 'object' && value !== null && !Array.isArray(value) ? (value as FhirRecord) : null;
   }
 
   private requiredProfileFields(): string[] {
