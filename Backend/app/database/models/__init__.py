@@ -25,6 +25,8 @@ from .escalation_action import EscalationAction
 from .outreach_campaign import OutreachCampaign
 from .outreach_workflow import OutreachWorkflow
 from .outreach_event import OutreachEvent
+from .staff_availability import StaffAvailability
+from .appointment import Appointment
 
 __all__ = [
     "Organization",
@@ -50,4 +52,6 @@ __all__ = [
     "OutreachCampaign",
     "OutreachWorkflow",
     "OutreachEvent",
+    "StaffAvailability",
+    "Appointment",
 ]

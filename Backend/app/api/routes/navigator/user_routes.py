@@ -51,6 +51,24 @@ class LoginRequest(BaseModel):
     password: str
 
 
+def serialize_user(user: User) -> dict:
+    """Convert a User ORM entity into the public API representation."""
+    return {
+        "user_id": user.user_id,
+        "organization_id": user.organization_id,
+        "role_id": user.role_id,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "email": user.email,
+        "phone": user.phone,
+        "status": user.status.value,
+        "is_verified": user.is_verified,
+        "created_at": user.created_at,
+        "updated_at": user.updated_at,
+        "last_login_at": user.last_login_at,
+    }
+
+
 # Similar to: @PostMapping("/users/login")
 @router.post("/login", response_model=SuccessResponse, status_code=status.HTTP_200_OK)
 async def login_user(
@@ -104,13 +122,7 @@ async def get_user(
     return SuccessResponse(
         status="success",
         message="User retrieved successfully",
-        data={
-            "user_id": user.user_id,
-            "first_name": user.first_name,
-            "last_name": user.last_name,
-            "email": user.email,
-            "status": user.status.value
-        }
+        data=serialize_user(user)
     )
 
 
@@ -133,7 +145,7 @@ async def get_all_users(
     return SuccessResponse(
         status="success",
         message="Users retrieved successfully",
-        data={"users": users, "count": len(users)}
+        data={"users": [serialize_user(user) for user in users], "count": len(users)}
     )
 
 
@@ -208,7 +220,7 @@ async def get_active_users(db: Session = Depends(get_db)):
     return SuccessResponse(
         status="success",
         message="Active users retrieved successfully",
-        data={"users": users, "count": len(users)}
+        data={"users": [serialize_user(user) for user in users], "count": len(users)}
     )
 
 

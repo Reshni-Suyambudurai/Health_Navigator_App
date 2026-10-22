@@ -56,6 +56,8 @@ from app.database.models.escalation_action import EscalationAction
 from app.database.models.outreach_campaign import OutreachCampaign
 from app.database.models.outreach_workflow import OutreachWorkflow
 from app.database.models.outreach_event import OutreachEvent
+from app.database.models.staff_availability import StaffAvailability
+from app.database.models.appointment import Appointment
 
 target_metadata = Base.metadata
 
