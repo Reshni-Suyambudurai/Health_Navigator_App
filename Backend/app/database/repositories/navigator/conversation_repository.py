@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.database.models.care_navigation_episode import CareNavigationEpisode, EpisodeStatus
 from app.database.models.care_team_queue import CareTeamQueue, QueueStatus, QueueType
+from app.database.models.clinical_guardrail_matcher import ClinicalGuardrailMatcher
 from app.database.models.clinical_guardrail_rule import ClinicalGuardrailRule, RuleStatus
 from app.database.models.conversation_guardrail_hit import ConversationGuardrailHit
 from app.database.models.conversation_message import ConversationMessage
@@ -45,6 +46,30 @@ class ConversationRepository:
             .first()
         )
 
+    def find_paused_emergency_thread(self, patient_id: int, episode_id: int) -> Optional[ConversationThread]:
+        return (
+            self.db.query(ConversationThread)
+            .filter(ConversationThread.patient_id == patient_id)
+            .filter(ConversationThread.episode_id == episode_id)
+            .filter(ConversationThread.status == ConversationStatus.PAUSED_EMERGENCY)
+            .order_by(ConversationThread.started_at.desc())
+            .first()
+        )
+
+    def find_current_thread(self, patient_id: int, episode_id: int) -> Optional[ConversationThread]:
+        return (
+            self.db.query(ConversationThread)
+            .filter(ConversationThread.patient_id == patient_id)
+            .filter(ConversationThread.episode_id == episode_id)
+            .filter(ConversationThread.status.in_([ConversationStatus.ACTIVE, ConversationStatus.PAUSED_EMERGENCY]))
+            .order_by(ConversationThread.started_at.desc())
+            .first()
+        )
+
+    def pause_for_emergency(self, thread: ConversationThread) -> None:
+        thread.status = ConversationStatus.PAUSED_EMERGENCY
+        self.db.flush()
+
     def create_thread(self, thread: ConversationThread) -> ConversationThread:
         self.db.add(thread)
         self.db.flush()
@@ -70,12 +95,22 @@ class ConversationRepository:
         self.db.flush()
         return escalation
 
-    def find_active_guardrail_rule(self) -> Optional[ClinicalGuardrailRule]:
+    def list_patient_escalations(self, patient_id: int) -> list[Escalation]:
         return (
-            self.db.query(ClinicalGuardrailRule)
+            self.db.query(Escalation)
+            .filter(Escalation.patient_id == patient_id)
+            .order_by(Escalation.created_at.desc())
+            .all()
+        )
+
+    def list_active_guardrail_matchers(self) -> list[tuple[ClinicalGuardrailRule, ClinicalGuardrailMatcher]]:
+        return (
+            self.db.query(ClinicalGuardrailRule, ClinicalGuardrailMatcher)
+            .join(ClinicalGuardrailMatcher, ClinicalGuardrailMatcher.rule_id == ClinicalGuardrailRule.rule_id)
             .filter(ClinicalGuardrailRule.status == RuleStatus.ACTIVE)
-            .order_by(ClinicalGuardrailRule.rule_id.asc())
-            .first()
+            .filter(ClinicalGuardrailMatcher.is_active.is_(True))
+            .order_by(ClinicalGuardrailMatcher.priority.asc(), ClinicalGuardrailRule.rule_id.asc(), ClinicalGuardrailMatcher.matcher_id.asc())
+            .all()
         )
 
     def add_guardrail_hit(self, guardrail_hit: ConversationGuardrailHit) -> ConversationGuardrailHit:

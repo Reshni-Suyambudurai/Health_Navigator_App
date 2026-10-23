@@ -154,7 +154,7 @@
               <p class="care-plan-sidebar__eyebrow">YOUR CARE PLAN</p>
               <h2>{{ carePlanTitle }}</h2>
               <p>{{ carePlanSubtitle }}</p>
-              <div class="care-plan-progress" aria-label="Care plan progress"><span></span></div>
+              <div class="care-plan-progress" aria-label="Care plan progress"><span [style.width.%]="carePlanProgress"></span></div>
 
               <div class="care-plan-tasks" *ngIf="carePlanTasks.length > 0; else noPlanTasks">
                 <div class="care-plan-task" *ngFor="let task of carePlanTasks">
@@ -179,8 +179,14 @@
               <ng-template #noMedicines><p class="care-plan-empty">No active medicines are available.</p></ng-template>
             </section>
 
+            <section class="care-plan-section care-plan-section--status">
+              <header><p>CARE-TEAM REQUEST</p><span [class.care-request--open]="latestCareTeamRequest && latestCareTeamRequest.status !== 'RESOLVED' && latestCareTeamRequest.status !== 'CLOSED'">{{ careTeamRequestLabel }}</span></header>
+              <p class="care-plan-empty" *ngIf="latestCareTeamRequest; else noCareRequest">Your most recent request is visible to your care team.</p>
+              <ng-template #noCareRequest><p class="care-plan-empty">Use the chat to ask your care team for follow-up.</p></ng-template>
+            </section>
+
             <section class="care-plan-section care-plan-section--team">
-              <header><p>CARE TEAM</p></header>
+              <header><p>CARE TEAM</p><span *ngIf="careSnapshot()?.risk_tier as riskTier">{{ riskTier }} risk</span></header>
               <div class="care-team-list" *ngIf="careTeam().length > 0; else noCareTeam">
                 <div class="care-team-member" *ngFor="let member of careTeam()">
                   <span class="care-team-member__avatar">{{ member.first_name.charAt(0) }}{{ member.last_name.charAt(0) }}</span>
@@ -188,7 +194,25 @@
                     <strong>{{ member.first_name }} {{ member.last_name }}</strong>
                     <small>Transitional care nurse</small>
                   </span>
-                  <a *ngIf="member.phone" [href]="'tel:' + member.phone" [attr.aria-label]="'Call ' + member.first_name + ' ' + member.last_name">Call</a>
+                  <button
+                    *ngIf="member.phone"
+                    class="care-team-member__phone-button"
+                    type="button"
+                    [attr.aria-expanded]="visibleCareTeamPhoneId() === member.user_id"
+                    [attr.aria-controls]="'care-team-phone-' + member.user_id"
+                    [attr.aria-label]="'Show phone number for ' + member.first_name + ' ' + member.last_name"
+                    title="Show phone number"
+                    (click)="toggleCareTeamPhone(member)">
+                    &#9742;
+                  </button>
+                  <a
+                    *ngIf="member.phone && visibleCareTeamPhoneId() === member.user_id"
+                    class="care-team-member__phone-number"
+                    [id]="'care-team-phone-' + member.user_id"
+                    [href]="'tel:' + member.phone"
+                    [attr.aria-label]="'Call ' + member.first_name + ' ' + member.last_name + ' at ' + member.phone">
+                    {{ member.phone }}
+                  </a>
                 </div>
               </div>
               <ng-template #noCareTeam><p class="care-plan-empty">Your care team details will appear here.</p></ng-template>

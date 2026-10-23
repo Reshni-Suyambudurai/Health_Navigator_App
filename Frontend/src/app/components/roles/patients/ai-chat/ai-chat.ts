@@ -5,7 +5,7 @@ import { finalize } from 'rxjs';
 
 import { ConversationApi } from '../../../../api/navigator/conversation.api';
 import { getSessionUser } from '../../../../api/tokenstore';
-import { ConversationMessage } from '../../../../shared/types/navigator/conversation';
+import { CareTeamRequestStatus, ConversationMessage } from '../../../../shared/types/navigator/conversation';
 import { ToastState } from '../../../../shared/ui/toast/toast-state';
 
 @Component({
@@ -21,9 +21,11 @@ export class AiChat implements OnInit {
   private readonly sessionUser = getSessionUser();
 
   readonly messages = signal<ConversationMessage[]>([]);
+  readonly careTeamRequests = signal<CareTeamRequestStatus[]>([]);
   readonly messageDraft = signal('');
   readonly loading = signal(true);
   readonly isResponding = signal(false);
+  readonly emergencyPaused = signal(false);
   readonly largeText = signal(false);
   readonly historyOpen = signal(false);
   private navigatorPrompt = this.navigationPromptFromState();
@@ -40,6 +42,7 @@ export class AiChat implements OnInit {
       .subscribe({
         next: (response) => {
           this.messages.set(response.data.messages);
+          this.emergencyPaused.set(response.data.emergency_chat_paused);
           this.sendNavigationPrompt();
         },
         error: () => {
@@ -47,11 +50,12 @@ export class AiChat implements OnInit {
           this.sendNavigationPrompt();
         },
       });
+    this.loadCareTeamRequests();
   }
 
   sendMessage(): void {
     const text = this.messageDraft().trim();
-    if (!text || this.isResponding() || !this.sessionUser) {
+    if (!text || this.isResponding() || this.emergencyPaused() || !this.sessionUser) {
       return;
     }
 
@@ -69,6 +73,8 @@ export class AiChat implements OnInit {
             response.data.patient_message,
             response.data.assistant_message,
           ]);
+          this.emergencyPaused.set(response.data.emergency_chat_paused);
+          this.loadCareTeamRequests();
         },
         error: (error: unknown) => {
           this.messages.update((messages) => messages.filter((message) => message.message_id !== optimisticMessage.message_id));
@@ -101,12 +107,26 @@ export class AiChat implements OnInit {
     this.messageDraft.set('Please explain that in simpler words.');
   }
 
-  prepareCareTeamQuestion(): void {
-    this.messageDraft.set('I have a question for my care team about this medication.');
-  }
-
   formatTime(sentAt: string): string {
     return new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' }).format(new Date(sentAt));
+  }
+
+  formatRequestStatus(status: CareTeamRequestStatus['status']): string {
+    return status.replace('_', ' ').toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
+  }
+
+  careTeamRequestFor(escalationId: number): CareTeamRequestStatus | undefined {
+    return this.careTeamRequests().find((request) => request.escalation_id === escalationId);
+  }
+
+  private loadCareTeamRequests(): void {
+    if (!this.sessionUser) {
+      return;
+    }
+    this.conversationApi.getCareTeamRequests(this.sessionUser.userId).subscribe({
+      next: ({ data }) => this.careTeamRequests.set(data.requests),
+      error: () => this.careTeamRequests.set([]),
+    });
   }
 
   private navigationPromptFromState(): string | null {
@@ -120,7 +140,7 @@ export class AiChat implements OnInit {
   }
 
   private sendNavigationPrompt(): void {
-    if (!this.navigatorPrompt) {
+    if (!this.navigatorPrompt || this.emergencyPaused()) {
       return;
     }
 

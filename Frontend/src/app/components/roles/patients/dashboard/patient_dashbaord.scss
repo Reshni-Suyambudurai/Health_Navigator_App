@@ -814,6 +814,16 @@
   border-bottom: 0;
 }
 
+.care-plan-section--status header span {
+  color: var(--muted);
+  font-size: 0.62rem;
+  text-transform: capitalize;
+}
+
+.care-plan-section--status header span.care-request--open {
+  color: var(--primary-dark);
+}
+
 .care-plan-section--team .care-team-list {
   gap: 0.7rem;
   padding-top: 0.75rem;
@@ -827,13 +837,64 @@
   color: #ffffff;
 }
 
-.care-plan-section--team .care-team-member a {
+.care-team-member__phone-button {
+  display: grid;
+  width: 1.8rem;
+  height: 1.8rem;
+  flex: 0 0 1.8rem;
+  place-items: center;
   border: 1px solid var(--border);
   border-radius: 6px;
-  padding: 0.28rem 0.42rem;
+  color: var(--primary-dark);
+  background: var(--surface);
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.care-team-member__phone-button:hover,
+.care-team-member__phone-button:focus-visible {
+  border-color: var(--primary);
+  outline: none;
+}
+
+.care-team-member__phone-number {
+  max-width: 7.2rem;
+  overflow: hidden;
   color: var(--primary-dark);
   font-size: 0.64rem;
   font-weight: 700;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (min-width: 1051px) {
+  :host,
+  .patient-dashboard {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .patient-home {
+    display: grid;
+    height: 100%;
+    min-height: 0;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .patient-home__layout {
+    height: auto;
+    min-height: 0;
+  }
+
+  .patient-chat-column {
+    min-height: 0;
+  }
+
+  .care-plan-sidebar {
+    overflow: hidden;
+  }
 }
 
 @media (max-width: 1050px) {

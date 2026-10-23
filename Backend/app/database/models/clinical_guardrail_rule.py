@@ -1,9 +1,11 @@
 """Clinical guardrail rule model."""
 
 import enum
-from sqlalchemy import Column, BigInteger, String, ForeignKey, TIMESTAMP, Enum as SQLEnum
+from sqlalchemy import Column, BigInteger, String, Text, ForeignKey, TIMESTAMP, Enum as SQLEnum
 from sqlalchemy.sql import func
 from app.database.connection import Base
+from app.database.models.care_team_queue import QueueType
+from app.database.models.escalation import EscalationPriority, EscalationType
 
 
 class RuleCategory(enum.Enum):
@@ -51,5 +53,9 @@ class ClinicalGuardrailRule(Base):
     handler_role_id = Column(BigInteger, ForeignKey("roles.role_id", ondelete="SET NULL"), index=True)
     action_type = Column(SQLEnum(GuardrailActionType, name="guardrail_action_type"), nullable=False)
     status = Column(SQLEnum(RuleStatus, name="rule_status"), nullable=False, index=True)
+    patient_response_template = Column(Text)
+    target_queue_type = Column(SQLEnum(QueueType, name="queue_type"), index=True)
+    escalation_type = Column(SQLEnum(EscalationType, name="escalation_type"))
+    escalation_priority = Column(SQLEnum(EscalationPriority, name="escalation_priority"))
     created_at = Column(TIMESTAMP, nullable=False, server_default=func.current_timestamp())
     updated_at = Column(TIMESTAMP, nullable=False, server_default=func.current_timestamp(), onupdate=func.current_timestamp())

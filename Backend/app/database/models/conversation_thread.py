@@ -15,6 +15,7 @@ class ConversationChannel(enum.Enum):
 
 class ConversationStatus(enum.Enum):
     ACTIVE = "ACTIVE"
+    PAUSED_EMERGENCY = "PAUSED_EMERGENCY"
     COMPLETED = "COMPLETED"
     ABANDONED = "ABANDONED"
 

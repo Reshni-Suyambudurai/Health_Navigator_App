@@ -17,14 +17,25 @@ class ConversationMessageRequest(BaseModel):
     message: str = Field(min_length=1, max_length=4000)
 
 
+class CareTeamRequest(BaseModel):
+    user_id: int = Field(gt=0)
+    message: str | None = Field(default=None, max_length=4000)
+
+
 @router.get("/users/{user_id}/messages", response_model=SuccessResponse)
 async def get_conversation_history(user_id: int, db: Session = Depends(get_db)):
-    messages = ConversationService(db).get_history(user_id)
+    history = ConversationService(db).get_history(user_id)
     return SuccessResponse(
         status="success",
         message="Conversation history retrieved successfully",
-        data={"messages": messages},
+        data=history,
     )
+
+
+@router.get("/users/{user_id}/care-team-requests", response_model=SuccessResponse)
+async def get_care_team_requests(user_id: int, db: Session = Depends(get_db)):
+    requests = ConversationService(db).get_care_team_requests(user_id)
+    return SuccessResponse(status="success", message="Care-team requests retrieved successfully", data={"requests": requests})
 
 
 @router.post("/messages", response_model=SuccessResponse)
@@ -35,3 +46,9 @@ async def send_conversation_message(
 ):
     data = ConversationService(db, monster_db).send_message(payload.user_id, payload.message)
     return SuccessResponse(status="success", message="Conversation message sent successfully", data=data)
+
+
+@router.post("/care-team-requests", response_model=SuccessResponse)
+async def create_care_team_request(payload: CareTeamRequest, db: Session = Depends(get_db)):
+    data = ConversationService(db).request_care_team_follow_up(payload.user_id, payload.message)
+    return SuccessResponse(status="success", message="Care-team request created successfully", data=data)

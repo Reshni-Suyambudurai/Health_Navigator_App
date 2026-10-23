@@ -1,0 +1,75 @@
+<section class="ai-chat" aria-labelledby="ai-chat-title">
+  <header class="ai-chat__header">
+    <div class="ai-chat__avatar" aria-hidden="true">AI</div>
+    <div>
+      <h2 id="ai-chat-title">Health Navigator</h2>
+      <span class="ai-chat__status"><span></span> Online · usually answers right away</span>
+    </div>
+    <div class="ai-chat__tools">
+      <button type="button" (click)="toggleHistory()" [attr.aria-pressed]="historyOpen()">History</button>
+      <button type="button" (click)="toggleLargeText()" [attr.aria-pressed]="largeText()">{{ largeText() ? 'Standard text' : 'Larger text' }}</button>
+    </div>
+  </header>
+
+  <div class="ai-chat__messages" [class.ai-chat__messages--large]="largeText()" aria-live="polite">
+    <p class="ai-chat__date">Today</p>
+    <p *ngIf="historyOpen()" class="ai-chat__history">Conversation history is available in this chat while you are signed in.</p>
+    <section *ngIf="careTeamRequests().length" class="ai-chat__requests" aria-label="Care-team request status">
+      <h3>Care-team requests</h3>
+      <article *ngFor="let request of careTeamRequests()">
+        <div><strong>Request #{{ request.escalation_id }}</strong><span [class.resolved]="request.status === 'RESOLVED' || request.status === 'CLOSED'">{{ formatRequestStatus(request.status) }}</span></div>
+        <p>{{ request.reason }}</p>
+      </article>
+    </section>
+    <p *ngIf="loading()" class="ai-chat__empty">Loading your conversation...</p>
+    <p *ngIf="!loading() && messages().length === 0" class="ai-chat__empty">Ask a question about your care plan, medicines, or next appointment.</p>
+    <article
+      *ngFor="let message of messages()"
+      class="ai-chat__message"
+      [class.ai-chat__message--patient]="message.sender === 'patient'"
+      [class.ai-chat__message--emergency]="message.safety_category === 'emergency'"
+      [class.ai-chat__message--medication-review]="message.safety_category === 'medication_review'"
+    >
+      <p *ngIf="message.safety_category === 'emergency'" class="ai-chat__safety-label">Emergency response</p>
+      <p *ngIf="message.safety_category === 'medication_review'" class="ai-chat__safety-label">Medication safety review</p>
+      <div class="ai-chat__assistant-heading" *ngIf="message.sender === 'assistant'">
+        <span class="ai-chat__assistant-mark" aria-hidden="true">AI</span>
+        <span>Health Navigator</span>
+      </div>
+      <div class="ai-chat__bubble">{{ message.text }}</div>
+      <div *ngIf="message.sender === 'assistant' && message.source_labels?.length" class="ai-chat__sources" aria-label="Answer sources">
+        <span *ngFor="let source of message.source_labels" class="ai-chat__source">{{ source }}</span>
+      </div>
+      <div *ngIf="message.sender === 'assistant' && message.source_labels?.length && !message.safety_category" class="ai-chat__follow-up">
+        <p>Was this helpful?</p>
+        <div>
+          <button type="button" (click)="acknowledgeAnswer()">Yes, thanks</button>
+          <button type="button" (click)="askForSimplerExplanation()">Explain differently</button>
+          <button type="button" (click)="requestCareTeamFollowUp()" [disabled]="isRequestingCareTeam()">{{ isRequestingCareTeam() ? 'Requesting...' : 'Ask my care team' }}</button>
+        </div>
+      </div>
+      <p *ngIf="message.escalation_id" class="ai-chat__escalation-status">Care team request #{{ message.escalation_id }} created</p>
+      <time>{{ formatTime(message.sent_at) }}</time>
+    </article>
+    <p *ngIf="isResponding()" class="ai-chat__typing" role="status">Health Navigator is writing...</p>
+  </div>
+
+  <footer class="ai-chat__footer">
+    <p class="ai-chat__disclaimer">AI assistant · General guidance only. It does not replace your care team and is not for emergencies.</p>
+    <div class="ai-chat__composer">
+      <label class="sr-only" for="patient-message">Type your question</label>
+      <textarea
+        id="patient-message"
+        [ngModel]="messageDraft()"
+        (ngModelChange)="messageDraft.set($event)"
+        (keydown)="onComposerKeydown($event)"
+        [disabled]="isResponding()"
+        placeholder="Type your question..."
+        rows="1"
+      ></textarea>
+      <button type="button" (click)="sendMessage()" [disabled]="!messageDraft().trim() || isResponding()">
+        Send
+      </button>
+    </div>
+  </footer>
+</section>

@@ -1,0 +1,201 @@
+<section class="patient-dashboard">
+  <p class="state" *ngIf="loading()">Loading your patient information...</p>
+
+  <ng-container *ngIf="!loading()">
+    <ng-container *ngIf="showOnboarding(); else dashboardContent">
+      <div class="onboarding-layout">
+        <aside class="onboarding-visual" aria-label="Between-visit support">
+          <div class="visual-copy">
+            <p class="eyebrow">NORTHBROOK HEALTH · BETWEEN-VISIT SUPPORT</p>
+            <h1>Support at home,<br />any time of day.</h1>
+            <p class="visual-heading">WHAT I CAN HELP WITH</p>
+            <ul class="support-list">
+              <li>Explain your medicines in plain words</li>
+              <li>Remind you about refills and check-ins</li>
+              <li>Help you book your follow-up visit</li>
+              <li>Connect you with your care team</li>
+            </ul>
+            <p class="visual-heading">WHAT I CANNOT DO</p>
+            <ul class="support-list limitations">
+              <li>Diagnose a condition</li>
+              <li>Change or stop a medicine</li>
+              <li>Handle emergencies</li>
+            </ul>
+          </div>
+          <div class="visual-mark" aria-hidden="true"></div>
+          <div class="visual-line" aria-hidden="true"></div>
+        </aside>
+
+        <main class="onboarding-panel">
+          <div class="panel-header">
+            <p class="step-label">Step {{ step() === 'profile' ? '1' : '2' }} of 2 · {{ step() === 'profile' ? 'Before we start' : 'Your consent' }}</p>
+            <h2 *ngIf="step() === 'profile'">Hi {{ patientName }}, let&apos;s verify your details</h2>
+            <h2 *ngIf="step() === 'consent'">Before you get started</h2>
+            <p *ngIf="step() === 'profile'">Please review the information below and complete anything missing.</p>
+            <p *ngIf="step() === 'consent'">Please review how the AI assistant works before accessing your dashboard.</p>
+          </div>
+
+          <div class="progress-track" aria-label="Onboarding progress">
+            <span [class.complete]="step() === 'consent'" [class.current]="step() === 'profile'">1</span>
+            <div></div>
+            <span [class.current]="step() === 'consent'">2</span>
+          </div>
+
+          <form *ngIf="step() === 'profile'" class="onboarding-form" (ngSubmit)="submitProfile()">
+            <div class="form-section">
+              <h3>Your contact details</h3>
+              <div class="form-grid">
+                <label>
+                  <span>First name <b>*</b></span>
+                  <input name="firstName" [(ngModel)]="profileForm.firstName" required />
+                </label>
+                <label>
+                  <span>Last name <b>*</b></span>
+                  <input name="lastName" [(ngModel)]="profileForm.lastName" required />
+                </label>
+                <label>
+                  <span>Email <b>*</b></span>
+                  <input name="email" type="email" [(ngModel)]="profileForm.email" required />
+                </label>
+                <label>
+                  <span>Mobile number <b>*</b></span>
+                  <input name="phone" type="tel" [(ngModel)]="profileForm.phone" required />
+                </label>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <h3>Your patient details</h3>
+              <div class="form-grid">
+                <label>
+                  <span>Date of birth <b>*</b></span>
+                  <input name="dateOfBirth" type="date" [(ngModel)]="profileForm.dateOfBirth" required />
+                </label>
+                <label>
+                  <span>Gender <b>*</b></span>
+                  <select name="gender" [(ngModel)]="profileForm.gender" required>
+                    <option value="" disabled>Select gender</option>
+                    <option *ngFor="let gender of profileOptions.genders" [value]="gender">{{ gender }}</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Preferred language <b>*</b></span>
+                  <input name="preferredLanguage" [(ngModel)]="profileForm.preferredLanguage" required />
+                </label>
+                <label>
+                  <span>Preferred contact method <b>*</b></span>
+                  <select name="preferredContactMethod" [(ngModel)]="profileForm.preferredContactMethod" required>
+                    <option value="" disabled>Select contact method</option>
+                    <option *ngFor="let method of profileOptions.contact_methods" [value]="method">{{ method }}</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Emergency contact name <b>*</b></span>
+                  <input name="emergencyContactName" [(ngModel)]="profileForm.emergencyContactName" required />
+                </label>
+                <label>
+                  <span>Emergency contact phone <b>*</b></span>
+                  <input name="emergencyContactPhone" type="tel" [(ngModel)]="profileForm.emergencyContactPhone" required />
+                </label>
+              </div>
+            </div>
+
+            <div class="record-summary" *ngIf="state()?.profile as profile">
+              <div><span>Patient ID</span><strong>{{ profile.patient_id }}</strong></div>
+              <div><span>FHIR ID</span><strong>{{ profile.external_fhir_patient_id || 'Not linked' }}</strong></div>
+              <div><span>Risk tier</span><strong>{{ profile.risk_tier || 'UNKNOWN' }}</strong></div>
+            </div>
+
+            <button class="primary-action" type="submit" [disabled]="saving()">
+              {{ saving() ? 'Saving...' : 'Continue to consent' }} <span aria-hidden="true">›</span>
+            </button>
+          </form>
+
+          <form *ngIf="step() === 'consent'" class="consent-form" (ngSubmit)="submitConsent()">
+            <div class="notice info-notice">
+              <strong>About your AI assistant</strong>
+              <p>I am an AI assistant, not a person. My messages are created by artificial intelligence using your health record and trusted sources. Please review important answers with your care team.</p>
+            </div>
+            <div class="notice warning-notice">
+              <strong>Not for emergencies</strong>
+              <p>If you have chest pain, trouble breathing, or signs of a stroke, call 911.</p>
+            </div>
+            <label class="consent-check">
+              <input type="checkbox" name="aiDisclosure" [ngModel]="aiDisclosureAccepted()" (ngModelChange)="aiDisclosureAccepted.set($event)" />
+              <span>I understand I am messaging an AI assistant.</span>
+            </label>
+            <label class="consent-check">
+              <input type="checkbox" name="reminders" [ngModel]="reminderAccepted()" (ngModelChange)="reminderAccepted.set($event)" />
+              <span>I agree to receive check-ins and reminders by text message.</span>
+            </label>
+            <button class="primary-action" type="submit" [disabled]="saving()">
+              {{ saving() ? 'Saving...' : 'Accept and get started' }} <span aria-hidden="true">›</span>
+            </button>
+            <p class="legal-copy">Disclosure v1.0 · <a href="#">Privacy notice</a></p>
+          </form>
+        </main>
+      </div>
+    </ng-container>
+
+    <ng-template #dashboardContent>
+      <section class="patient-home">
+        <div class="patient-home__safety-notice" role="note">
+          <span><strong>You are chatting with an AI assistant,</strong> not a doctor or nurse. It is not for emergencies. Call 911 if you have chest pain or trouble breathing.</span>
+          <a *ngIf="careTeam()[0]?.phone" [href]="'tel:' + careTeam()[0].phone">Want a person? Call your care team</a>
+        </div>
+
+        <div class="patient-home__layout">
+          <main class="patient-chat-column">
+            <app-ai-chat></app-ai-chat>
+          </main>
+
+          <aside class="care-plan-sidebar" aria-label="Your care plan">
+            <section class="care-plan-summary">
+              <p class="care-plan-sidebar__eyebrow">YOUR CARE PLAN</p>
+              <h2>{{ carePlanTitle }}</h2>
+              <p>{{ carePlanSubtitle }}</p>
+              <div class="care-plan-progress" aria-label="Care plan progress"><span></span></div>
+
+              <div class="care-plan-tasks" *ngIf="carePlanTasks.length > 0; else noPlanTasks">
+                <div class="care-plan-task" *ngFor="let task of carePlanTasks">
+                  <span class="care-plan-task__state" [class.care-plan-task__state--complete]="task.completed" aria-hidden="true">{{ task.completed ? '✓' : '!' }}</span>
+                  <span><strong>{{ task.title }}</strong><small>{{ task.detail }}</small></span>
+                </div>
+              </div>
+              <ng-template #noPlanTasks>
+                <p class="care-plan-empty" *ngIf="carePlanLoading()">Loading care plan...</p>
+                <p class="care-plan-empty" *ngIf="!carePlanLoading()">Your active care-plan tasks will appear here.</p>
+              </ng-template>
+            </section>
+
+            <section class="care-plan-section">
+              <header><p>MY MEDICINES</p><span>{{ medications().length }} active</span></header>
+              <div class="medicine-list" *ngIf="medications().length > 0; else noMedicines">
+                <div class="medicine-list__item" *ngFor="let medication of medications() | slice:0:4">
+                  <strong>{{ medicationName(medication) }}</strong>
+                  <small>{{ medicationInstruction(medication) }}</small>
+                </div>
+              </div>
+              <ng-template #noMedicines><p class="care-plan-empty">No active medicines are available.</p></ng-template>
+            </section>
+
+            <section class="care-plan-section care-plan-section--team">
+              <header><p>CARE TEAM</p></header>
+              <div class="care-team-list" *ngIf="careTeam().length > 0; else noCareTeam">
+                <div class="care-team-member" *ngFor="let member of careTeam()">
+                  <span class="care-team-member__avatar">{{ member.first_name.charAt(0) }}{{ member.last_name.charAt(0) }}</span>
+                  <span class="care-team-member__identity">
+                    <strong>{{ member.first_name }} {{ member.last_name }}</strong>
+                    <small>Transitional care nurse</small>
+                  </span>
+                  <a *ngIf="member.phone" [href]="'tel:' + member.phone" [attr.aria-label]="'Call ' + member.first_name + ' ' + member.last_name">Call</a>
+                </div>
+              </div>
+              <ng-template #noCareTeam><p class="care-plan-empty">Your care team details will appear here.</p></ng-template>
+            </section>
+          </aside>
+        </div>
+      </section>
+    </ng-template>
+  </ng-container>
+</section>

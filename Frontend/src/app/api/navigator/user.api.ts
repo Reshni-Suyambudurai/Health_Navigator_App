@@ -12,6 +12,7 @@ import {
 	UserDeleteData,
 	UserListData,
 	PatientConsentRequest,
+	PatientCareSnapshot,
 	PatientOnboardingState,
 	PatientProfileUpdateRequest,
 	UserRecord,
@@ -58,6 +59,12 @@ export class UserApi {
 	getPatientOnboarding(userId: number): Observable<ApiSuccessResponse<PatientOnboardingState>> {
 		return this.http.get<ApiSuccessResponse<PatientOnboardingState>>(
 			`${environment.apiBaseUrl}/patient-onboarding/users/${userId}`
+		);
+	}
+
+	getPatientCareSnapshot(userId: number): Observable<ApiSuccessResponse<PatientCareSnapshot>> {
+		return this.http.get<ApiSuccessResponse<PatientCareSnapshot>>(
+			`${environment.apiBaseUrl}/patient-dashboard/users/${userId}/care-snapshot`
 		);
 	}
 

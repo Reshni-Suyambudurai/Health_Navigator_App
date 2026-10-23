@@ -4,12 +4,15 @@ import { FormsModule } from '@angular/forms';
 import { catchError, finalize, forkJoin, of, switchMap } from 'rxjs';
 import { UserApi } from '../../../../api/navigator/user.api';
 import { FhirDataApi } from '../../../../api/patientfhir/fhir.data.api';
+import { ConversationApi } from '../../../../api/navigator/conversation.api';
 import { getSessionUser } from '../../../../api/tokenstore';
 import {
   CareTeamMember,
+  PatientCareSnapshot,
   PatientOnboardingState,
   PatientProfileUpdateRequest,
 } from '../../../../shared/types/navigator/user';
+import { CareTeamRequestStatus } from '../../../../shared/types/navigator/conversation';
 import { FhirRecord } from '../../../../shared/types/patientfhir/fhir';
 import { AiChat } from '../ai-chat/ai-chat';
 import { ToastState } from '../../../../shared/ui/toast/toast-state';
@@ -45,6 +48,7 @@ interface CarePlanTask {
 export class PatientDashbaord implements OnInit {
   private readonly userApi = inject(UserApi);
   private readonly fhirApi = inject(FhirDataApi);
+  private readonly conversationApi = inject(ConversationApi);
   private readonly toast = inject(ToastState);
 
   readonly loading = signal(true);
@@ -52,10 +56,13 @@ export class PatientDashbaord implements OnInit {
   readonly showOnboarding = signal(false);
   readonly step = signal<OnboardingStep>('profile');
   readonly state = signal<PatientOnboardingState | null>(null);
+  readonly careSnapshot = signal<PatientCareSnapshot | null>(null);
   readonly careTeam = signal<CareTeamMember[]>([]);
+  readonly careTeamRequests = signal<CareTeamRequestStatus[]>([]);
   readonly medications = signal<FhirRecord[]>([]);
   readonly activeCarePlan = signal<FhirRecord | null>(null);
   readonly carePlanLoading = signal(false);
+  readonly visibleCareTeamPhoneId = signal<number | null>(null);
   readonly aiDisclosureAccepted = signal(false);
   readonly reminderAccepted = signal(false);
 
@@ -103,17 +110,43 @@ export class PatientDashbaord implements OnInit {
       return {
         title: this.readRecordText(detail, ['description', 'title', 'name'], `Care-plan task ${index + 1}`),
         detail: this.readRecordText(detail, ['scheduledString', 'timing', 'note'], 'Review with your care team'),
-        completed: ['completed', 'done', 'active'].includes(status),
+        completed: ['completed', 'done'].includes(status),
       };
     });
   }
+
+    get carePlanProgress(): number {
+      const tasks = this.carePlanTasks;
+      if (tasks.length === 0) {
+        return 0;
+      }
+      return Math.round((tasks.filter((task) => task.completed).length / tasks.length) * 100);
+    }
+
+    get latestCareTeamRequest(): CareTeamRequestStatus | null {
+      return this.careTeamRequests()[0] ?? null;
+    }
+
+    get careTeamRequestLabel(): string {
+      const status = this.latestCareTeamRequest?.status;
+      if (!status) {
+        return 'No open requests';
+      }
+      return status.replace('_', ' ').toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
+    }
+
+    toggleCareTeamPhone(member: CareTeamMember): void {
+      this.visibleCareTeamPhoneId.update((visibleMemberId) =>
+        visibleMemberId === member.user_id ? null : member.user_id
+      );
+    }
 
   medicationName(medication: FhirRecord): string {
     return this.readRecordText(medication, ['medication_name', 'name', 'medication', 'display'], 'Medication');
   }
 
   medicationInstruction(medication: FhirRecord): string {
-    return this.readRecordText(medication, ['dosage', 'dosage_text', 'instructions', 'frequency'], 'Review instructions with your care team');
+    return this.readRecordText(medication, ['dosage', 'dosage_text', 'instructions', 'frequency'], 'Directions are not available in your record.');
   }
 
   ngOnInit(): void {
@@ -198,7 +231,7 @@ export class PatientDashbaord implements OnInit {
         next: (response) => {
           this.state.set(response.data);
           this.showOnboarding.set(false);
-          this.loadCareTeam();
+          this.loadCareSnapshot();
           this.loadPatientFhirData(response.data.profile?.external_fhir_patient_id);
           this.toast.success('Consent recorded. Welcome to your patient dashboard.');
         },
@@ -231,15 +264,28 @@ export class PatientDashbaord implements OnInit {
         this.toast.info('Please verify your profile details before continuing.');
       }
     } else {
-      this.loadCareTeam();
+      this.loadCareSnapshot();
       this.loadPatientFhirData(onboardingState.profile?.external_fhir_patient_id);
     }
   }
 
-  private loadCareTeam(): void {
-    this.userApi.getActiveUsersByRole('TRANSITIONAL_CARE_NURSE').subscribe({
-      next: (response) => this.careTeam.set(response.data.users),
-      error: () => this.toast.warning('Care team details are temporarily unavailable.'),
+  private loadCareSnapshot(): void {
+    const sessionUser = getSessionUser();
+    if (!sessionUser) {
+      return;
+    }
+
+    this.userApi.getPatientCareSnapshot(sessionUser.userId).subscribe({
+      next: (response) => {
+        this.careSnapshot.set(response.data);
+        this.careTeam.set(response.data.care_team);
+      },
+      error: () => this.toast.warning('Your care-team details are temporarily unavailable.'),
+    });
+
+    this.conversationApi.getCareTeamRequests(sessionUser.userId).subscribe({
+      next: (response) => this.careTeamRequests.set(response.data.requests),
+      error: () => this.careTeamRequests.set([]),
     });
   }
 

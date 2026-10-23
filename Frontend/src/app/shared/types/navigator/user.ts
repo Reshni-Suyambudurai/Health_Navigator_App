@@ -55,6 +55,12 @@ export interface CareTeamData {
 	count: number;
 }
 
+export interface PatientCareSnapshot {
+	risk_tier: string | null;
+	episode_status: string | null;
+	care_team: CareTeamMember[];
+}
+
 export interface UserCreateData {
 	user_id: number;
 }

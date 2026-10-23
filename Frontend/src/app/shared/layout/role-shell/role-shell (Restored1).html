@@ -1,0 +1,55 @@
+<ng-container *ngIf="isPatient; else staffShell">
+  <div class="patient-layout">
+    <header class="patient-topbar">
+      <a class="patient-brand" routerLink="/patient/dashboard" aria-label="Northbrook Health patient home">
+        <span class="patient-brand__mark" aria-hidden="true">+</span>
+        <span>
+          <strong>Health Navigator</strong>
+          <small>Health · Powered by KANINI</small>
+        </span>
+      </a>
+
+      <nav class="patient-primary-nav" aria-label="Patient navigation">
+        <a routerLink="/patient/dashboard" routerLinkActive="patient-primary-nav__item--active">Chat</a>
+        <a routerLink="/patient/medicines" routerLinkActive="patient-primary-nav__item--active">My medicines</a>
+        <span>Appointments</span>
+        <span>Care plan</span>
+        <span>Care team</span>
+      </nav>
+
+      <div class="patient-topbar__actions">
+        <span class="patient-language">EN</span>
+        <span class="patient-topbar__support">Here when you need support</span>
+        <button type="button" class="patient-icon-button" (click)="toggleTheme()" [attr.aria-label]="theme() === 'light' ? 'Use dark theme' : 'Use light theme'" [title]="theme() === 'light' ? 'Use dark theme' : 'Use light theme'">
+          {{ theme() === 'light' ? '◐' : '☼' }}
+        </button>
+        <div class="patient-account">
+          <button type="button" class="patient-avatar-button" (click)="toggleUserMenu()" [attr.aria-expanded]="userMenuOpen()" aria-haspopup="menu" title="Open account menu">
+            <span>{{ initials }}</span>
+            <span class="patient-account__name">{{ patientName }}</span>
+          </button>
+          <div *ngIf="userMenuOpen()" class="patient-account__menu" role="menu">
+            <button type="button" role="menuitem" (click)="logout()">Sign out</button>
+          </div>
+        </div>
+      </div>
+    </header>
+    <main class="patient-layout__content">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</ng-container>
+
+<ng-template #staffShell>
+  <div class="roles-layout">
+    <app-role-sidebar></app-role-sidebar>
+
+    <section class="layout-main">
+      <app-role-navbar></app-role-navbar>
+
+      <main class="layout-content">
+        <router-outlet></router-outlet>
+      </main>
+    </section>
+  </div>
+</ng-template>

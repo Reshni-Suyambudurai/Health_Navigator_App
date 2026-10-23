@@ -9,6 +9,8 @@ import { getSessionUser } from '../../../../api/tokenstore';
 import { FhirRecord } from '../../../../shared/types/patientfhir/fhir';
 import { ToastState } from '../../../../shared/ui/toast/toast-state';
 
+const DIRECTIONS_UNAVAILABLE = 'Directions are not available in your record.';
+
 @Component({
   selector: 'app-patient-medicines',
   standalone: true,
@@ -65,7 +67,7 @@ export class PatientMedicines implements OnInit {
   }
 
   dosage(medication: FhirRecord): string {
-    return this.recordText(medication, ['dosage_text', 'dosage', 'instructions'], 'Review instructions with your care team');
+    return this.recordText(medication, ['dosage_text', 'dosage', 'instructions'], DIRECTIONS_UNAVAILABLE);
   }
 
   reason(medication: FhirRecord): string | null {
@@ -86,9 +88,12 @@ export class PatientMedicines implements OnInit {
   askAboutMedicine(medication: FhirRecord): void {
     const medicineName = this.medicationName(medication);
     const dosage = this.dosage(medication);
+    const navigatorPrompt = dosage === DIRECTIONS_UNAVAILABLE
+      ? `Can you explain what ${medicineName} is for? My record does not include directions for it.`
+      : `Can you explain what ${medicineName} is for and the directions in my record: ${dosage}`;
     this.router.navigate(['/patient/dashboard'], {
       state: {
-        navigatorPrompt: `Can you explain what ${medicineName} is for and the directions in my record: ${dosage}`,
+        navigatorPrompt,
       },
     });
   }
