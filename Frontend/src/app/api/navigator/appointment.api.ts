@@ -9,6 +9,10 @@ import {
 	AvailabilityListResponse,
 	AvailabilityRequest,
 	PatientAppointmentListResponse,
+	NurseAppointmentUpdateData,
+	NurseAppointmentUpdateRequest,
+	NurseAppointmentDetailsResponse,
+	ReassignmentOptionsResponse,
 	RoutineAppointmentRequest,
 } from '../../shared/types/navigator/appointment';
 import { ApiSuccessResponse } from '../../shared/types/navigator/user';
@@ -28,6 +32,38 @@ export class AppointmentApi {
 		return this.http.get<AppointmentListResponse>(`${this.baseUrl}/nurse/history`, {
 			params: this.userParams(userId),
 		});
+	}
+
+	getNurseAppointmentDetails(
+		userId: number,
+		appointmentId: number,
+	): Observable<NurseAppointmentDetailsResponse> {
+		return this.http.get<NurseAppointmentDetailsResponse>(
+			`${this.baseUrl}/nurse/${appointmentId}/details`,
+			{ params: this.userParams(userId) },
+		);
+	}
+
+	getReassignmentOptions(
+		userId: number,
+		appointmentId: number,
+	): Observable<ReassignmentOptionsResponse> {
+		return this.http.get<ReassignmentOptionsResponse>(
+			`${this.baseUrl}/nurse/${appointmentId}/reassignment-options`,
+			{ params: this.userParams(userId) },
+		);
+	}
+
+	updateNurseAppointment(
+		userId: number,
+		appointmentId: number,
+		payload: NurseAppointmentUpdateRequest,
+	): Observable<ApiSuccessResponse<NurseAppointmentUpdateData>> {
+		return this.http.put<ApiSuccessResponse<NurseAppointmentUpdateData>>(
+			`${this.baseUrl}/nurse/${appointmentId}`,
+			payload,
+			{ params: this.userParams(userId) },
+		);
 	}
 
 	getPatientUpcoming(userId: number): Observable<PatientAppointmentListResponse> {

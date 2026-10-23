@@ -139,6 +139,11 @@ Seeded users and login password:
 | `john.doe@example.com` | `Test@1234` | `PATIENT` |
 | `sarah.johnson@cityhospital.com` | `Test@1234` | `CARE_MANAGER` |
 | `michael.chen@communityclinic.com` | `Test@1234` | `TRANSITIONAL_CARE_NURSE` |
+| `emily.davis@cityhospital.com` | `Test@1234` | `TRANSITIONAL_CARE_NURSE` |
+| `olivia.patel@cityhospital.com` | `Test@1234` | `PHARMACIST` |
+| `sophia.martinez@cityhospital.com` | `Test@1234` | `SOCIAL_WORKER` |
+| `daniel.wilson@cityhospital.com` | `Test@1234` | `POPULATION_HEALTH_MANAGER` |
+| `grace.thompson@cityhospital.com` | `Test@1234` | `CLINICAL_GOVERNANCE` |
 | `emma.williams@midwesthealthcare.com` | `Test@1234` | `SYSTEM_ADMIN` |
 | `demo.admin@patientai.local` | `Test@1234` | `SYSTEM_ADMIN` |
 | `care.manager@patientai.local` | `Test@1234` | `CARE_MANAGER` |

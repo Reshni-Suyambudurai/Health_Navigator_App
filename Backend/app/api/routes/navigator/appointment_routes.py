@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.response_models import SuccessResponse
 from app.database.connection import get_db
-from app.database.models.appointment import AppointmentType
+from app.database.models.appointment import AppointmentStatus, AppointmentType
 from app.database.models.staff_availability import DayOfWeek
 from app.services.navigator.appointment_service import AppointmentService
 from app.services.navigator.staff_availability_service import StaffAvailabilityService
@@ -33,6 +33,11 @@ class AvailabilityRequest(BaseModel):
     effective_from: date
     effective_until: date | None = None
     is_active: bool = True
+
+
+class NurseAppointmentUpdateRequest(BaseModel):
+    status: AppointmentStatus
+    staff_id: int | None = None
 
 
 @router.get("/available-slots", response_model=SuccessResponse)
@@ -108,6 +113,54 @@ def get_nurse_appointment_history(
     return SuccessResponse(
         message="Appointment history retrieved successfully",
         data={"appointments": appointments, "count": len(appointments)},
+    )
+
+
+@router.get("/nurse/{appointment_id}/details", response_model=SuccessResponse)
+def get_nurse_appointment_details(
+    appointment_id: int,
+    user_id: int = Query(..., gt=0),
+    db: Session = Depends(get_db),
+):
+    service = AppointmentService(db)
+    appointment = service.get_nurse_appointment_details(user_id, appointment_id)
+    return SuccessResponse(
+        message="Appointment details retrieved successfully",
+        data=appointment,
+    )
+
+
+@router.get("/nurse/{appointment_id}/reassignment-options", response_model=SuccessResponse)
+def get_nurse_reassignment_options(
+    appointment_id: int,
+    user_id: int = Query(..., gt=0),
+    db: Session = Depends(get_db),
+):
+    service = AppointmentService(db)
+    staff = service.get_reassignment_options(user_id, appointment_id)
+    return SuccessResponse(
+        message="Available nurses retrieved successfully",
+        data={"staff": staff, "count": len(staff)},
+    )
+
+
+@router.put("/nurse/{appointment_id}", response_model=SuccessResponse)
+def update_nurse_appointment(
+    appointment_id: int,
+    request: NurseAppointmentUpdateRequest,
+    user_id: int = Query(..., gt=0),
+    db: Session = Depends(get_db),
+):
+    service = AppointmentService(db)
+    appointment = service.update_nurse_appointment(
+        user_id=user_id,
+        appointment_id=appointment_id,
+        new_status=request.status,
+        staff_id=request.staff_id,
+    )
+    return SuccessResponse(
+        message="Appointment updated successfully",
+        data=appointment,
     )
 
 

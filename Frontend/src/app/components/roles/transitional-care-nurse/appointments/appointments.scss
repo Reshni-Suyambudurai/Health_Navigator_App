@@ -76,11 +76,15 @@ button.secondary:hover {
 }
 
 .appointments-table {
-	min-width: 820px;
+	min-width: 980px;
 }
 
 .appointments-table small {
 	color: var(--muted);
+}
+
+.appointments-table .clickable-row {
+	cursor: pointer;
 }
 
 .empty-state,

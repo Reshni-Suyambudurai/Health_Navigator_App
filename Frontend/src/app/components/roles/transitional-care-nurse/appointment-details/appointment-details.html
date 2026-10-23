@@ -1,0 +1,129 @@
+<section class="appointment-details-page">
+  <app-breadcrumb [items]="breadcrumbs" />
+
+  <p class="state" *ngIf="loading()">Loading appointment and clinical details...</p>
+  <p class="state error" *ngIf="!loading() && error()">{{ error() }}</p>
+
+  <ng-container *ngIf="!loading() && !error() && appointment() as item">
+    <header class="details-header">
+      <div>
+        <p class="eyebrow">Appointment {{ item.appointment_id }}</p>
+        <h1>{{ patientName }}</h1>
+        <p>Review the scheduled visit and the patient context needed for care.</p>
+      </div>
+      <span class="status-pill" [ngClass]="statusClass(item.status)"><span class="status-dot" aria-hidden="true"></span>{{ formatLabel(item.status) }}</span>
+    </header>
+
+    <section class="appointment-summary" aria-labelledby="appointment-summary-title">
+      <div class="section-title">
+        <div>
+          <p class="eyebrow">Current booking</p>
+          <h2 id="appointment-summary-title">Appointment details</h2>
+        </div>
+        <time [attr.datetime]="item.appointment_datetime">{{ formatDateTime(item.appointment_datetime) }}</time>
+      </div>
+
+      <dl class="detail-list appointment-grid">
+        <div><dt>Starts</dt><dd>{{ formatDateTime(item.appointment_datetime) }}</dd></div>
+        <div><dt>Ends</dt><dd>{{ formatDateTime(item.end_datetime) }}</dd></div>
+        <div><dt>Type</dt><dd>{{ formatLabel(item.appointment_type) }}</dd></div>
+        <div><dt>Booking method</dt><dd>{{ formatLabel(item.booking_method) }}</dd></div>
+        <div><dt>Location / Channel</dt><dd>{{ item.location_or_channel || 'Not provided' }}</dd></div>
+        <div class="detail-wide"><dt>Reason</dt><dd class="appointment-reason">{{ item.reason || 'No reason was provided.' }}</dd></div>
+      </dl>
+    </section>
+
+    <p class="clinical-warning" *ngIf="clinicalWarning()">{{ clinicalWarning() }}</p>
+
+    <div class="profile-management-layout">
+      <section class="detail-panel" aria-labelledby="patient-information-title">
+        <div class="section-title">
+          <div>
+            <p class="eyebrow">Patient profile</p>
+            <h2 id="patient-information-title">Personal information</h2>
+          </div>
+          <span class="patient-reference">Navigator ID {{ item.patient_id }}</span>
+        </div>
+        <dl class="detail-list patient-grid">
+          <div><dt>Date of birth</dt><dd>{{ patientValue('date_of_birth') }}</dd></div>
+          <div><dt>Gender</dt><dd>{{ patientValue('gender') }}</dd></div>
+          <div><dt>Phone</dt><dd>{{ patientValue('phone') }}</dd></div>
+          <div><dt>Email</dt><dd>{{ patientValue('email') }}</dd></div>
+          <div><dt>Preferred language</dt><dd>{{ patientValue('preferred_language') }}</dd></div>
+          <div><dt>Marital status</dt><dd>{{ patientValue('marital_status') }}</dd></div>
+          <div class="detail-wide"><dt>Address</dt><dd>{{ patientValue('address_line') }}, {{ patientValue('city') }}, {{ patientValue('state') }} {{ patientValue('postal_code') }}, {{ patientValue('country') }}</dd></div>
+        </dl>
+      </section>
+
+      <aside class="appointment-management" aria-labelledby="appointment-management-title">
+        <div class="management-heading">
+          <div>
+            <p class="eyebrow">Nurse workflow</p>
+            <h2 id="appointment-management-title">Manage appointment</h2>
+          </div>
+          <span class="status-pill" [ngClass]="statusClass(item.status)"><span class="status-dot" aria-hidden="true"></span>{{ formatLabel(item.status) }}</span>
+        </div>
+
+        <div class="management-action-row">
+          <label class="management-field">
+            <span>Appointment status</span>
+            <select [value]="selectedAppointmentStatus()" (change)="selectAppointmentStatus($any($event.target).value)" [disabled]="updatingAppointment()">
+              <option *ngFor="let status of appointmentStatuses" [value]="status">{{ formatLabel(status) }}</option>
+            </select>
+          </label>
+
+          <button type="button" class="management-submit" (click)="updateAppointmentStatus()" [disabled]="updatingAppointment()">
+            {{ updatingAppointment() ? 'Updating...' : 'Update status' }}
+          </button>
+        </div>
+
+        <div class="management-divider" role="separator"></div>
+
+        <div class="management-action-row">
+          <label class="management-field">
+            <span>Escalate to another nurse</span>
+            <select [value]="selectedNurseId() ?? ''" (change)="selectNurse($any($event.target).value)" [disabled]="loadingNurses() || updatingAppointment()">
+              <option value="">{{ loadingNurses() ? 'Loading nurses...' : 'Select a nurse' }}</option>
+              <option *ngFor="let nurse of availableNurses()" [value]="nurse.staff_id">{{ nurse.staff_name }}</option>
+            </select>
+            <small *ngIf="!loadingNurses() && availableNurses().length === 0">No other active transitional care nurses were found.</small>
+          </label>
+
+          <button type="button" class="management-submit secondary-action" (click)="escalateAppointment()" [disabled]="updatingAppointment() || !selectedNurseId()">
+            {{ updatingAppointment() ? 'Updating...' : 'Escalate' }}
+          </button>
+        </div>
+
+        <p class="management-error" *ngIf="appointmentActionError()">{{ appointmentActionError() }}</p>
+      </aside>
+    </div>
+
+    <section class="clinical-section" aria-labelledby="conditions-title">
+      <div class="section-title">
+        <div><p class="eyebrow">PatientFHIR</p><h2 id="conditions-title">Conditions</h2></div>
+        <span class="record-count">{{ filteredConditions().length }}</span>
+      </div>
+      <div class="ui-table-shell" *ngIf="filteredConditions().length > 0; else noConditions">
+        <table class="ui-table clinical-table">
+          <thead><tr><th scope="col">Condition</th><th scope="col">Code</th><th scope="col"><fieldset class="status-filter"><legend>Clinical status</legend><select aria-label="Filter conditions by clinical status" [value]="conditionStatusFilter()" (change)="conditionStatusFilter.set($any($event.target).value)"><option value="all">All statuses</option><option *ngFor="let status of conditionStatusOptions()" [value]="status">{{ formatLabel(status) }}</option></select></fieldset></th><th scope="col">Verification</th><th scope="col">Onset</th><th scope="col">Recorded</th></tr></thead>
+          <tbody><tr *ngFor="let condition of filteredConditions()"><td><strong>{{ recordValue(condition, 'condition_name') }}</strong></td><td>{{ recordValue(condition, 'condition_code') }}</td><td><span [ngClass]="statusClass(condition['clinical_status'])">{{ recordValue(condition, 'clinical_status') }}</span></td><td>{{ recordValue(condition, 'verification_status') }}</td><td>{{ recordValue(condition, 'onset_date') }}</td><td>{{ recordValue(condition, 'recorded_date') }}</td></tr></tbody>
+        </table>
+      </div>
+      <ng-template #noConditions><p class="empty-state">No conditions match the selected status.</p></ng-template>
+    </section>
+
+    <section class="clinical-section" aria-labelledby="medications-title">
+      <div class="section-title">
+        <div><p class="eyebrow">PatientFHIR</p><h2 id="medications-title">Medications</h2></div>
+        <span class="record-count">{{ filteredMedications().length }}</span>
+      </div>
+      <div class="ui-table-shell" *ngIf="filteredMedications().length > 0; else noMedications">
+        <table class="ui-table clinical-table">
+          <thead><tr><th scope="col">Medication</th><th scope="col">RxNorm</th><th scope="col"><fieldset class="status-filter"><legend>Status</legend><select aria-label="Filter medications by status" [value]="medicationStatusFilter()" (change)="medicationStatusFilter.set($any($event.target).value)"><option value="all">All statuses</option><option *ngFor="let status of medicationStatusOptions()" [value]="status">{{ formatLabel(status) }}</option></select></fieldset></th><th scope="col">Intent</th><th scope="col">Dosage</th><th scope="col">Start date</th></tr></thead>
+          <tbody><tr *ngFor="let medication of filteredMedications()"><td><strong>{{ recordValue(medication, 'medication_name') }}</strong></td><td>{{ recordValue(medication, 'rxnorm_code') }}</td><td><span [ngClass]="statusClass(medication['status'])">{{ recordValue(medication, 'status') }}</span></td><td>{{ recordValue(medication, 'intent') }}</td><td>{{ recordValue(medication, 'dosage_text') }}</td><td>{{ recordValue(medication, 'start_date') }}</td></tr></tbody>
+        </table>
+      </div>
+      <ng-template #noMedications><p class="empty-state">No medications match the selected status.</p></ng-template>
+    </section>
+  </ng-container>
+</section>

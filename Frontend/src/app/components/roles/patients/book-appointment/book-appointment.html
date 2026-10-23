@@ -8,7 +8,7 @@
       <button type="button" class="close-button" (click)="close()" aria-label="Close booking form">&#10005;</button>
     </header>
 
-    <form class="booking-form" (ngSubmit)="bookRoutineAppointment()">
+    <form class="booking-form">
       <label class="booking-field">
         <span>Appointment type</span>
         <select [(ngModel)]="bookingForm.appointment_type" name="appointment_type" required>
@@ -65,7 +65,7 @@
 
       <footer class="booking-actions booking-field--wide">
         <button type="button" class="secondary" (click)="close()" [disabled]="booking()">Cancel</button>
-        <button type="submit" [disabled]="booking() || !selectedSlot()">{{ booking() ? 'Booking...' : 'Book appointment' }}</button>
+        <button type="button" (click)="bookRoutineAppointment()" [disabled]="booking()">{{ booking() ? 'Booking...' : 'Book appointment' }}</button>
       </footer>
     </form>
   </section>

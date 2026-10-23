@@ -31,16 +31,18 @@
 						<th scope="col">Patient</th>
 						<th scope="col">When</th>
 						<th scope="col">Type</th>
-						<th scope="col">Channel</th>
+						<th scope="col">Reason</th>
+						<th scope="col">Location / Channel</th>
 						<th scope="col">Status</th>
 					</tr>
 				</thead>
 				<tbody>
-					<tr *ngFor="let appointment of upcoming()">
+					<tr class="clickable-row" tabindex="0" *ngFor="let appointment of upcoming()" [routerLink]="['/transitional-care-nurse/appointments', appointment.appointment_id, 'details']" [attr.aria-label]="'View appointment details for ' + appointment.patient_name">
 						<td data-label="Patient"><strong>{{ appointment.patient_name }}</strong><small>Patient {{ appointment.patient_id }}</small></td>
 						<td data-label="When">{{ formatDateTime(appointment.appointment_datetime) }}<small>Ends {{ formatDateTime(appointment.end_datetime) }}</small></td>
 						<td data-label="Type">{{ appointment.appointment_type.replace('_', ' ') }}</td>
-						<td data-label="Channel">{{ appointment.location_or_channel || appointment.booking_method.replace('_', ' ') }}</td>
+						<td data-label="Reason">{{ appointment.reason || 'Not provided' }}</td>
+						<td data-label="Location / Channel">{{ appointment.location_or_channel || appointment.booking_method.replace('_', ' ') }}</td>
 						<td data-label="Status"><span class="status-pill" [ngClass]="statusClass(appointment.status)">{{ appointment.status }}</span></td>
 					</tr>
 				</tbody>
@@ -66,15 +68,17 @@
 						<th scope="col">When</th>
 						<th scope="col">Type</th>
 						<th scope="col">Reason</th>
+						<th scope="col">Location / Channel</th>
 						<th scope="col">Status</th>
 					</tr>
 				</thead>
 				<tbody>
-					<tr *ngFor="let appointment of history()">
+					<tr class="clickable-row" tabindex="0" *ngFor="let appointment of history()" [routerLink]="['/transitional-care-nurse/appointments', appointment.appointment_id, 'details']" [attr.aria-label]="'View appointment details for ' + appointment.patient_name">
 						<td data-label="Patient"><strong>{{ appointment.patient_name }}</strong><small>Patient {{ appointment.patient_id }}</small></td>
 						<td data-label="When">{{ formatDateTime(appointment.appointment_datetime) }}</td>
 						<td data-label="Type">{{ appointment.appointment_type.replace('_', ' ') }}</td>
 						<td data-label="Reason">{{ appointment.reason || 'N/A' }}</td>
+						<td data-label="Location / Channel">{{ appointment.location_or_channel || appointment.booking_method.replace('_', ' ') }}</td>
 						<td data-label="Status"><span class="status-pill" [ngClass]="statusClass(appointment.status)">{{ appointment.status }}</span></td>
 					</tr>
 				</tbody>

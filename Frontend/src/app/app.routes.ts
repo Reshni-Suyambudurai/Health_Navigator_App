@@ -12,8 +12,10 @@ import { TransitionalCareNurseDashbaord } from './components/roles/transitional-
 import { MyPatient } from './components/roles/transitional-care-nurse/my-patient/my-patient';
 import { MyPatientDetails } from './components/roles/transitional-care-nurse/my-patient-details/my-patient-details';
 import { TransitionalCareNurseAppointments } from './components/roles/transitional-care-nurse/appointments/appointments';
+import { AppointmentDetails } from './components/roles/transitional-care-nurse/appointment-details/appointment-details';
 import { PharmacistDashbaord } from './components/roles/pharmacist/dashboard/pharmacist_dashbaord';
 import { SocialWorkerDashbaord } from './components/roles/social-worker/dashboard/social_worker_dashbaord';
+import { SystemAdminDashboard } from './components/roles/system-admin/dashboard/system-admin-dashboard';
 import { authGuard } from './guards/guards/auth.guard';
 import { roleAccessGuard } from './guards/guards/role-access.guard';
 
@@ -38,8 +40,10 @@ export const routes: Routes = [
       { path: 'transitional-care-nurse/my-patient', component: MyPatient },
       { path: 'transitional-care-nurse/my-patient/:patientId/details', component: MyPatientDetails },
       { path: 'transitional-care-nurse/appointments', component: TransitionalCareNurseAppointments },
+      { path: 'transitional-care-nurse/appointments/:appointmentId/details', component: AppointmentDetails },
       { path: 'pharmacist/dashboard', component: PharmacistDashbaord },
       { path: 'social-worker/dashboard', component: SocialWorkerDashbaord },
+      { path: 'system-admin/dashboard', component: SystemAdminDashboard },
     ],
   },
   { path: 'home', redirectTo: '/clinical-governance/dashboard', pathMatch: 'full' },

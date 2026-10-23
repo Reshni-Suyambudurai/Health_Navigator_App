@@ -44,6 +44,81 @@ class AppointmentRepository:
             .one_or_none()
         )
 
+    def find_by_id(self, appointment_id: int) -> Optional[Appointment]:
+        return (
+            self.db.query(Appointment)
+            .filter(Appointment.appointment_id == appointment_id)
+            .first()
+        )
+
+    def find_details_by_id(self, appointment_id: int) -> Optional[dict[str, Any]]:
+        row = (
+            self.db.query(Appointment, PatientProfile, User)
+            .join(PatientProfile, Appointment.patient_id == PatientProfile.patient_id)
+            .join(User, PatientProfile.user_id == User.user_id)
+            .filter(Appointment.appointment_id == appointment_id)
+            .first()
+        )
+        if not row:
+            return None
+
+        appointment, patient, user = row
+        return {
+            **self._serialize_row(appointment, patient, user),
+            "external_fhir_patient_id": patient.external_fhir_patient_id,
+        }
+
+    def lock_appointment(self, appointment_id: int) -> Optional[Appointment]:
+        return (
+            self.db.query(Appointment)
+            .filter(Appointment.appointment_id == appointment_id)
+            .with_for_update()
+            .one_or_none()
+        )
+
+    def find_staff_options(self, staff_ids: list[int]) -> list[dict[str, Any]]:
+        if not staff_ids:
+            return []
+        rows = (
+            self.db.query(StaffProfile, User)
+            .join(User, StaffProfile.user_id == User.user_id)
+            .filter(StaffProfile.staff_id.in_(staff_ids))
+            .order_by(User.first_name, User.last_name)
+            .all()
+        )
+        return [
+            {
+                "staff_id": staff.staff_id,
+                "staff_name": f"{user.first_name} {user.last_name}",
+            }
+            for staff, user in rows
+        ]
+
+    def find_active_staff_by_role_id(
+        self,
+        role_id: int,
+        excluded_staff_id: int | None = None,
+    ) -> list[dict[str, Any]]:
+        query = (
+            self.db.query(StaffProfile, User)
+            .join(User, StaffProfile.user_id == User.user_id)
+            .filter(
+                User.role_id == role_id,
+                User.status == UserStatus.ACTIVE,
+            )
+        )
+        if excluded_staff_id is not None:
+            query = query.filter(StaffProfile.staff_id != excluded_staff_id)
+
+        rows = query.order_by(User.first_name, User.last_name).all()
+        return [
+            {
+                "staff_id": staff.staff_id,
+                "staff_name": f"{user.first_name} {user.last_name}",
+            }
+            for staff, user in rows
+        ]
+
     def find_for_staff(self, staff_id: int, upcoming: bool) -> list[dict[str, Any]]:
         now = datetime.utcnow()
         query = (

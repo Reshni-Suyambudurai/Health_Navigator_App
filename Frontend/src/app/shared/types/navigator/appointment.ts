@@ -32,6 +32,10 @@ export interface AppointmentRecord {
 	staff_id: number;
 }
 
+export interface NurseAppointmentDetails extends AppointmentRecord {
+	external_fhir_patient_id: string | null;
+}
+
 export interface AppointmentListData {
 	appointments: AppointmentRecord[];
 	count: number;
@@ -94,6 +98,27 @@ export interface RoutineAppointmentRequest {
 	location_or_channel?: string | null;
 }
 
+export interface AvailableNurseOption {
+	staff_id: number;
+	staff_name: string;
+}
+
+export interface ReassignmentOptionsData {
+	staff: AvailableNurseOption[];
+	count: number;
+}
+
+export interface NurseAppointmentUpdateRequest {
+	status: AppointmentStatus;
+	staff_id?: number | null;
+}
+
+export interface NurseAppointmentUpdateData {
+	appointment_id: number;
+	staff_id: number;
+	status: AppointmentStatus;
+}
+
 export interface AvailableAppointmentSlot {
 	start: string;
 	end: string;
@@ -107,6 +132,8 @@ export interface AvailableSlotsData {
 }
 
 export type AppointmentListResponse = ApiSuccessResponse<AppointmentListData>;
+export type NurseAppointmentDetailsResponse = ApiSuccessResponse<NurseAppointmentDetails>;
 export type PatientAppointmentListResponse = ApiSuccessResponse<PatientAppointmentListData>;
 export type AvailabilityListResponse = ApiSuccessResponse<AvailabilityListData>;
 export type AvailableSlotsResponse = ApiSuccessResponse<AvailableSlotsData>;
+export type ReassignmentOptionsResponse = ApiSuccessResponse<ReassignmentOptionsData>;

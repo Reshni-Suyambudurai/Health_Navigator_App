@@ -10,6 +10,8 @@ from sqlalchemy.orm import Session
 
 
 class AppointmentService:
+    TRANSITIONAL_CARE_NURSE_ROLE_ID = 3
+
     def __init__(self, db: Session):
         self.db = db
         self.appointments = AppointmentRepository(db)
@@ -20,11 +22,83 @@ class AppointmentService:
         staff = self._get_nurse_staff(user_id)
         return self.appointments.find_for_staff(staff.staff_id, upcoming=upcoming)
 
+    def get_nurse_appointment_details(self, user_id: int, appointment_id: int) -> dict[str, Any]:
+        staff = self._get_nurse_staff(user_id)
+        appointment = self.appointments.find_details_by_id(appointment_id)
+        if not appointment:
+            raise NotFoundException("Appointment not found", "APPOINTMENT_NOT_FOUND")
+        if appointment["staff_id"] != staff.staff_id:
+            raise AuthorizationException(
+                "Only the assigned nurse can view this appointment.",
+                "APPOINTMENT_VIEW_ACCESS_REQUIRED",
+            )
+        return appointment
+
     def get_patient_appointments(self, user_id: int, upcoming: bool) -> list[dict[str, Any]]:
         patient = self.patients.find_by_user_id(user_id)
         if not patient:
             raise NotFoundException("Patient profile not found", "PATIENT_NOT_FOUND")
         return self.appointments.find_for_patient(patient.patient_id, upcoming=upcoming)
+
+    def get_reassignment_options(self, user_id: int, appointment_id: int) -> list[dict[str, Any]]:
+        current_staff = self._get_nurse_staff(user_id)
+        appointment = self.appointments.find_by_id(appointment_id)
+        if not appointment:
+            raise NotFoundException("Appointment not found", "APPOINTMENT_NOT_FOUND")
+        if appointment.staff_id != current_staff.staff_id:
+            raise AuthorizationException(
+                "Only the assigned nurse can reassign this appointment.",
+                "APPOINTMENT_UPDATE_ACCESS_REQUIRED",
+            )
+
+        return self.appointments.find_active_staff_by_role_id(
+            self.TRANSITIONAL_CARE_NURSE_ROLE_ID,
+            excluded_staff_id=current_staff.staff_id,
+        )
+
+    def update_nurse_appointment(
+        self,
+        user_id: int,
+        appointment_id: int,
+        new_status: AppointmentStatus,
+        staff_id: int | None,
+    ) -> dict[str, Any]:
+        with self.db.begin():
+            current_staff = self._get_nurse_staff(user_id)
+            appointment = self.appointments.lock_appointment(appointment_id)
+            if not appointment:
+                raise NotFoundException("Appointment not found", "APPOINTMENT_NOT_FOUND")
+            if appointment.staff_id != current_staff.staff_id:
+                raise AuthorizationException(
+                    "Only the assigned nurse can update this appointment.",
+                    "APPOINTMENT_UPDATE_ACCESS_REQUIRED",
+                )
+
+            if staff_id and staff_id != current_staff.staff_id:
+                staff_options = self.appointments.find_active_staff_by_role_id(
+                    self.TRANSITIONAL_CARE_NURSE_ROLE_ID,
+                    excluded_staff_id=current_staff.staff_id,
+                )
+                if staff_id not in {option["staff_id"] for option in staff_options}:
+                    raise ValidationException(
+                        "Select an active transitional care nurse.",
+                        "INVALID_REASSIGNMENT_STAFF",
+                    )
+                target_staff = self.appointments.lock_staff_for_booking(staff_id)
+                if not target_staff:
+                    raise NotFoundException("Selected nurse not found", "STAFF_NOT_FOUND")
+                appointment.staff_id = staff_id
+
+            appointment.status = new_status
+
+            saved = self.appointments.save(appointment)
+            result = {
+                "appointment_id": saved.appointment_id,
+                "staff_id": saved.staff_id,
+                "status": saved.status.value,
+            }
+
+        return result
 
     def get_available_slots(
         self,
@@ -147,7 +221,7 @@ class AppointmentService:
                 appointment_type=appointment_type,
                 appointment_datetime=appointment_datetime,
                 end_datetime=end_datetime,
-                status=AppointmentStatus.CONFIRMED,
+                status=AppointmentStatus.REQUESTED,
                 booking_method=BookingMethod.PATIENT_PORTAL,
                 location_or_channel=location_or_channel,
                 reason=reason,

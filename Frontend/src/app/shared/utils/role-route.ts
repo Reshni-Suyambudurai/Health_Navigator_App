@@ -7,7 +7,7 @@ const ROLE_ROUTE_BY_ID: Record<number, string> = {
   6: '/social-worker/dashboard',
   7: '/population-health-manager/dashboard',
   8: '/clinical-governance/dashboard',
-  9: '/clinical-governance/dashboard',
+  9: '/system-admin/dashboard',
 };
 
 const ROLE_ROUTE_BY_NAME: Record<string, string> = {
@@ -19,7 +19,7 @@ const ROLE_ROUTE_BY_NAME: Record<string, string> = {
   SOCIAL_WORKER: '/social-worker/dashboard',
   POPULATION_HEALTH_MANAGER: '/population-health-manager/dashboard',
   CLINICAL_GOVERNANCE: '/clinical-governance/dashboard',
-  SYSTEM_ADMIN: '/clinical-governance/dashboard',
+  SYSTEM_ADMIN: '/system-admin/dashboard',
 };
 
 export function getDashboardRouteForRole(roleId: number, roleName?: string | null): string {

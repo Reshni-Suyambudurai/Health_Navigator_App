@@ -104,4 +104,17 @@ export const ROLE_SIDEBAR_CONFIG: RoleSidebarConfig[] = [
       { label: 'Activity log' },
     ],
   },
+  {
+    label: 'System Administrator',
+    route: '/system-admin/dashboard',
+    topics: [
+      { label: 'Dashboard', route: '/system-admin/dashboard' },
+      { label: 'Users and roles' },
+      { label: 'Organizations' },
+      { label: 'System configuration' },
+      { label: 'Integration health' },
+      { label: 'Audit trail' },
+      { label: 'Data governance' },
+    ],
+  },
 ];

@@ -38,8 +38,8 @@ export class PatientAppointments implements OnInit {
 
     this.userApi.getPatientOnboarding(userId).subscribe({
         next: (response) => {
-          if (response.data.onboarding_required || !response.data.profile) {
-            this.pageError.set('Complete patient onboarding before booking an appointment.');
+          if (!response.data.profile) {
+            this.pageError.set('Complete your patient profile before booking an appointment.');
             this.loading.set(false);
             return;
           }

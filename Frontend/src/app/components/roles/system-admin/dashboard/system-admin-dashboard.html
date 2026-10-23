@@ -1,0 +1,38 @@
+<section class="system-admin-page">
+  <header class="admin-header">
+    <div>
+      <p class="eyebrow">Platform operations</p>
+      <h1>System administration</h1>
+      <p class="page-summary">Access governance, configuration, and operational oversight.</p>
+    </div>
+    <span class="admin-role-badge"><span aria-hidden="true"></span>System administrator</span>
+  </header>
+
+  <section class="admin-section" aria-labelledby="admin-areas-title">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">Administration</p>
+        <h2 id="admin-areas-title">Management areas</h2>
+      </div>
+      <span class="section-count">{{ adminAreas.length }}</span>
+    </div>
+
+    <div class="admin-area-grid">
+      <article class="admin-area" *ngFor="let area of adminAreas">
+        <div class="admin-area__head">
+          <h3>{{ area.title }}</h3>
+          <span>{{ area.status }}</span>
+        </div>
+        <p>{{ area.description }}</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="admin-notice" aria-labelledby="admin-notice-title">
+    <div>
+      <p class="eyebrow">Security boundary</p>
+      <h2 id="admin-notice-title">Administrative access</h2>
+    </div>
+    <p>Changes made from this workspace are restricted to authenticated system administrators and recorded in the audit trail.</p>
+  </section>
+</section>

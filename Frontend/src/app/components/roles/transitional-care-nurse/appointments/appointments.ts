@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 import { getSessionUser } from '../../../../api/tokenstore';
@@ -22,7 +23,7 @@ type AvailabilityForm = Omit<AvailabilityRequest, 'day_of_week'> & {
 @Component({
 	selector: 'app-transitional-care-nurse-appointments',
 	standalone: true,
-	imports: [CommonModule, FormsModule],
+	imports: [CommonModule, FormsModule, RouterLink],
 	templateUrl: './appointments.html',
 	styleUrl: './appointments.scss',
 })
