@@ -27,6 +27,14 @@ from .outreach_workflow import OutreachWorkflow
 from .outreach_event import OutreachEvent
 from .staff_availability import StaffAvailability
 from .appointment import Appointment
+from .checkin_template import CheckinTemplate
+from .checkin_template_review import CheckinTemplateReview
+from .checkin_question import CheckinQuestion
+from .checkin_session import CheckinSession
+from .checkin_response import CheckinResponse
+from .appointment_action import AppointmentAction
+from .follow_up_task import FollowUpTask
+from .notification import Notification
 
 __all__ = [
     "Organization",
@@ -54,4 +62,12 @@ __all__ = [
     "OutreachEvent",
     "StaffAvailability",
     "Appointment",
+    "CheckinTemplate",
+    "CheckinTemplateReview",
+    "CheckinQuestion",
+    "CheckinSession",
+    "CheckinResponse",
+    "AppointmentAction",
+    "FollowUpTask",
+    "Notification",
 ]

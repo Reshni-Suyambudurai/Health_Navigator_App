@@ -1,0 +1,43 @@
+<main class="audit-page">
+  <app-breadcrumb [items]="breadcrumbs" />
+  <header class="page-header"><div><p class="eyebrow">Administrative records</p><h1>Audit trail</h1><p>Review account creation, profile and role updates, and access-status changes.</p></div></header>
+
+  <form class="audit-filter" (ngSubmit)="applyFilter()" aria-label="Filter audit trail">
+    <label>Action<select name="actionFilter" [(ngModel)]="actionFilter"><option value="">All user administration actions</option>@for (action of actions; track action) { <option [value]="action">{{ formatLabel(action) }}</option> }</select></label>
+    <button type="submit">Apply filter</button>
+  </form>
+
+  @if (error()) { <p class="page-error" role="alert">{{ error() }}</p> }
+
+  <section aria-labelledby="audit-list-title">
+    <div class="section-heading"><div><p class="eyebrow">History</p><h2 id="audit-list-title">User administration activity</h2></div><strong>{{ total() }} records</strong></div>
+    @if (loading()) {
+      <div class="page-state" aria-live="polite">Loading audit records...</div>
+    } @else if (!entries().length) {
+      <div class="page-state">No audit records match this filter.</div>
+    } @else {
+      <div class="ui-table-shell">
+        <table class="ui-table audit-table">
+          <thead><tr><th scope="col">When</th><th scope="col">Administrator</th><th scope="col">Action</th><th scope="col">Target user</th><th scope="col">Changes</th><th scope="col"><span class="sr-only">Details</span></th></tr></thead>
+          <tbody>
+            @for (entry of entries(); track entry.audit_id) {
+              <tr>
+                <td data-label="When"><time>{{ formatDate(entry.created_at) }}</time></td>
+                <td data-label="Administrator">{{ entry.actor_name }}</td>
+                <td data-label="Action"><span class="action-label">{{ formatLabel(entry.action) }}</span></td>
+                <td data-label="Target user"><strong>{{ entry.target_name }}</strong><small>{{ entry.target_email }}</small></td>
+                <td data-label="Changes">{{ changedFields(entry) }}</td>
+                <td data-label="Details"><button type="button" class="text-button" (click)="toggleDetails(entry.audit_id)" [attr.aria-expanded]="expandedId() === entry.audit_id">{{ expandedId() === entry.audit_id ? 'Hide' : 'View' }}</button></td>
+              </tr>
+              @if (expandedId() === entry.audit_id) {
+                <tr class="detail-row"><td colspan="6"><div class="change-details"><section><h3>Before</h3>@for (pair of detailPairs(entry.details?.before); track pair.key) { <div><span>{{ pair.key }}</span><strong>{{ pair.value }}</strong></div> } @empty { <p>New account</p> }</section><section><h3>After</h3>@for (pair of detailPairs(entry.details?.after); track pair.key) { <div><span>{{ pair.key }}</span><strong>{{ pair.value }}</strong></div> } @empty { <p>No details recorded</p> }</section></div></td></tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+
+  <nav class="pagination" aria-label="Audit trail pages"><span>{{ pageStart }}-{{ pageEnd }} of {{ total() }}</span><div><button type="button" class="secondary-button" (click)="previousPage()" [disabled]="page === 0">Previous</button><button type="button" class="secondary-button" (click)="nextPage()" [disabled]="pageEnd >= total()">Next</button></div></nav>
+</main>

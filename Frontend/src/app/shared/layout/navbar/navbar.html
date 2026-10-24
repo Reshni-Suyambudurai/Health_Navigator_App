@@ -1,12 +1,23 @@
 <header class="top-navbar">
   <div class="search-wrap">
-    <input type="search" placeholder="Search patients, MRN, escalation ID..." />
+    
   </div>
 
   <div class="right-actions">
     <span class="status-pill">All systems operational</span>
-    <button type="button" class="icon-btn" aria-label="Notifications">
+    <button
+      type="button"
+      class="icon-btn notification-button"
+      aria-label="Notifications"
+      title="Notifications"
+      [attr.aria-expanded]="notifications.panelOpen()"
+      (click)="notifications.togglePanel()"
+    >
       <img src="/assets/icons/notification.svg" alt="Notifications" class="icon-image" />
+      @if (notifications.unreadCount() > 0) {
+        <span class="unread-dot" aria-hidden="true"></span>
+        <span class="sr-only">{{ notifications.unreadCount() }} unread notifications</span>
+      }
     </button>
     <button
       type="button"
@@ -22,3 +33,83 @@
     </button>
   </div>
 </header>
+
+@if (notifications.panelOpen()) {
+  <div class="notification-backdrop" role="presentation" (click)="notifications.closePanel()"></div>
+  <aside class="notification-panel" aria-label="Notifications" aria-live="polite">
+    <header class="panel-header">
+      @if (notifications.selected()) {
+        <button type="button" class="panel-icon-button" title="Back to notifications" aria-label="Back to notifications" (click)="notifications.showList()">←</button>
+      }
+      <div class="panel-heading">
+        <h2>{{ notifications.selected() ? 'Notification details' : 'Notifications' }}</h2>
+        @if (!notifications.selected()) {
+          <p>{{ notifications.unreadCount() }} unread · {{ notifications.total() }} total</p>
+        }
+      </div>
+      <div class="panel-actions">
+        @if (!notifications.selected()) {
+          <button
+            type="button"
+            class="panel-icon-button refresh-button"
+            [class.refreshing]="notifications.refreshing()"
+            title="Refresh notifications"
+            aria-label="Refresh notifications"
+            [disabled]="notifications.refreshing()"
+            (click)="notifications.refresh()"
+          >↻</button>
+        }
+        <button type="button" class="panel-icon-button" title="Close notifications" aria-label="Close notifications" (click)="notifications.closePanel()">×</button>
+      </div>
+    </header>
+
+    @if (notifications.selected(); as selected) {
+      <section class="notification-detail">
+        <div class="detail-heading">
+          <span class="type-label">{{ label(selected.notification_type) }}</span>
+          <span class="priority" [attr.data-priority]="selected.priority">{{ label(selected.priority) }}</span>
+        </div>
+        <h3>{{ selected.title || 'Notification' }}</h3>
+        <p class="sender">From {{ selected.sender_name }}</p>
+        <p class="full-message">{{ selected.message }}</p>
+        <dl>
+          <div><dt>Received</dt><dd>{{ selected.created_at ? (selected.created_at | date:'medium') : 'Not available' }}</dd></div>
+          <div><dt>Status</dt><dd>{{ label(selected.status) }}</dd></div>
+          @if (selected.read_at) {
+            <div><dt>Read</dt><dd>{{ selected.read_at | date:'medium' }}</dd></div>
+          }
+        </dl>
+      </section>
+    } @else if (notifications.loading()) {
+      <p class="panel-state">Loading notifications...</p>
+    } @else if (!notifications.notifications().length) {
+      <div class="panel-empty"><strong>No notifications</strong><span>Your notifications will appear here.</span></div>
+    } @else {
+      <div class="notification-list">
+        @for (notification of notifications.notifications(); track notification.notification_id) {
+          <button
+            type="button"
+            class="notification-item"
+            [class.unread]="notification.status === 'UNREAD'"
+            [class.opening]="notifications.openingNotificationId() === notification.notification_id"
+            [attr.aria-busy]="notifications.openingNotificationId() === notification.notification_id"
+            (click)="notifications.openNotification(notification)"
+          >
+            <span class="item-marker" aria-hidden="true"></span>
+            <span class="item-content">
+              <span class="item-heading">
+                <strong>{{ notification.title || label(notification.notification_type) }}</strong>
+                <time>{{ notification.created_at ? (notification.created_at | date:'short') : '' }}</time>
+              </span>
+              <span class="message-preview">{{ notification.message }}</span>
+              <span class="item-footer">
+                <span>{{ notification.sender_name }}</span>
+                <span class="priority" [attr.data-priority]="notification.priority">{{ label(notification.priority) }}</span>
+              </span>
+            </span>
+          </button>
+        }
+      </div>
+    }
+  </aside>
+}

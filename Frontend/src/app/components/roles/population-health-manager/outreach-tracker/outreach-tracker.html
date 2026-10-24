@@ -1,0 +1,127 @@
+<main class="outreach-page">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Population health</p>
+      <h1>Outreach operations</h1>
+    </div>
+    <div class="header-counts" aria-label="Outreach totals">
+      <span><strong>{{ campaigns().length }}</strong> campaigns</span>
+      <span><strong>{{ events().length }}</strong> events</span>
+      <span><strong>{{ tasks().length }}</strong> tasks</span>
+    </div>
+  </header>
+
+  <nav class="view-tabs" aria-label="Outreach views">
+    @for (view of views; track view.value) {
+      <button
+        type="button"
+        [class.active]="activeView() === view.value"
+        [attr.aria-current]="activeView() === view.value ? 'page' : null"
+        (click)="setView(view.value)"
+      >{{ view.label }}</button>
+    }
+  </nav>
+
+  @if (error()) {
+    <p class="alert" role="alert">{{ error() }}</p>
+  }
+
+  @if (loading()) {
+    <div class="state-panel" aria-live="polite">Loading outreach records...</div>
+  } @else if (activeView() === 'campaigns') {
+    <section class="workspace-grid" aria-labelledby="campaign-heading">
+      <div class="form-panel">
+        <h2 id="campaign-heading">New campaign</h2>
+        <form (ngSubmit)="createCampaign()">
+          <label>Organization ID<input type="number" min="1" name="campaignOrganization" [(ngModel)]="campaignDraft.organization_id" required /></label>
+          <label>Campaign name<input name="campaignName" maxlength="255" [(ngModel)]="campaignDraft.campaign_name" required /></label>
+          <label>Type
+            <select name="campaignType" [(ngModel)]="campaignDraft.campaign_type">
+              <option value="POST_DISCHARGE">Post discharge</option><option value="CHRONIC_CARE">Chronic care</option>
+              <option value="MEDICATION_FOLLOWUP">Medication follow-up</option><option value="APPOINTMENT_REMINDER">Appointment reminder</option>
+            </select>
+          </label>
+          <label>Timezone<input name="campaignTimezone" [(ngModel)]="campaignDraft.timezone" /></label>
+          <button type="submit" [disabled]="saving()">{{ saving() ? 'Saving...' : 'Create campaign' }}</button>
+        </form>
+      </div>
+      <div class="data-panel">
+        <div class="section-heading"><h2>Campaigns</h2><span>{{ campaigns().length }} total</span></div>
+        @if (campaigns().length) {
+          <div class="ui-table-shell"><table class="ui-table compact-table"><thead><tr><th>Name</th><th>Type</th><th>Status</th><th>Organization</th></tr></thead><tbody>
+            @for (campaign of campaigns(); track campaign.campaign_id) {
+              <tr class="clickable-row" tabindex="0" [class.selected]="selectedCampaignId() === campaign.campaign_id" (click)="selectCampaign(campaign.campaign_id)" (keydown.enter)="selectCampaign(campaign.campaign_id)">
+                <td><strong>{{ campaign.campaign_name }}</strong><small>#{{ campaign.campaign_id }}</small></td>
+                <td>{{ formatLabel(campaign.campaign_type) }}</td><td><span class="status" [class]="'status ' + statusClass(campaign.status)">{{ formatLabel(campaign.status) }}</span></td><td>{{ campaign.organization_id }}</td>
+              </tr>
+            }
+          </tbody></table></div>
+        } @else { <div class="state-panel">No campaigns found.</div> }
+
+        @if (selectedCampaignId()) {
+          <div class="sub-workspace">
+            <div class="section-heading"><h3>Workflow steps</h3><span>Campaign #{{ selectedCampaignId() }}</span></div>
+            <form class="inline-form" (ngSubmit)="createWorkflow()">
+              <label>Order<input type="number" min="1" name="stepOrder" [(ngModel)]="workflowDraft.step_order" /></label>
+              <label>Step name<input name="stepName" [(ngModel)]="workflowDraft.step_name" required /></label>
+              <label>Channel<select name="stepChannel" [(ngModel)]="workflowDraft.channel"><option>SMS</option><option>EMAIL</option><option>PHONE</option><option>PORTAL</option></select></label>
+              <label>Offset hours<input type="number" min="0" name="stepOffset" [(ngModel)]="workflowDraft.trigger_offset_hours" /></label>
+              <button type="submit" [disabled]="saving()">Add step</button>
+            </form>
+            <ol class="step-list">
+              @for (workflow of workflows(); track workflow.workflow_id) { <li><span>{{ workflow.step_order }}</span><strong>{{ workflow.step_name }}</strong><small>{{ workflow.channel }} / {{ workflow.trigger_offset_hours }}h</small></li> }
+              @empty { <li class="empty-row">No workflow steps.</li> }
+            </ol>
+          </div>
+        }
+      </div>
+    </section>
+  } @else if (activeView() === 'templates') {
+    <section class="workspace-grid" aria-labelledby="template-heading">
+      <div class="form-panel"><h2 id="template-heading">New template</h2><form (ngSubmit)="createTemplate()">
+        <label>Organization ID<input type="number" min="1" name="templateOrganization" [(ngModel)]="templateDraft.organization_id" /></label>
+        <label>Template name<input name="templateName" [(ngModel)]="templateDraft.template_name" required /></label>
+        <label>Type<select name="templateType" [(ngModel)]="templateDraft.template_type"><option>POST_DISCHARGE</option><option>CHRONIC_CARE</option><option>MEDICATION_FOLLOWUP</option></select></label>
+        <label>Description<textarea name="templateDescription" rows="3" [(ngModel)]="templateDraft.description"></textarea></label>
+        <button type="submit" [disabled]="saving()">Create template</button>
+      </form></div>
+      <div class="data-panel"><div class="section-heading"><h2>Templates</h2><span>{{ templates().length }} total</span></div>
+        <div class="record-list">
+          @for (template of templates(); track template.checkin_template_id) {
+            <button type="button" class="record-row" [class.selected]="selectedTemplateId() === template.checkin_template_id" (click)="selectTemplate(template.checkin_template_id)">
+              <span><strong>{{ template.template_name }}</strong><small>v{{ template.version }} / {{ formatLabel(template.template_type) }}</small></span><span class="status" [class]="'status ' + statusClass(template.status)">{{ template.status }}</span>
+            </button>
+          } @empty { <div class="state-panel">No templates found.</div> }
+        </div>
+        @if (selectedTemplateId()) {
+          <div class="sub-workspace"><div class="section-heading"><h3>Questions</h3><span>Template #{{ selectedTemplateId() }}</span></div>
+            <form class="question-form" (ngSubmit)="createQuestion()">
+              <label>Key<input name="questionKey" [(ngModel)]="questionDraft.question_key" required /></label>
+              <label>Question<input name="questionText" [(ngModel)]="questionDraft.question_text" required /></label>
+              <label>Answer type<select name="answerType" [(ngModel)]="questionDraft.answer_type"><option>YES_NO</option><option>TEXT</option><option>NUMBER</option><option>SINGLE_CHOICE</option><option>MULTIPLE_CHOICE</option></select></label>
+              <button type="submit" [disabled]="saving()">Add question</button>
+            </form>
+            <ol class="question-list">@for (question of questions(); track question.question_id) { <li><span>{{ question.display_order }}</span><div><strong>{{ question.question_text }}</strong><small>{{ formatLabel(question.answer_type) }} / {{ question.question_key }}</small></div></li> } @empty { <li class="empty-row">No questions.</li> }</ol>
+          </div>
+        }
+      </div>
+    </section>
+  } @else if (activeView() === 'events') {
+    <section><div class="section-heading"><h2>Event monitor</h2><span>{{ events().length }} records</span></div>
+      @if (events().length) { <div class="ui-table-shell"><table class="ui-table"><thead><tr><th>Event</th><th>Patient</th><th>Channel</th><th>Scheduled</th><th>Delivery</th><th>Status</th></tr></thead><tbody>
+        @for (event of events(); track event.outreach_event_id) { <tr><td><strong>{{ formatLabel(event.event_type) }}</strong><small>#{{ event.outreach_event_id }}</small></td><td>#{{ event.patient_id }}</td><td>{{ event.channel }}</td><td>{{ formatDate(event.scheduled_at) }}</td><td><span class="status" [class]="'status ' + statusClass(event.delivery_status)">{{ formatLabel(event.delivery_status) }}</span></td><td><select [value]="event.event_status" [attr.aria-label]="'Status for event ' + event.outreach_event_id" (change)="updateEvent(event, $any($event.target).value)">@for (item of eventStatuses; track item) { <option [value]="item">{{ formatLabel(item) }}</option> }</select></td></tr> }
+      </tbody></table></div> } @else { <div class="state-panel">No outreach events found.</div> }
+    </section>
+  } @else if (activeView() === 'checkins') {
+    <section><div class="section-heading"><h2>Patient check-ins</h2><span>{{ sessions().length }} sessions</span></div><div class="session-grid">
+      @for (session of sessions(); track session.checkin_session_id) { <article class="session-record"><header><div><strong>Patient #{{ session.patient_id }}</strong><small>Session #{{ session.checkin_session_id }}</small></div><span class="status" [class]="'status ' + statusClass(session.session_status)">{{ formatLabel(session.session_status) }}</span></header><dl><div><dt>Created</dt><dd>{{ formatDate(session.created_at) }}</dd></div><div><dt>Responses</dt><dd>{{ session.responses.length }}</dd></div></dl></article> }
+      @empty { <div class="state-panel">No check-in sessions found.</div> }
+    </div></section>
+  } @else {
+    <section><div class="section-heading"><h2>Follow-up tasks</h2><span>{{ tasks().length }} tasks</span></div>
+      @if (tasks().length) { <div class="ui-table-shell"><table class="ui-table"><thead><tr><th>Task</th><th>Patient</th><th>Priority</th><th>Due</th><th>Assignee</th><th>Status</th></tr></thead><tbody>
+        @for (task of tasks(); track task.follow_up_task_id) { <tr><td><strong>{{ task.title }}</strong><small>{{ formatLabel(task.task_type) }}</small></td><td>#{{ task.patient_id }}</td><td><span class="priority" [attr.data-priority]="task.priority">{{ task.priority }}</span></td><td>{{ formatDate(task.due_at) }}</td><td>{{ task.assigned_to_staff_id ? '#' + task.assigned_to_staff_id : 'Unassigned' }}</td><td><select [value]="task.status" [attr.aria-label]="'Status for task ' + task.follow_up_task_id" (change)="updateTask(task, $any($event.target).value)">@for (item of taskStatuses; track item) { <option [value]="item">{{ formatLabel(item) }}</option> }</select></td></tr> }
+      </tbody></table></div> } @else { <div class="state-panel">No follow-up tasks found.</div> }
+    </section>
+  }
+</main>

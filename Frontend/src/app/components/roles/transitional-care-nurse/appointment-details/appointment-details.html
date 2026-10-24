@@ -79,6 +79,25 @@
 
         <div class="management-divider" role="separator"></div>
 
+        <section class="care-action" aria-labelledby="care-action-title">
+          <h3 id="care-action-title">Record care action</h3>
+          <div class="care-action-grid">
+            <label class="management-field"><span>Action</span><select [(ngModel)]="careActionType"><option value="REVIEWED">Reviewed</option><option value="CALL_ATTEMPT">Call attempt</option><option value="PATIENT_CONTACTED">Patient contacted</option><option value="GUIDANCE_PROVIDED">Guidance provided</option><option value="REFERRED">Referred</option><option value="OTHER">Other</option></select></label>
+            <label class="management-field"><span>Outcome</span><select [(ngModel)]="careActionOutcome"><option [ngValue]="null">Not recorded</option><option value="REACHED">Reached</option><option value="NO_ANSWER">No answer</option><option value="ISSUE_ADDRESSED">Issue addressed</option><option value="ISSUE_UNRESOLVED">Issue unresolved</option><option value="REFERRED">Referred</option><option value="OTHER">Other</option></select></label>
+          </div>
+          <label class="management-field"><span>Action notes</span><textarea rows="2" [(ngModel)]="careActionNotes"></textarea></label>
+          <label class="follow-up-toggle"><input type="checkbox" [(ngModel)]="careActionFollowUp" /><span>Follow-up required</span></label>
+          <label class="management-field" *ngIf="careActionFollowUp"><span>Follow-up due</span><input type="datetime-local" [(ngModel)]="careActionFollowUpDue" /></label>
+          <button type="button" class="management-submit" (click)="recordCareAction()" [disabled]="savingCareAction()">{{ savingCareAction() ? 'Saving...' : 'Save action' }}</button>
+        </section>
+
+        <div class="action-history" *ngIf="appointmentActions().length">
+          <h3>Recent actions</h3>
+          <ol><li *ngFor="let action of appointmentActions().slice(0, 3)"><div><strong>{{ formatLabel(action.action_taken) }}</strong><small>{{ formatDateTime(action.created_at) }}</small></div><span>{{ formatLabel(action.resolution_status) }}</span></li></ol>
+        </div>
+
+        <div class="management-divider" role="separator"></div>
+
         <div class="management-action-row">
           <label class="management-field">
             <span>Escalate to another nurse</span>

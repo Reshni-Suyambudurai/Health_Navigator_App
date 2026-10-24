@@ -43,6 +43,7 @@ These rules apply to frontend work under `Frontend/`.
 ## Styling
 
 - Follow the shared variables and theme definitions in `Frontend/src/styles.scss`.
+- Use `var(--table-bg)` as the polished-white background for tables, forms, and cards displayed in body content.
 - Use component SCSS for local layout and presentation; add styles to `styles.scss` only when they are genuinely shared.
 - Support both light and dark themes by using CSS custom properties instead of hardcoded surface, text, border, and muted colors.
 - Preserve responsive behavior for desktop and mobile viewports.

@@ -16,6 +16,12 @@ from app.api.routes.navigator import patient_enrollment_routes
 from app.api.routes.navigator import patient_intake_routes
 from app.api.routes.navigator import patient_onboarding_routes
 from app.api.routes.navigator import appointment_routes
+from app.api.routes.navigator import outreach_routes
+from app.api.routes.navigator import organization_routes
+from app.api.routes.navigator import admin_user_routes
+from app.api.routes.navigator import admin_outreach_campaign_routes
+from app.api.routes.navigator import admin_checkin_template_routes
+from app.api.routes import notification_routes
 from app.api.routes.patientFHIR import patient_fhir_routes
 from app.core.exception_handlers import register_exception_handlers  # Import exception handlers
 import logging
@@ -79,6 +85,13 @@ app.include_router(patient_enrollment_routes.router, prefix="/api/v1")
 app.include_router(patient_intake_routes.router, prefix="/api/v1")
 app.include_router(patient_onboarding_routes.router, prefix="/api/v1")
 app.include_router(appointment_routes.router, prefix="/api/v1")
+app.include_router(outreach_routes.router, prefix="/api/v1")
+app.include_router(organization_routes.router, prefix="/api/v1")
+app.include_router(admin_user_routes.router, prefix="/api/v1")
+app.include_router(admin_outreach_campaign_routes.router, prefix="/api/v1")
+app.include_router(admin_checkin_template_routes.admin_router, prefix="/api/v1")
+app.include_router(admin_checkin_template_routes.review_router, prefix="/api/v1")
+app.include_router(notification_routes.router, prefix="/api/v1")
 app.include_router(patient_fhir_routes.router, prefix="/api/v1")
 
 

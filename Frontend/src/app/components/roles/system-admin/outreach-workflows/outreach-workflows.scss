@@ -1,0 +1,42 @@
+.workflows-page { display: grid; gap: 1.25rem; padding-bottom: 2rem; color: var(--text); }
+.page-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+.page-header h1, .campaign-summary h2, .section-heading h2, .workflow-dialog h2 { margin: 0; }
+.page-header p:last-child, .campaign-summary p { margin-top: 0.35rem; color: var(--muted); }
+.eyebrow { margin-bottom: 0.25rem; color: var(--primary); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+.header-actions, .workflow-dialog footer { display: flex; gap: 0.65rem; }
+.secondary-button { border-color: var(--border); background: var(--table-bg); color: var(--text); }
+.secondary-button:hover { background: var(--hover-bg); }
+.campaign-summary { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--table-bg); padding: 1.1rem 1.2rem; }
+.campaign-summary dl { display: grid; grid-template-columns: repeat(3, auto); gap: 1.5rem; }
+.campaign-summary dl div { display: grid; gap: 0.2rem; }
+.campaign-summary dt { color: var(--muted); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+.campaign-summary dd { margin: 0; font-weight: 700; }
+.status-pill { display: inline-flex; border: 1px solid currentColor; border-radius: 999px; padding: 0.18rem 0.55rem; font-size: 0.72rem; }
+.status-positive { color: var(--status-positive-text); }.status-warning { color: var(--status-warning-text); }.status-negative { color: var(--status-negative-text); }
+.notice { border-left: 3px solid var(--primary); background: var(--table-bg); color: var(--muted); padding: 0.75rem 0.9rem; }
+.notice.warning { border-left-color: var(--status-warning-text); background: var(--status-warning-bg); color: var(--status-warning-text); }
+.section-heading { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 0.75rem; }
+.section-heading strong { color: var(--muted); font-size: 0.78rem; }
+.workflow-table { min-width: 1100px; }
+.text-button { border: 0; background: transparent; color: var(--primary); padding-inline: 0.3rem; box-shadow: none; }
+.text-button:hover { background: var(--hover-bg); box-shadow: none; }
+.page-state { min-height: 150px; display: grid; place-items: center; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--table-bg); color: var(--muted); }
+.page-error, .form-error { border-left: 3px solid var(--status-critical-text); background: var(--status-critical-bg); color: var(--status-critical-text); padding: 0.75rem 0.9rem; }
+.dialog-backdrop { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; background: rgba(15, 23, 42, 0.52); padding: 1rem; }
+.workflow-dialog { width: min(760px, 100%); max-height: calc(100vh - 2rem); overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--table-bg); box-shadow: var(--shadow-md); }
+.workflow-dialog > header { display: flex; align-items: flex-start; justify-content: space-between; padding: 1.2rem 1.25rem 1rem; border-bottom: 1px solid var(--border); }
+.workflow-dialog form { display: grid; gap: 1rem; padding: 1.25rem; }
+.form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.9rem 1rem; }
+label { display: grid; gap: 0.35rem; color: var(--muted); font-size: 0.75rem; font-weight: 700; }
+.wide-field { grid-column: 1 / -1; }
+textarea { resize: vertical; }
+.toggle-row { display: flex; gap: 1.5rem; border-top: 1px solid var(--border); padding-top: 0.9rem; }
+.toggle-row label { display: flex; align-items: center; gap: 0.5rem; color: var(--text); }
+.toggle-row input { width: 1rem; height: 1rem; padding: 0; accent-color: var(--primary); }
+.anchor-note { display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-strong); padding: 0.7rem 0.8rem; }
+.anchor-note span { color: var(--muted); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; }
+.workflow-dialog footer { justify-content: flex-end; }
+.close-button { border: 0; background: transparent; color: var(--muted); padding: 0; font-size: 1.6rem; line-height: 1; box-shadow: none; }
+.close-button:hover { background: transparent; color: var(--text); box-shadow: none; }
+@media (max-width: 850px) { .page-header, .campaign-summary { align-items: flex-start; flex-direction: column; }.campaign-summary dl { width: 100%; grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .header-actions { width: 100%; flex-direction: column-reverse; }.header-actions button { width: 100%; }.campaign-summary dl, .form-grid { grid-template-columns: 1fr; }.wide-field, .wide-field-mobile { grid-column: auto; }.toggle-row { align-items: flex-start; flex-direction: column; }.workflow-dialog footer { flex-direction: column-reverse; }.workflow-dialog footer button { width: 100%; } }

@@ -58,6 +58,10 @@ from app.database.models.outreach_workflow import OutreachWorkflow
 from app.database.models.outreach_event import OutreachEvent
 from app.database.models.staff_availability import StaffAvailability
 from app.database.models.appointment import Appointment
+from app.database.models.checkin_template import CheckinTemplate
+from app.database.models.checkin_template_review import CheckinTemplateReview
+from app.database.models.checkin_question import CheckinQuestion
+from app.database.models.notification import Notification
 
 target_metadata = Base.metadata
 

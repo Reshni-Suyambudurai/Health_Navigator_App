@@ -1,0 +1,93 @@
+<main class="page">
+  <app-breadcrumb [items]="breadcrumbs" />
+
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Clinical governance</p>
+      <h1>Template review queue</h1>
+      <p>Evaluate patient-facing questions before they become available to outreach workflows.</p>
+    </div>
+    <div class="queue-actions">
+      <button type="button" class="queue-refresh-button" title="Refresh review queue" aria-label="Refresh review queue" [disabled]="loading()" (click)="refresh()"><span aria-hidden="true">↻</span></button>
+      <span class="queue-count">{{ reviews().length }} pending</span>
+    </div>
+  </header>
+
+  @if (error()) {
+    <p class="page-error" role="alert">{{ error() }}</p>
+  }
+
+  <section class="review-workspace">
+    <aside class="queue" aria-label="Pending template reviews">
+      <header><h2>Awaiting review</h2><p>Oldest submissions appear first.</p></header>
+      @if (loading()) {
+        <p class="state">Loading review queue...</p>
+      } @else if (!reviews().length) {
+        <div class="empty-queue"><strong>Queue clear</strong><span>No templates are awaiting a decision.</span></div>
+      } @else {
+        <div class="queue-list">
+          @for (review of reviews(); track review.review_id) {
+            <button
+              type="button"
+              class="queue-row"
+              [class.selected]="selected()?.review_id === review.review_id"
+              (click)="selectReview(review)"
+            >
+              <strong>{{ review.template.template_name }}</strong>
+              <span>Version {{ review.template.version }} · {{ label(review.template.template_type) }}</span>
+              <small>Submitted {{ review.submitted_at ? (review.submitted_at | date:'mediumDate') : 'recently' }}</small>
+            </button>
+          }
+        </div>
+      }
+    </aside>
+
+    <section class="review-detail" aria-live="polite">
+      @if (detailLoading()) {
+        <p class="state">Loading clinical content...</p>
+      } @else if (selected(); as review) {
+        <header class="detail-header">
+          <div>
+            <div class="title-line"><h2>{{ review.template.template_name }}</h2><span>v{{ review.template.version }}</span></div>
+            <p>{{ review.template.description || 'No description provided.' }}</p>
+          </div>
+          <span class="pending-badge">Pending review</span>
+        </header>
+
+        <dl class="review-metadata">
+          <div><dt>Template type</dt><dd>{{ label(review.template.template_type) }}</dd></div>
+          <div><dt>Questions</dt><dd>{{ review.template.questions?.length ?? 0 }}</dd></div>
+          <div><dt>Submitted by</dt><dd>User {{ review.submitted_by_user_id }}</dd></div>
+          <div><dt>Submitted</dt><dd>{{ review.submitted_at ? (review.submitted_at | date:'medium') : 'Not available' }}</dd></div>
+        </dl>
+
+        @if (review.submission_note) {
+          <section class="submission-note"><h3>Author note</h3><p>{{ review.submission_note }}</p></section>
+        }
+
+        <section class="clinical-checks">
+          <h3>Review focus</h3>
+          <ul>
+            <li>Questions are clinically appropriate and understandable for patients.</li>
+            <li>Required responses are proportionate to the outreach purpose.</li>
+            <li>Answer choices are complete, distinct, and do not imply unsafe advice.</li>
+          </ul>
+        </section>
+
+        <app-checkin-template-preview [template]="review.template" />
+
+        <section class="decision-panel">
+          <div><h3>Clinical decision</h3><p>Notes are retained with the immutable review decision.</p></div>
+          <label for="review-notes">Review notes</label>
+          <textarea id="review-notes" [(ngModel)]="reviewNotes" rows="4" maxlength="4000" placeholder="Document clinical rationale or required changes"></textarea>
+          <div class="decision-actions">
+            <button type="button" class="reject-button" [disabled]="deciding()" (click)="decide('REJECTED')">Request changes</button>
+            <button type="button" class="approve-button" [disabled]="deciding()" (click)="decide('APPROVED')">Approve and activate</button>
+          </div>
+        </section>
+      } @else {
+        <div class="empty-detail"><h2>Select a review</h2><p>Choose a pending submission to inspect its patient-facing content.</p></div>
+      }
+    </section>
+  </section>
+</main>

@@ -31,7 +31,7 @@ export const ROLE_SIDEBAR_CONFIG: RoleSidebarConfig[] = [
       { label: 'Dashboard' },
       { label: 'Campaign queue' },
       { label: 'Cohort metrics' },
-      { label: 'Outreach tracker' },
+      { label: 'Outreach tracker', route: '/population-health-manager/outreach' },
       { label: 'Messages' },
       { label: 'Reports' },
       { label: 'Activity log' },
@@ -100,6 +100,7 @@ export const ROLE_SIDEBAR_CONFIG: RoleSidebarConfig[] = [
       { label: 'Rule compliance' },
       { label: 'Incidents' },
       {label : 'Audit trail'},
+      { label: 'Check-in Template Reviews', route: '/clinical-governance/checkin-template-reviews' },
       { label: 'Reports' },
       { label: 'Activity log' },
     ],
@@ -109,12 +110,12 @@ export const ROLE_SIDEBAR_CONFIG: RoleSidebarConfig[] = [
     route: '/system-admin/dashboard',
     topics: [
       { label: 'Dashboard', route: '/system-admin/dashboard' },
-      { label: 'Users and roles' },
-      { label: 'Organizations' },
-      { label: 'System configuration' },
-      { label: 'Integration health' },
-      { label: 'Audit trail' },
-      { label: 'Data governance' },
+      { label: 'Organizations', route: '/system-admin/organization' },
+      { label: 'Users and roles', route: '/system-admin/users-roles' },
+      { label: 'Outreach Campaigns', route: '/system-admin/outreach-campaigns' },
+      { label: 'Check-In template', route: '/system-admin/checkin-template' },
+      { label: 'Audit trail', route: '/system-admin/audit-trail' }
+
     ],
   },
 ];

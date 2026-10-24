@@ -1,0 +1,77 @@
+<main class="workflows-page">
+  <app-breadcrumb [items]="breadcrumbs" />
+
+  <header class="page-header">
+    <div><p class="eyebrow">Campaign configuration</p><h1>Workflow steps</h1><p>Set the sequence, timing, channel, check-in template, and retry behavior for this campaign.</p></div>
+    <div class="admin-page-actions">
+      <button type="button" class="admin-refresh-button" title="Refresh workflow steps" aria-label="Refresh workflow steps" [disabled]="loading()" (click)="refresh()"><span aria-hidden="true">↻</span></button>
+      <button type="button" (click)="openCreate()" [disabled]="!isEditable() || !templates().length">Add step</button>
+    </div>
+  </header>
+
+  @if (error()) { <p class="page-error" role="alert">{{ error() }}</p> }
+
+  @if (loading()) {
+    <div class="page-state" aria-live="polite">Loading workflow configuration...</div>
+  } @else if (campaign(); as currentCampaign) {
+    <section class="campaign-summary" aria-labelledby="campaign-summary-title">
+      <div><p class="eyebrow">Campaign</p><h2 id="campaign-summary-title">{{ currentCampaign.campaign_name }}</h2><p>{{ currentCampaign.description || formatLabel(currentCampaign.campaign_type) }}</p></div>
+      <dl><div><dt>Status</dt><dd><span class="status-pill" [class]="campaignStatusClass()">{{ formatLabel(currentCampaign.status) }}</span></dd></div><div><dt>Eligible cohort</dt><dd>{{ currentCampaign.readiness.eligible_patient_count }} patients</dd></div><div><dt>Readiness</dt><dd>{{ currentCampaign.readiness.ready ? 'Ready to activate' : 'Needs configuration' }}</dd></div></dl>
+    </section>
+
+    @if (!isEditable()) { <p class="notice">Workflow settings are read-only while the campaign is {{ formatLabel(currentCampaign.status) }}. Pause an active campaign before editing.</p> }
+    @if (!templates().length) { <p class="notice warning">No active check-in templates are available for this organization. A workflow cannot be configured until one is active.</p> }
+
+    <section aria-labelledby="steps-title">
+      <div class="section-heading"><div><p class="eyebrow">Delivery sequence</p><h2 id="steps-title">Configured steps</h2></div><strong>{{ workflows().length }} total</strong></div>
+      @if (!workflows().length) {
+        <div class="page-state">No workflow steps have been configured.</div>
+      } @else {
+        <div class="ui-table-shell">
+          <table class="ui-table workflow-table">
+            <thead><tr><th scope="col">Order</th><th scope="col">Step</th><th scope="col">Trigger</th><th scope="col">Channel</th><th scope="col">Template</th><th scope="col">Retries</th><th scope="col">Configuration</th><th scope="col">Actions</th></tr></thead>
+            <tbody>
+              @for (workflow of workflows(); track workflow.workflow_id) {
+                <tr>
+                  <td><strong>{{ workflow.step_order }}</strong></td>
+                  <td><strong>{{ workflow.step_name }}</strong><small>{{ workflow.is_active ? 'Active step' : 'Inactive step' }}</small></td>
+                  <td>{{ formatLabel(workflow.trigger_type) }}<small>{{ workflow.trigger_offset_hours }} hours · {{ formatLabel(workflow.trigger_anchor) }}</small></td>
+                  <td><span class="table-value">{{ formatLabel(workflow.channel) }}</span></td>
+                  <td>{{ workflow.template_name || 'Missing active template' }}<small>Template ID {{ workflow.checkin_template_id || 'Not set' }}</small></td>
+                  <td>{{ workflow.max_attempts }} attempts<small>Every {{ workflow.retry_interval_minutes }} minutes</small></td>
+                  <td><span class="status-pill" [class]="configurationClass(workflow.configuration_status)">{{ formatLabel(workflow.configuration_status) }}</span></td>
+                  <td><button type="button" class="text-button" (click)="openEdit(workflow)" [disabled]="!isEditable()">Edit</button></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  }
+
+  @if (dialogMode()) {
+    <div class="dialog-backdrop" role="presentation" (click)="closeDialog()">
+      <section class="workflow-dialog" role="dialog" aria-modal="true" aria-labelledby="workflow-dialog-title" (click)="$event.stopPropagation()">
+        <header><div><p class="eyebrow">Delivery step</p><h2 id="workflow-dialog-title">{{ dialogMode() === 'create' ? 'Add workflow step' : 'Edit workflow step' }}</h2></div><button type="button" class="close-button" aria-label="Close dialog" (click)="closeDialog()">&times;</button></header>
+        <form (ngSubmit)="saveWorkflow()">
+          <div class="form-grid">
+            <label>Step order<input type="number" name="stepOrder" min="1" [(ngModel)]="draft.step_order" required /></label>
+            <label class="wide-field-mobile">Step name<input name="stepName" maxlength="255" [(ngModel)]="draft.step_name" required /></label>
+            <label>Trigger<select name="triggerType" [ngModel]="draft.trigger_type" (ngModelChange)="setTriggerType($event)">@for (type of triggerTypes; track type) { <option [value]="type">{{ formatLabel(type) }}</option> }</select></label>
+            <label>Offset in hours<input type="number" name="triggerOffset" min="0" [(ngModel)]="draft.trigger_offset_hours" required /></label>
+            <label>Channel<select name="channel" [(ngModel)]="draft.channel">@for (channel of channels; track channel) { <option [value]="channel">{{ formatLabel(channel) }}</option> }</select></label>
+            <label>Check-in template<select name="template" [(ngModel)]="draft.checkin_template_id" required><option [ngValue]="0" disabled>Select template</option>@for (template of templates(); track template.checkin_template_id) { <option [ngValue]="template.checkin_template_id">{{ template.template_name }} · v{{ template.version }}</option> }</select></label>
+            <label>Maximum attempts<input type="number" name="maxAttempts" min="1" [(ngModel)]="draft.max_attempts" required /></label>
+            <label>Retry interval (minutes)<input type="number" name="retryInterval" min="0" [(ngModel)]="draft.retry_interval_minutes" required /></label>
+            <label class="wide-field">Message text<textarea name="templateText" rows="3" [(ngModel)]="draft.template_text" placeholder="Optional channel-specific message"></textarea></label>
+          </div>
+          <div class="toggle-row"><label><input type="checkbox" name="active" [(ngModel)]="draft.is_active" />Active step</label><label><input type="checkbox" name="escalation" [(ngModel)]="draft.escalation_on_no_response" />Escalate after no response</label></div>
+          <div class="anchor-note"><span>Trigger anchor</span><strong>{{ formatLabel(draft.trigger_anchor) }}</strong></div>
+          @if (error()) { <p class="form-error" role="alert">{{ error() }}</p> }
+          <footer><button type="button" class="secondary-button" (click)="closeDialog()" [disabled]="saving()">Cancel</button><button type="submit" [disabled]="saving()">{{ saving() ? 'Saving...' : 'Save step' }}</button></footer>
+        </form>
+      </section>
+    </div>
+  }
+</main>

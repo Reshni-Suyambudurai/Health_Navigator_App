@@ -1,0 +1,231 @@
+<main class="page">
+  <app-breadcrumb [items]="breadcrumbs" />
+
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Clinical content</p>
+      <h1>Check-in templates</h1>
+      <p>Build versioned patient check-ins and route them through clinical review.</p>
+    </div>
+    <div class="admin-page-actions">
+      <button type="button" class="admin-refresh-button" title="Refresh templates" aria-label="Refresh templates" [disabled]="loading() || detailLoading()" (click)="refresh()"><span aria-hidden="true">↻</span></button>
+      <button type="button" class="primary-button" (click)="openCreateTemplate()">Add template</button>
+    </div>
+  </header>
+
+  @if (error()) {
+    <p class="page-error" role="alert">{{ error() }}</p>
+  }
+
+  <section class="workspace">
+    <aside class="template-list" aria-label="Template versions">
+      <div class="list-tools">
+        <label for="template-search">Search templates</label>
+        <input id="template-search" type="search" [(ngModel)]="search" placeholder="Name or type" />
+      </div>
+      @if (loading()) {
+        <p class="state">Loading templates...</p>
+      } @else if (!filteredTemplates().length) {
+        <p class="state">No templates found.</p>
+      } @else {
+        <div class="list-scroll">
+          @for (template of filteredTemplates(); track template.checkin_template_id) {
+            <button
+              type="button"
+              class="template-row"
+              [class.selected]="selected()?.checkin_template_id === template.checkin_template_id"
+              (click)="selectTemplate(template)"
+            >
+              <span class="template-title">{{ template.template_name }}</span>
+              <span class="template-meta">Version {{ template.version }} · {{ label(template.template_type) }}</span>
+              <span class="status-line">
+                <span class="status" [attr.data-status]="template.status">{{ label(template.status) }}</span>
+                @if (template.review_status) {
+                  <span class="review-status">{{ label(template.review_status) }}</span>
+                }
+              </span>
+            </button>
+          }
+        </div>
+      }
+    </aside>
+
+    <section class="detail" aria-live="polite">
+      @if (detailLoading()) {
+        <p class="state">Loading template...</p>
+      } @else if (selected(); as template) {
+        <header class="detail-header">
+          <div>
+            <div class="title-line">
+              <h2>{{ template.template_name }}</h2>
+              <span class="version-badge">v{{ template.version }}</span>
+            </div>
+            <p>{{ template.description || 'No description provided.' }}</p>
+          </div>
+          <div class="header-actions">
+            @if (template.is_editable) {
+              <button type="button" class="secondary-button" (click)="openEditTemplate()">Edit details</button>
+              <button type="button" class="danger-button" (click)="requestTemplateDeletion()">Delete</button>
+            }
+            @if (template.review_status === 'APPROVED') {
+              <button type="button" class="secondary-button" (click)="createVersion()" [disabled]="saving()">Create next version</button>
+            }
+          </div>
+        </header>
+
+        <dl class="metadata">
+          <div><dt>Type</dt><dd>{{ label(template.template_type) }}</dd></div>
+          <div><dt>Lifecycle</dt><dd>{{ label(template.status) }}</dd></div>
+          <div><dt>Clinical review</dt><dd>{{ template.review_status ? label(template.review_status) : 'Not submitted' }}</dd></div>
+          <div><dt>Questions</dt><dd>{{ template.questions?.length ?? 0 }}</dd></div>
+        </dl>
+
+        @if (template.review_status === 'PENDING') {
+          <p class="notice warning">Clinical review is pending. This version is locked until a decision is recorded.</p>
+        } @else if (template.review_status === 'REJECTED') {
+          <p class="notice rejected">
+            Clinical review requested changes. Update the Draft and resubmit it.
+            <span class="review-reason"><strong>Reason:</strong> {{ template.review_notes || 'No review reason was provided.' }}</span>
+          </p>
+        } @else if (template.review_status === 'APPROVED') {
+          <p class="notice approved">This approved version is immutable and available to outreach workflows.</p>
+        }
+
+        <nav class="view-switch" aria-label="Template view">
+          <button type="button" [class.active]="activeView() === 'questions'" (click)="activeView.set('questions')">Questions</button>
+          <button type="button" [class.active]="activeView() === 'preview'" (click)="activeView.set('preview')">Patient preview</button>
+        </nav>
+
+        @if (activeView() === 'questions') {
+          <section class="question-section">
+            <div class="section-heading">
+              <div><h3>Question sequence</h3><p>Order and validate the prompts patients will receive.</p></div>
+              @if (template.is_editable) {
+                <button type="button" class="primary-button compact" (click)="openCreateQuestion()">+ Add question</button>
+              }
+            </div>
+
+            @if (template.questions?.length) {
+              <div class="question-table">
+                @for (question of template.questions; track question.question_id; let index = $index) {
+                  <article class="question-row" [class.inactive]="!question.is_active">
+                    <span class="order">{{ index + 1 }}</span>
+                    <div class="question-copy">
+                      <strong>{{ question.question_text }}</strong>
+                      <span>{{ question.question_key }} · {{ label(question.answer_type) }} @if (question.is_required) { · Required }</span>
+                      @if (question.options?.length) { <small>{{ question.options?.join(' · ') }}</small> }
+                    </div>
+                    @if (template.is_editable) {
+                      <div class="row-actions">
+                        <button type="button" class="icon-button" title="Move up" aria-label="Move question up" [disabled]="index === 0 || saving()" (click)="moveQuestion(index, -1)">↑</button>
+                        <button type="button" class="icon-button" title="Move down" aria-label="Move question down" [disabled]="index === (template.questions?.length ?? 0) - 1 || saving()" (click)="moveQuestion(index, 1)">↓</button>
+                        <button type="button" class="text-button" (click)="openEditQuestion(question)">Edit</button>
+                        <button type="button" class="text-button danger-text" (click)="requestQuestionDeletion(question)">Delete</button>
+                      </div>
+                    }
+                  </article>
+                }
+              </div>
+            } @else {
+              <p class="empty-state">Add at least one active question before submitting this Draft for review.</p>
+            }
+          </section>
+        } @else {
+          <app-checkin-template-preview [template]="template" />
+        }
+
+        @if (template.is_editable) {
+          <footer class="submit-bar">
+            <div><strong>Ready for clinical review?</strong><span>Submission locks this Draft while Clinical Governance reviews it.</span></div>
+            <button type="button" class="primary-button" (click)="openSubmission()" [disabled]="!(template.questions?.length) || saving()">Submit for review</button>
+          </footer>
+        }
+      } @else {
+        <div class="empty-detail"><h2>Select a template</h2><p>Choose a version to edit questions, preview it, or review its status.</p></div>
+      }
+    </section>
+  </section>
+</main>
+
+@if (templateDialog()) {
+  <div class="modal-backdrop" (click)="closeTemplateDialog()">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="template-dialog-title" (click)="$event.stopPropagation()">
+      <header><h2 id="template-dialog-title">{{ templateDialog() === 'create' ? 'New template' : 'Edit template' }}</h2><button type="button" class="close-button" aria-label="Close" (click)="closeTemplateDialog()">×</button></header>
+      <form (ngSubmit)="saveTemplate()">
+        <label>Template name<input name="templateName" [(ngModel)]="templateDraft.template_name" maxlength="255" required /></label>
+        <label>Template type<select name="templateType" [(ngModel)]="templateDraft.template_type"><option *ngFor="let type of templateTypes" [ngValue]="type">{{ label(type) }}</option></select></label>
+        <label>Description<textarea name="description" [(ngModel)]="templateDraft.description" rows="4" maxlength="2000"></textarea></label>
+        <footer><button type="button" class="secondary-button" (click)="closeTemplateDialog()">Cancel</button><button type="submit" class="primary-button" [disabled]="saving()">{{ saving() ? 'Saving...' : 'Save Draft' }}</button></footer>
+      </form>
+    </section>
+  </div>
+}
+
+@if (questionDialog()) {
+  <div class="modal-backdrop" (click)="closeQuestionDialog()">
+    <section class="modal question-modal" role="dialog" aria-modal="true" aria-labelledby="question-dialog-title" (click)="$event.stopPropagation()">
+      <header><h2 id="question-dialog-title">{{ questionDialog() === 'create' ? 'Add question' : 'Edit question' }}</h2><button type="button" class="close-button" aria-label="Close" (click)="closeQuestionDialog()">×</button></header>
+      <form (ngSubmit)="saveQuestion()">
+        <div class="form-grid">
+          <label>Question key<input name="questionKey" [(ngModel)]="questionDraft.question_key" maxlength="100" placeholder="medication_pickup" required /></label>
+          <label>Answer type<select name="answerType" [(ngModel)]="questionDraft.answer_type"><option *ngFor="let type of answerTypes" [ngValue]="type">{{ label(type) }}</option></select></label>
+          <label class="wide">Question text<textarea name="questionText" [(ngModel)]="questionDraft.question_text" rows="3" maxlength="2000" required></textarea></label>
+          @if (choiceType(questionDraft.answer_type)) {
+            <label class="wide">Options<textarea name="options" [(ngModel)]="questionDraft.optionsText" rows="4" placeholder="One option per line"></textarea><small>Enter at least two unique options.</small></label>
+          }
+          <label>Display order<input name="displayOrder" [(ngModel)]="questionDraft.display_order" type="number" min="1" required /></label>
+          <div class="toggle-fields">
+            <label><input name="required" [(ngModel)]="questionDraft.is_required" type="checkbox" /> Required</label>
+            <label><input name="active" [(ngModel)]="questionDraft.is_active" type="checkbox" /> Active</label>
+          </div>
+        </div>
+        <footer><button type="button" class="secondary-button" (click)="closeQuestionDialog()">Cancel</button><button type="submit" class="primary-button" [disabled]="saving()">{{ saving() ? 'Saving...' : 'Save question' }}</button></footer>
+      </form>
+    </section>
+  </div>
+}
+
+@if (submissionOpen()) {
+  <div class="modal-backdrop" (click)="submissionOpen.set(false)">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="submission-title" (click)="$event.stopPropagation()">
+      <header><h2 id="submission-title">Submit for clinical review</h2><button type="button" class="close-button" aria-label="Close" (click)="submissionOpen.set(false)">×</button></header>
+      <form (ngSubmit)="submitReview()">
+        <p class="modal-copy">The Draft will be locked until Clinical Governance approves it or requests changes.</p>
+        <label>Submission note<textarea name="submissionNote" [(ngModel)]="submissionNote" rows="4" maxlength="1000" placeholder="Summarize the intent or notable changes"></textarea></label>
+        <footer><button type="button" class="secondary-button" (click)="submissionOpen.set(false)">Cancel</button><button type="submit" class="primary-button" [disabled]="saving()">{{ saving() ? 'Submitting...' : 'Submit' }}</button></footer>
+      </form>
+    </section>
+  </div>
+}
+
+@if (pendingDeletion(); as pending) {
+  <div class="ui-confirm-backdrop" role="presentation" (click)="cancelDeletion()">
+    <section
+      class="ui-confirm-dialog"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="delete-dialog-title"
+      aria-describedby="delete-dialog-description"
+      (click)="$event.stopPropagation()"
+    >
+      <span class="ui-confirm-icon" aria-hidden="true">!</span>
+      <div>
+        <p class="ui-confirm-eyebrow">Permanent action</p>
+        <h2 id="delete-dialog-title">Delete {{ pending.kind }}?</h2>
+      </div>
+      <p id="delete-dialog-description">
+        @if (pending.kind === 'template') {
+          The Draft <strong>{{ pending.template.template_name }}</strong> and all of its questions will be permanently deleted.
+        } @else {
+          The question <strong>{{ pending.question.question_text }}</strong> will be permanently removed from this Draft.
+        }
+      </p>
+      <footer class="ui-confirm-actions">
+        <button type="button" class="ui-confirm-secondary" (click)="cancelDeletion()" [disabled]="saving()">Cancel</button>
+        <button type="button" class="ui-confirm-danger" (click)="confirmDeletion()" [disabled]="saving()">
+          {{ saving() ? 'Deleting...' : 'Delete permanently' }}
+        </button>
+      </footer>
+    </section>
+  </div>
+}

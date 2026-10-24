@@ -1,0 +1,84 @@
+<main class="users-page">
+  <app-breadcrumb [items]="breadcrumbs" />
+
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Access administration</p>
+      <h1>Users & roles</h1>
+      <p>Manage staff access, role assignments, and account status for your organization.</p>
+    </div>
+    <div class="admin-page-actions">
+      <button type="button" class="admin-refresh-button" title="Refresh users" aria-label="Refresh users" [disabled]="loading()" (click)="refresh()"><span aria-hidden="true">↻</span></button>
+      <button type="button" (click)="openCreate()">Add user</button>
+    </div>
+  </header>
+
+  <form class="filter-bar" (ngSubmit)="applyFilters()" aria-label="Filter users">
+    <label class="search-field">Search<input name="search" [(ngModel)]="search" placeholder="Name or email" /></label>
+    <label>Role<select name="roleFilter" [(ngModel)]="roleFilter"><option value="">All roles</option>@for (role of roles(); track role.role_id) { <option [value]="role.role_name">{{ formatLabel(role.role_name) }}</option> }</select></label>
+    <label>Status<select name="statusFilter" [(ngModel)]="statusFilter"><option value="">All statuses</option>@for (status of statuses; track status) { <option [value]="status">{{ formatLabel(status) }}</option> }</select></label>
+    <div class="filter-actions"><button type="button" class="secondary-button" (click)="resetFilters()">Reset</button><button type="submit">Apply</button></div>
+  </form>
+
+  @if (error()) { <p class="page-error" role="alert">{{ error() }}</p> }
+
+  <section aria-labelledby="user-list-title">
+    <div class="section-heading"><div><p class="eyebrow">Directory</p><h2 id="user-list-title">Staff accounts</h2></div><strong>{{ displayedUsers().length }} shown · {{ total() }} total</strong></div>
+    @if (loading()) {
+      <div class="page-state" aria-live="polite">Loading user accounts...</div>
+    } @else if (!users().length) {
+      <div class="page-state">No users match the selected filters.</div>
+    } @else {
+      <div class="ui-table-shell">
+        <table class="ui-table admin-users-table">
+          <thead><tr><th scope="col">User</th><th scope="col" class="filter-column"><div class="filter-heading"><span>Role</span><button type="button" class="filter-icon" [class.active]="selectedRoles().length" aria-label="Filter by role" title="Filter by role" [attr.aria-expanded]="openColumnFilter() === 'role'" (click)="toggleColumnFilter('role', $event)"><span aria-hidden="true"></span></button></div>@if (openColumnFilter() === 'role') { <div class="filter-popover" (click)="$event.stopPropagation()"><fieldset><legend>Role values</legend>@for (role of distinctRoles(); track role) { <label><input type="checkbox" [checked]="pendingRoles().includes(role)" (change)="toggleRoleOption(role)" />{{ formatLabel(role) }}</label> }</fieldset><div class="filter-menu-actions"><button type="button" class="menu-link" (click)="selectAllRoles()">Select all</button><button type="button" class="menu-link" (click)="clearPendingFilter('role')">Clear</button><button type="button" (click)="applyColumnFilter('role')">Apply</button></div></div> }</th><th scope="col">Organization</th><th scope="col" class="filter-column"><div class="filter-heading"><span>Status</span><button type="button" class="filter-icon" [class.active]="selectedStatuses().length" aria-label="Filter by status" title="Filter by status" [attr.aria-expanded]="openColumnFilter() === 'status'" (click)="toggleColumnFilter('status', $event)"><span aria-hidden="true"></span></button></div>@if (openColumnFilter() === 'status') { <div class="filter-popover" (click)="$event.stopPropagation()"><fieldset><legend>Status values</legend>@for (status of distinctStatuses(); track status) { <label><input type="checkbox" [checked]="pendingStatuses().includes(status)" (change)="toggleStatusOption(status)" />{{ formatLabel(status) }}</label> }</fieldset><div class="filter-menu-actions"><button type="button" class="menu-link" (click)="selectAllStatuses()">Select all</button><button type="button" class="menu-link" (click)="clearPendingFilter('status')">Clear</button><button type="button" (click)="applyColumnFilter('status')">Apply</button></div></div> }</th><th scope="col">Created</th><th scope="col">Actions</th></tr></thead>
+          <tbody>
+            @for (user of displayedUsers(); track user.user_id) {
+              <tr>
+                <td data-label="User"><strong>{{ user.first_name }} {{ user.last_name }}</strong><small>{{ user.email }}</small><small>{{ user.phone || 'No phone' }}</small></td>
+                <td data-label="Role"><span class="table-value">{{ formatLabel(user.role_name) }}</span></td>
+                <td data-label="Organization">{{ user.organization_name || 'Current organization' }}</td>
+                <td data-label="Status"><span class="status-pill" [class]="statusClass(user.status)">{{ formatLabel(user.status) }}</span></td>
+                <td data-label="Created">{{ formatDate(user.created_at) }}</td>
+                <td data-label="Actions"><div class="row-actions"><label class="status-control"><span class="sr-only">Change status for {{ user.first_name }} {{ user.last_name }}</span><select [ngModel]="user.status" (ngModelChange)="requestStatus(user, $event)" [ngModelOptions]="{ standalone: true }">@for (status of statuses; track status) { <option [value]="status">{{ formatLabel(status) }}</option> }</select></label><button type="button" class="text-button" (click)="openEdit(user)">Edit</button></div></td>
+              </tr>
+            } @empty { <tr><td colspan="6" class="filtered-empty">No users match the selected Role and Status values.</td></tr> }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+
+  <nav class="pagination" aria-label="User pages"><span>{{ pageStart }}-{{ pageEnd }} of {{ total() }}</span><div><button type="button" class="secondary-button" (click)="previousPage()" [disabled]="page === 0">Previous</button><button type="button" class="secondary-button" (click)="nextPage()" [disabled]="pageEnd >= total()">Next</button></div></nav>
+
+  @if (dialogMode()) {
+    <div class="dialog-backdrop" role="presentation" (click)="closeDialog()">
+      <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="user-dialog-title" (click)="$event.stopPropagation()">
+        <header><div><p class="eyebrow">{{ dialogMode() === 'create' ? 'New staff account' : 'Account profile' }}</p><h2 id="user-dialog-title">{{ dialogMode() === 'create' ? 'Create user' : 'Edit user' }}</h2></div><button type="button" class="close-button" aria-label="Close dialog" (click)="closeDialog()">&times;</button></header>
+        <form (ngSubmit)="saveUser()">
+          <div class="form-grid">
+            <label>First name<input name="firstName" maxlength="100" [(ngModel)]="draft.first_name" required /></label>
+            <label>Last name<input name="lastName" maxlength="100" [(ngModel)]="draft.last_name" required /></label>
+            <label class="wide-field">Email<input type="email" name="email" maxlength="255" [(ngModel)]="draft.email" required /></label>
+            <label>Phone<input type="tel" name="phone" maxlength="20" [(ngModel)]="draft.phone" /></label>
+            <label>Role<select name="roleName" [(ngModel)]="draft.role_name" required>@for (role of roles(); track role.role_id) { <option [value]="role.role_name">{{ formatLabel(role.role_name) }}</option> }</select></label>
+            @if (dialogMode() === 'create') { <label class="wide-field">Temporary password<input type="password" name="password" minlength="8" maxlength="128" [(ngModel)]="draft.password" required /><small>Minimum 8 characters</small></label> }
+            <div class="organization-field wide-field"><span>Assigned organization</span><strong>{{ selectedUser()?.organization_name || 'Your organization' }}</strong></div>
+          </div>
+          @if (error()) { <p class="form-error" role="alert">{{ error() }}</p> }
+          <footer><button type="button" class="secondary-button" (click)="closeDialog()" [disabled]="saving()">Cancel</button><button type="submit" [disabled]="saving()">{{ saving() ? 'Saving...' : 'Save user' }}</button></footer>
+        </form>
+      </section>
+    </div>
+  }
+
+  @if (pendingStatus(); as change) {
+    <div class="dialog-backdrop" role="presentation">
+      <section class="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="status-dialog-title">
+        <p class="eyebrow">Account status</p><h2 id="status-dialog-title">Change status to {{ formatLabel(change.status) }}?</h2>
+        <p>This will update access for <strong>{{ change.user.first_name }} {{ change.user.last_name }}</strong>. Inactive and suspended users cannot sign in.</p>
+        <footer><button type="button" class="secondary-button" (click)="cancelStatus()" [disabled]="saving()">Cancel</button><button type="button" (click)="confirmStatus()" [disabled]="saving()">{{ saving() ? 'Updating...' : 'Confirm change' }}</button></footer>
+      </section>
+    </div>
+  }
+</main>

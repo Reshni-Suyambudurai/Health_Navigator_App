@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { getThemeMode } from '../../../api/tokenstore';
 import { initializeThemeMode, toggleThemeMode } from '../../utils/theme';
+import { NotificationState } from '../../state/notification-state';
 
 @Component({
   selector: 'app-role-navbar',
@@ -11,6 +12,7 @@ import { initializeThemeMode, toggleThemeMode } from '../../utils/theme';
   styleUrl: './navbar.scss',
 })
 export class RoleNavbar {
+  readonly notifications = inject(NotificationState);
   readonly theme = signal<'light' | 'dark'>(getThemeMode());
 
   constructor() {
@@ -19,5 +21,9 @@ export class RoleNavbar {
 
   toggleTheme(): void {
     this.theme.set(toggleThemeMode());
+  }
+
+  label(value: string): string {
+    return value.toLowerCase().replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
   }
 }

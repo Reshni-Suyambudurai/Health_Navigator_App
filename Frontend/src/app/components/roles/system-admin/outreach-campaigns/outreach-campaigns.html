@@ -1,0 +1,158 @@
+<main class="campaigns-page">
+  <app-breadcrumb [items]="breadcrumbs" />
+
+  <header class="page-header">
+    <div><p class="eyebrow">Outreach administration</p><h1>Outreach campaigns</h1><p>Define eligible patient cohorts and prepare follow-up workflows for activation.</p></div>
+    <div class="admin-page-actions">
+      <button type="button" class="admin-refresh-button" title="Refresh campaigns" aria-label="Refresh campaigns" [disabled]="loading()" (click)="refresh()"><span aria-hidden="true">↻</span></button>
+      <button type="button" (click)="openCreate()">Add campaign</button>
+    </div>
+  </header>
+
+  <form class="filter-bar" (ngSubmit)="applyFilters()" aria-label="Filter campaigns">
+    <label class="search-field">Search<input name="search" [(ngModel)]="search" placeholder="Campaign name or description" /></label>
+    <label>Type<select name="typeFilter" [(ngModel)]="typeFilter"><option value="">All types</option>@for (type of campaignTypes; track type) { <option [value]="type">{{ formatLabel(type) }}</option> }</select></label>
+    <label>Status<select name="statusFilter" [(ngModel)]="statusFilter"><option value="">All statuses</option>@for (status of statuses; track status) { <option [value]="status">{{ formatLabel(status) }}</option> }</select></label>
+    <div class="filter-actions"><button type="button" class="secondary-button" (click)="resetFilters()">Reset</button><button type="submit">Apply</button></div>
+  </form>
+
+  @if (error()) { <p class="page-error" role="alert">{{ error() }}</p> }
+
+  <section aria-labelledby="campaign-list-title">
+    <div class="section-heading"><div><p class="eyebrow">Configuration</p><h2 id="campaign-list-title">Organization campaigns</h2></div><strong>{{ visibleCampaigns().length }} shown · {{ total() }} total</strong></div>
+    @if (loading()) {
+      <div class="page-state" aria-live="polite">Loading campaigns...</div>
+    } @else if (!visibleCampaigns().length) {
+      <div class="page-state">No campaigns match the selected filters.</div>
+    } @else {
+      <div class="ui-table-shell">
+        <table class="ui-table campaigns-table">
+          <thead><tr><th scope="col">Campaign</th><th scope="col">Type</th><th scope="col">Cohort</th><th scope="col">Configuration</th><th scope="col">Status</th><th scope="col">Schedule</th><th scope="col">Actions</th></tr></thead>
+          <tbody>
+            @for (campaign of visibleCampaigns(); track campaign.campaign_id) {
+              <tr>
+                <td><strong>{{ campaign.campaign_name }}</strong><small>{{ campaign.description || 'No description' }}</small></td>
+                <td><span class="table-value">{{ formatLabel(campaign.campaign_type) }}</span></td>
+                <td><div class="cohort-count"><strong>{{ campaign.readiness.eligible_patient_count }}</strong><button type="button" class="cohort-view-button" (click)="openCohort(campaign)">View</button></div><small>eligible patients · {{ campaign.cohort.discharged_within_days }} day window</small></td>
+                <td><span class="status-pill" [class]="readinessClass(campaign)">{{ campaign.readiness.ready ? 'Ready' : 'Needs setup' }}</span><small>{{ campaign.readiness.active_workflow_count }} active of {{ campaign.readiness.workflow_count }} workflow steps</small></td>
+                <td><span class="status-pill" [class]="statusClass(campaign.status)">{{ formatLabel(campaign.status) }}</span></td>
+                <td>{{ formatDate(campaign.start_at) }}<small>{{ campaign.timezone }}</small></td>
+                <td><div class="row-actions"><button type="button" class="text-button" (click)="configureWorkflows(campaign)">Workflows</button>@if (canEdit(campaign)) { <button type="button" class="text-button" (click)="openEdit(campaign)">Edit</button> }@if (campaign.status === 'DRAFT' || campaign.status === 'PAUSED') { <button type="button" class="compact-button" (click)="requestTransition(campaign, 'ACTIVE')" [disabled]="!campaign.readiness.ready">Activate</button> } @else if (campaign.status === 'ACTIVE') { <button type="button" class="secondary-button compact-button" (click)="requestTransition(campaign, 'PAUSED')">Pause</button> }@if (campaign.status === 'ACTIVE' || campaign.status === 'PAUSED') { <button type="button" class="text-button danger-text" (click)="requestTransition(campaign, 'COMPLETED')">Complete</button> }</div></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+
+  <nav class="pagination" aria-label="Campaign pages"><span>{{ pageStart }}-{{ pageEnd }} of {{ total() }}</span><div><button type="button" class="secondary-button" (click)="previousPage()" [disabled]="page === 0">Previous</button><button type="button" class="secondary-button" (click)="nextPage()" [disabled]="pageEnd >= total()">Next</button></div></nav>
+
+  @if (dialogMode()) {
+    <div class="dialog-backdrop" role="presentation" (click)="closeDialog()">
+      <section class="campaign-dialog" role="dialog" aria-modal="true" aria-labelledby="campaign-dialog-title" (click)="$event.stopPropagation()">
+        <header><div><p class="eyebrow">{{ dialogMode() === 'create' ? 'New draft' : 'Campaign details' }}</p><h2 id="campaign-dialog-title">{{ dialogMode() === 'create' ? 'Create campaign' : 'Edit campaign' }}</h2></div><button type="button" class="close-button" aria-label="Close dialog" (click)="closeDialog()">&times;</button></header>
+        <form (ngSubmit)="saveCampaign()">
+          <div class="form-grid">
+            <label class="wide-field">Campaign name<input name="campaignName" maxlength="255" [(ngModel)]="draft.campaign_name" required /></label>
+            <label class="wide-field">Description<textarea name="description" rows="3" maxlength="2000" [(ngModel)]="draft.description"></textarea></label>
+            <label>Campaign type<select name="campaignType" [(ngModel)]="draft.campaign_type">@for (type of campaignTypes; track type) { <option [value]="type">{{ formatLabel(type) }}</option> }</select></label>
+            <label>Timezone<input name="timezone" maxlength="100" [(ngModel)]="draft.timezone" required /></label>
+            <label>Starts at<input type="datetime-local" name="startAt" [(ngModel)]="draft.start_at" /></label>
+            <label>Ends at<input type="datetime-local" name="endAt" [(ngModel)]="draft.end_at" /></label>
+          </div>
+
+          <fieldset class="cohort-builder">
+            <legend>Eligible cohort</legend>
+            <p>Select one or more values in each group. Patients may match any selected value within a group and must match every group. Discharge recency uses the opening time of discharge-triggered episodes.</p>
+            <div class="cohort-grid">
+              <fieldset><legend>Enrollment status</legend>@for (value of enrollmentStatuses; track value) { <label class="check-option"><input type="checkbox" [checked]="draft.cohort.enrollment_statuses.includes(value)" [disabled]="isOnlyCohortValue('enrollment_statuses', value)" (change)="toggleCohortValue('enrollment_statuses', value)" />{{ formatLabel(value) }}</label> }</fieldset>
+              <fieldset><legend>Program</legend>@for (value of enrollmentPrograms; track value) { <label class="check-option"><input type="checkbox" [checked]="draft.cohort.enrollment_programs.includes(value)" [disabled]="isOnlyCohortValue('enrollment_programs', value)" (change)="toggleCohortValue('enrollment_programs', value)" />{{ formatLabel(value) }}</label> }</fieldset>
+              <fieldset><legend>Episode type</legend>@for (value of episodeTypes; track value) { <label class="check-option"><input type="checkbox" [checked]="draft.cohort.episode_types.includes(value)" [disabled]="isOnlyCohortValue('episode_types', value)" (change)="toggleCohortValue('episode_types', value)" />{{ formatLabel(value) }}</label> }</fieldset>
+              <fieldset><legend>Episode status</legend>@for (value of episodeStatuses; track value) { <label class="check-option"><input type="checkbox" [checked]="draft.cohort.episode_statuses.includes(value)" [disabled]="isOnlyCohortValue('episode_statuses', value)" (change)="toggleCohortValue('episode_statuses', value)" />{{ formatLabel(value) }}</label> }</fieldset>
+            </div>
+            <label class="days-field">Discharged within<input type="number" name="dischargeDays" min="1" max="365" [(ngModel)]="draft.cohort.discharged_within_days" /><span>days</span></label>
+          </fieldset>
+
+          @if (error()) { <p class="form-error" role="alert">{{ error() }}</p> }
+          <footer><button type="button" class="secondary-button" (click)="closeDialog()" [disabled]="saving()">Cancel</button><button type="submit" [disabled]="saving()">{{ saving() ? 'Saving...' : 'Save draft' }}</button></footer>
+        </form>
+      </section>
+    </div>
+  }
+
+  @if (pendingTransition(); as pending) {
+    <div class="dialog-backdrop" role="presentation">
+      <section class="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="transition-title">
+        <p class="eyebrow">Campaign lifecycle</p><h2 id="transition-title">{{ formatLabel(pending.status) }} campaign?</h2>
+        <p><strong>{{ pending.campaign.campaign_name }}</strong> will move from {{ formatLabel(pending.campaign.status) }} to {{ formatLabel(pending.status) }}. Activation only changes configuration status; it does not contact patients or schedule outreach events.</p>
+        <footer><button type="button" class="secondary-button" (click)="cancelTransition()" [disabled]="saving()">Cancel</button><button type="button" (click)="confirmTransition()" [disabled]="saving()">{{ saving() ? 'Updating...' : 'Confirm' }}</button></footer>
+      </section>
+    </div>
+  }
+</main>
+
+@if (cohortCampaign(); as campaign) {
+  <div class="cohort-backdrop" role="presentation" (click)="closeCohort()"></div>
+  <aside class="cohort-panel" role="dialog" aria-modal="true" aria-labelledby="cohort-panel-title">
+    <header class="cohort-panel-header">
+      <div>
+        <p>Eligible cohort</p>
+        <h2 id="cohort-panel-title">{{ campaign.campaign_name }}</h2>
+        <span>{{ cohortTotal() }} matching {{ cohortTotal() === 1 ? 'patient' : 'patients' }}</span>
+      </div>
+      <button type="button" class="cohort-close-button" title="Close patient panel" aria-label="Close patient panel" (click)="closeCohort()">×</button>
+    </header>
+
+    <div class="cohort-panel-body" aria-live="polite">
+      @if (cohortLoading()) {
+        <div class="cohort-panel-state">Loading eligible patients...</div>
+      } @else if (cohortError() && !cohortPatients().length) {
+        <div class="cohort-panel-state cohort-error-state">
+          <strong>Unable to load patients</strong>
+          <span>{{ cohortError() }}</span>
+          <button type="button" (click)="retryCohort()">Retry</button>
+        </div>
+      } @else if (!cohortPatients().length) {
+        <div class="cohort-panel-state"><strong>No eligible patients</strong><span>No patients currently match this campaign's cohort criteria.</span></div>
+      } @else {
+        <div class="cohort-patient-list">
+          @for (patient of cohortPatients(); track patient.patient_id) {
+            <article class="cohort-patient-card">
+              <header>
+                <div><h3>{{ patient.patient_name }}</h3><span>Patient ID {{ patient.patient_id }}</span></div>
+                <span class="cohort-status" [attr.data-status]="patient.enrollment_status">{{ formatLabel(patient.enrollment_status) }}</span>
+              </header>
+              @if (patient.external_fhir_patient_id) {
+                <p class="patient-reference">FHIR patient ID: {{ patient.external_fhir_patient_id }}</p>
+              }
+              <dl>
+                <div><dt>Program</dt><dd>{{ formatLabel(patient.enrollment_program) }}</dd></div>
+                <div><dt>Episode</dt><dd>{{ formatLabel(patient.episode_type) }}</dd></div>
+                <div><dt>Episode status</dt><dd>{{ formatLabel(patient.episode_status) }}</dd></div>
+                @if (patient.discharge_date) {
+                  <div><dt>Discharge date</dt><dd>{{ patient.discharge_date | date:'mediumDate' }}</dd></div>
+                }
+                @if (patient.episode_created_at) {
+                  <div><dt>Episode created</dt><dd>{{ patient.episode_created_at | date:'mediumDate' }}</dd></div>
+                }
+                @if (patient.enrollment_date) {
+                  <div><dt>Enrolled</dt><dd>{{ patient.enrollment_date | date:'mediumDate' }}</dd></div>
+                }
+              </dl>
+            </article>
+          }
+        </div>
+
+        @if (cohortError()) {
+          <div class="cohort-load-error"><span>{{ cohortError() }}</span><button type="button" (click)="retryCohort()">Retry</button></div>
+        }
+        @if (cohortHasMore()) {
+          <button type="button" class="cohort-load-more" [disabled]="cohortLoadingMore()" (click)="loadMoreCohort()">
+            {{ cohortLoadingMore() ? 'Loading...' : 'Load more patients' }}
+          </button>
+        }
+      }
+    </div>
+  </aside>
+}

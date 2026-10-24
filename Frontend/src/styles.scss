@@ -145,6 +145,31 @@ button {
   }
 }
 
+.admin-page-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.admin-page-actions .admin-refresh-button {
+  display: grid;
+  flex: 0 0 36px;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0;
+  border-color: var(--border);
+  background: var(--table-bg);
+  color: var(--primary);
+  font-size: 1.1rem;
+}
+
+.admin-page-actions .admin-refresh-button:hover {
+  background: var(--hover-bg);
+}
+
 input,
 textarea,
 select {
@@ -175,6 +200,90 @@ app-root {
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
   border: 0;
+}
+
+/* Shared destructive-action confirmation */
+.ui-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.56);
+}
+
+.ui-confirm-dialog {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.8rem 0.9rem;
+  width: min(31rem, 100%);
+  padding: 1.2rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--table-bg);
+  box-shadow: var(--shadow-md);
+  color: var(--text);
+}
+
+.ui-confirm-dialog h2,
+.ui-confirm-dialog p {
+  margin: 0;
+}
+
+.ui-confirm-icon {
+  display: grid;
+  place-items: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 50%;
+  background: var(--status-critical-bg);
+  color: var(--status-critical-text);
+  font-weight: 700;
+}
+
+.ui-confirm-eyebrow {
+  margin-bottom: 0.15rem !important;
+  color: var(--status-critical-text);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.ui-confirm-dialog > p {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.ui-confirm-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.55rem;
+  padding-top: 0.25rem;
+}
+
+.ui-confirm-secondary {
+  border-color: var(--border);
+  background: var(--table-bg);
+  color: var(--text);
+}
+
+.ui-confirm-danger {
+  border-color: var(--status-critical-text);
+  background: var(--status-critical-text);
+  color: #ffffff;
+}
+
+@media (max-width: 480px) {
+  .ui-confirm-actions {
+    flex-direction: column-reverse;
+  }
+
+  .ui-confirm-actions button {
+    width: 100%;
+  }
 }
 
 /* Reusable table template */

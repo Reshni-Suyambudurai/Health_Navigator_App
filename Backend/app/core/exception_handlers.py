@@ -96,6 +96,24 @@ async def patient_fhir_exception_handler(request: Request, exc: PatientFHIRExcep
     )
 
 
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    """Log unexpected failures with request context and return a stable API error."""
+    logger.exception(
+        "Unhandled API error for %s %s",
+        request.method,
+        request.url.path,
+        exc_info=exc,
+    )
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content=ErrorResponse(
+            status="error",
+            message="An unexpected server error occurred. Check the backend logs for details.",
+            error_code="INTERNAL_SERVER_ERROR",
+        ).model_dump(),
+    )
+
+
 def register_exception_handlers(app):
     """Register all exception handlers with FastAPI app"""
     app.add_exception_handler(AuthenticationException, authentication_exception_handler)
@@ -104,5 +122,6 @@ def register_exception_handlers(app):
     app.add_exception_handler(ValidationException, validation_exception_handler)
     app.add_exception_handler(ConflictException, conflict_exception_handler)
     app.add_exception_handler(PatientFHIRException, patient_fhir_exception_handler)
+    app.add_exception_handler(Exception, unhandled_exception_handler)
     
     logger.info("Global exception handlers registered")

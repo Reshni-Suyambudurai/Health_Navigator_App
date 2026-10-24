@@ -1,0 +1,51 @@
+<section class="preview" aria-label="Check-in template preview">
+  <header>
+    <div>
+      <p class="preview-label">Patient check-in</p>
+      <h2>{{ template.template_name }}</h2>
+      @if (template.description) {
+        <p class="description">{{ template.description }}</p>
+      }
+    </div>
+    <span class="version">Version {{ template.version }}</span>
+  </header>
+
+  @if (template.questions?.length) {
+    <ol class="questions">
+      @for (question of template.questions; track question.question_id) {
+        @if (question.is_active) {
+          <li>
+            <label [attr.for]="'preview-' + question.question_id">
+              <span>{{ question.question_text }}</span>
+              @if (question.is_required) { <small>Required</small> }
+            </label>
+            @switch (question.answer_type) {
+              @case ('YES_NO') {
+                <div class="choice-row" [id]="'preview-' + question.question_id">
+                  <button type="button" disabled>Yes</button>
+                  <button type="button" disabled>No</button>
+                </div>
+              }
+              @case ('TEXT') {
+                <textarea [id]="'preview-' + question.question_id" rows="3" disabled placeholder="Patient response"></textarea>
+              }
+              @case ('NUMBER') {
+                <input [id]="'preview-' + question.question_id" type="number" disabled placeholder="0" />
+              }
+              @default {
+                <div class="option-list" [id]="'preview-' + question.question_id">
+                  @for (option of question.options ?? []; track option) {
+                    <label><input type="checkbox" disabled /> {{ option }}</label>
+                  }
+                </div>
+              }
+            }
+            <p class="answer-type">{{ label(question.answer_type) }}</p>
+          </li>
+        }
+      }
+    </ol>
+  } @else {
+    <p class="empty">No questions have been added.</p>
+  }
+</section>

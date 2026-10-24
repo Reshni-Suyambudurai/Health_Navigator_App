@@ -1,0 +1,78 @@
+.campaigns-page { display: grid; gap: 1.25rem; padding-bottom: 2rem; color: var(--text); }
+.page-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+.page-header h1, .section-heading h2, .campaign-dialog h2, .confirm-dialog h2 { margin: 0; }
+.page-header p:last-child { margin-top: 0.35rem; color: var(--muted); }
+.eyebrow { margin-bottom: 0.25rem; color: var(--primary); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+.filter-bar { display: grid; grid-template-columns: minmax(240px, 1.5fr) minmax(180px, 0.8fr) minmax(150px, 0.65fr) auto; gap: 0.9rem; align-items: end; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--table-bg); padding: 1rem; }
+label { display: grid; gap: 0.35rem; color: var(--muted); font-size: 0.75rem; font-weight: 700; }
+.filter-actions, .row-actions, .pagination > div, .campaign-dialog footer, .confirm-dialog footer { display: flex; gap: 0.65rem; }
+.section-heading { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 0.75rem; }
+.section-heading strong, .pagination { color: var(--muted); font-size: 0.78rem; }
+.campaigns-table { min-width: 1180px; }
+.campaigns-table td:first-child { max-width: 240px; }
+.cohort-count { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%; }
+.cohort-view-button { min-height: 26px; padding: 0.25rem 0.5rem; border-color: var(--primary); background: transparent; color: var(--primary); font-size: 0.7rem; }
+.cohort-view-button:hover { background: var(--hover-bg); box-shadow: none; }
+.row-actions { align-items: center; flex-wrap: wrap; min-width: 205px; }
+.row-actions button { min-height: 30px; border: 1px solid currentColor; padding: 0.35rem 0.55rem; font-size: 0.74rem; }
+.text-button { background: transparent; color: var(--primary); padding-inline: 0.55rem; box-shadow: none; }
+.text-button:hover { background: var(--hover-bg); box-shadow: none; }
+.danger-text { color: var(--status-critical-text); }
+.compact-button { min-height: 30px; padding: 0.35rem 0.55rem; font-size: 0.74rem; }
+.secondary-button { border-color: var(--border); background: var(--table-bg); color: var(--text); }
+.secondary-button:hover { background: var(--hover-bg); }
+.pagination { display: flex; align-items: center; justify-content: space-between; }
+.page-state { min-height: 150px; display: grid; place-items: center; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--table-bg); color: var(--muted); }
+.page-error, .form-error { border-left: 3px solid var(--status-critical-text); background: var(--status-critical-bg); color: var(--status-critical-text); padding: 0.75rem 0.9rem; }
+.dialog-backdrop { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; background: rgba(15, 23, 42, 0.52); padding: 1rem; }
+.campaign-dialog, .confirm-dialog { width: min(900px, 100%); max-height: calc(100vh - 2rem); overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--table-bg); box-shadow: var(--shadow-md); }
+.campaign-dialog > header { display: flex; align-items: flex-start; justify-content: space-between; padding: 1.2rem 1.25rem 1rem; border-bottom: 1px solid var(--border); }
+.campaign-dialog form { display: grid; gap: 1.1rem; padding: 1.25rem; }
+.form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.9rem 1rem; }
+.wide-field { grid-column: 1 / -1; }
+textarea { resize: vertical; }
+.cohort-builder { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem; }
+.cohort-builder > legend { padding: 0 0.35rem; font-weight: 700; }
+.cohort-builder > p { margin-bottom: 0.9rem; color: var(--muted); font-size: 0.78rem; }
+.cohort-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.8rem; }
+.cohort-grid fieldset { display: grid; align-content: start; gap: 0.45rem; border: 0; }
+.cohort-grid legend { margin-bottom: 0.35rem; color: var(--text); font-size: 0.78rem; font-weight: 700; }
+.check-option { display: flex; grid-template-columns: none; align-items: flex-start; gap: 0.45rem; color: var(--text); font-weight: 500; }
+.check-option input { width: 1rem; height: 1rem; margin-top: 0.1rem; padding: 0; accent-color: var(--primary); }
+.days-field { display: flex; align-items: center; gap: 0.55rem; margin-top: 1rem; color: var(--text); }
+.days-field input { width: 92px; }
+.campaign-dialog footer, .confirm-dialog footer { justify-content: flex-end; }
+.close-button { border: 0; background: transparent; color: var(--muted); padding: 0; font-size: 1.6rem; line-height: 1; box-shadow: none; }
+.close-button:hover { background: transparent; color: var(--text); box-shadow: none; }
+.confirm-dialog { width: min(560px, 100%); padding: 1.25rem; }
+.confirm-dialog p:not(.eyebrow) { margin: 0.65rem 0 1.25rem; color: var(--muted); }
+.cohort-backdrop { position: fixed; inset: 0; z-index: 1090; background: rgba(15, 23, 42, 0.35); }
+.cohort-panel { position: fixed; top: 0; right: 0; z-index: 1100; display: grid; grid-template-rows: auto minmax(0, 1fr); width: min(32rem, 100vw); height: 100vh; border-left: 1px solid var(--border); background: var(--surface); color: var(--text); box-shadow: -12px 0 30px rgba(15, 23, 42, 0.18); animation: cohort-panel-in 160ms ease-out; }
+@keyframes cohort-panel-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
+.cohort-panel-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; min-height: 92px; padding: 1rem; border-bottom: 1px solid var(--border); background: var(--surface-strong); }
+.cohort-panel-header p, .cohort-panel-header h2 { margin: 0; }
+.cohort-panel-header p { color: var(--primary); font-size: 0.68rem; font-weight: 700; text-transform: uppercase; }
+.cohort-panel-header h2 { margin-top: 0.2rem; font-size: 1rem; }
+.cohort-panel-header span { display: block; margin-top: 0.25rem; color: var(--muted); font-size: 0.72rem; }
+.cohort-close-button { display: grid; flex: 0 0 2rem; place-items: center; width: 2rem; height: 2rem; min-height: 0; padding: 0; border: 1px solid var(--border); border-radius: 50%; background: var(--table-bg); color: var(--text); font-size: 1rem; }
+.cohort-panel-body { overflow-y: auto; padding: 0.9rem; }
+.cohort-patient-list { display: grid; gap: 0.7rem; }
+.cohort-patient-card { border: 1px solid var(--border); border-radius: 6px; background: var(--table-bg); padding: 0.9rem; }
+.cohort-patient-card > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; }
+.cohort-patient-card h3 { margin: 0; font-size: 0.88rem; }
+.cohort-patient-card header div > span, .patient-reference { color: var(--muted); font-size: 0.68rem; }
+.patient-reference { margin: 0.5rem 0 0; overflow-wrap: anywhere; }
+.cohort-status { flex: 0 0 auto; border-radius: 4px; padding: 0.15rem 0.35rem; background: var(--status-positive-bg); color: var(--status-positive-text); font-size: 0.62rem; font-weight: 700; }
+.cohort-status[data-status='INACTIVE'], .cohort-status[data-status='WITHDRAWN'], .cohort-status[data-status='CLOSED'] { background: var(--status-critical-bg); color: var(--status-critical-text); }
+.cohort-patient-card dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.65rem 1rem; margin: 0.85rem 0 0; padding-top: 0.75rem; border-top: 1px solid var(--table-row-border); }
+.cohort-patient-card dl div { min-width: 0; }
+.cohort-patient-card dt { color: var(--muted); font-size: 0.62rem; font-weight: 700; text-transform: uppercase; }
+.cohort-patient-card dd { margin: 0.18rem 0 0; overflow-wrap: anywhere; font-size: 0.72rem; }
+.cohort-panel-state { min-height: 12rem; display: grid; align-content: center; justify-items: center; gap: 0.4rem; color: var(--muted); text-align: center; }
+.cohort-panel-state strong { color: var(--text); }
+.cohort-panel-state span { max-width: 22rem; font-size: 0.75rem; }
+.cohort-error-state button, .cohort-load-error button { margin-top: 0.5rem; }
+.cohort-load-error { margin-top: 0.8rem; padding: 0.75rem; border-left: 3px solid var(--status-critical-text); background: var(--status-critical-bg); color: var(--status-critical-text); font-size: 0.72rem; text-align: center; }
+.cohort-load-more { display: block; width: 100%; margin-top: 0.8rem; }
+@media (max-width: 900px) { .filter-bar { grid-template-columns: 1fr 1fr; }.search-field { grid-column: 1 / -1; }.filter-actions { justify-content: flex-end; }.cohort-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .page-header { align-items: stretch; flex-direction: column; }.page-header button { width: 100%; }.filter-bar, .form-grid, .cohort-grid { grid-template-columns: 1fr; }.search-field, .wide-field { grid-column: auto; }.filter-actions button { flex: 1; }.pagination { align-items: flex-start; flex-direction: column; }.campaign-dialog footer, .confirm-dialog footer { flex-direction: column-reverse; }.campaign-dialog footer button, .confirm-dialog footer button { width: 100%; }.cohort-panel { width: 100vw; }.cohort-patient-card dl { grid-template-columns: 1fr; } }

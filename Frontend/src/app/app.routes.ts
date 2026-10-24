@@ -4,6 +4,7 @@ import { RoleShell } from './shared/layout/role-shell/role-shell';
 import { ClinicalGovernanceDashbaord } from './components/roles/clinical-governance/dashboard/clinical_governance_dashbaord';
 import { CareManagerDashbaord } from './components/roles/care-manager/dashboard/care_manager_dashbaord';
 import { PopulationHealthManagerDashbaord } from './components/roles/population-health-manager/dashboard/population_health_manager_dashbaord';
+import { OutreachTracker } from './components/roles/population-health-manager/outreach-tracker/outreach-tracker';
 import { PatientDashbaord } from './components/roles/patients/dashboard/patient_dashbaord';
 import { PatientAppointments } from './components/roles/patients/appointments/appointments';
 import { PatientCareTeam } from './components/roles/patients/care-team/care-team';
@@ -16,6 +17,13 @@ import { AppointmentDetails } from './components/roles/transitional-care-nurse/a
 import { PharmacistDashbaord } from './components/roles/pharmacist/dashboard/pharmacist_dashbaord';
 import { SocialWorkerDashbaord } from './components/roles/social-worker/dashboard/social_worker_dashbaord';
 import { SystemAdminDashboard } from './components/roles/system-admin/dashboard/system-admin-dashboard';
+import { SystemAdminOrganization } from './components/roles/system-admin/organization/organization';
+import { SystemAdminUsersRoles } from './components/roles/system-admin/users-roles/users-roles';
+import { SystemAdminAuditTrail } from './components/roles/system-admin/audit-trail/audit-trail';
+import { SystemAdminOutreachCampaigns } from './components/roles/system-admin/outreach-campaigns/outreach-campaigns';
+import { SystemAdminOutreachWorkflows } from './components/roles/system-admin/outreach-workflows/outreach-workflows';
+import { SystemAdminCheckinTemplate } from './components/roles/system-admin/checkin-template/checkin-template';
+import { ClinicalCheckinTemplateReviews } from './components/roles/clinical-governance/checkin-template-reviews/checkin-template-reviews';
 import { authGuard } from './guards/guards/auth.guard';
 import { roleAccessGuard } from './guards/guards/role-access.guard';
 
@@ -30,8 +38,10 @@ export const routes: Routes = [
     children: [
       { path: '', redirectTo: 'clinical-governance/dashboard', pathMatch: 'full' },
       { path: 'clinical-governance/dashboard', component: ClinicalGovernanceDashbaord },
+      { path: 'clinical-governance/checkin-template-reviews', component: ClinicalCheckinTemplateReviews },
       { path: 'care-manager/dashboard', component: CareManagerDashbaord },
       { path: 'population-health-manager/dashboard', component: PopulationHealthManagerDashbaord },
+      { path: 'population-health-manager/outreach', component: OutreachTracker },
       { path: 'patient/dashboard', component: PatientDashbaord },
       { path: 'patient/appointments', component: PatientAppointments },
       { path: 'patient/care-team', component: PatientCareTeam },
@@ -44,6 +54,12 @@ export const routes: Routes = [
       { path: 'pharmacist/dashboard', component: PharmacistDashbaord },
       { path: 'social-worker/dashboard', component: SocialWorkerDashbaord },
       { path: 'system-admin/dashboard', component: SystemAdminDashboard },
+      { path: 'system-admin/users-roles', component: SystemAdminUsersRoles },
+      { path: 'system-admin/organization', component: SystemAdminOrganization },
+      { path: 'system-admin/outreach-campaigns', component: SystemAdminOutreachCampaigns },
+      { path: 'system-admin/outreach-campaigns/:campaignId/workflows', component: SystemAdminOutreachWorkflows },
+      { path: 'system-admin/checkin-template', component: SystemAdminCheckinTemplate },
+      { path: 'system-admin/audit-trail', component: SystemAdminAuditTrail },
     ],
   },
   { path: 'home', redirectTo: '/clinical-governance/dashboard', pathMatch: 'full' },

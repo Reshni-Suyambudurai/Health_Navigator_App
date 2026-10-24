@@ -1,9 +1,11 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { forkJoin, of } from 'rxjs';
 import { catchError, finalize, map, switchMap } from 'rxjs/operators';
 import { AppointmentApi } from '../../../../api/navigator/appointment.api';
+import { OutreachApi } from '../../../../api/navigator/outreach.api';
 import { getSessionUser } from '../../../../api/tokenstore';
 import { FhirDataApi } from '../../../../api/patientfhir/fhir.data.api';
 import {
@@ -12,6 +14,7 @@ import {
   NurseAppointmentDetails,
 } from '../../../../shared/types/navigator/appointment';
 import { FhirRecord } from '../../../../shared/types/patientfhir/fhir';
+import { AppointmentAction } from '../../../../shared/types/navigator/outreach';
 import { Breadcrumb, BreadcrumbItem } from '../../../../shared/ui/breadcrumb/breadcrumb';
 import { ToastState } from '../../../../shared/ui/toast/toast-state';
 
@@ -25,7 +28,7 @@ interface AppointmentDetailsBundle {
 @Component({
   selector: 'app-appointment-details',
   standalone: true,
-  imports: [CommonModule, Breadcrumb],
+  imports: [CommonModule, FormsModule, Breadcrumb],
   templateUrl: './appointment-details.html',
   styleUrl: './appointment-details.scss',
 })
@@ -33,6 +36,7 @@ export class AppointmentDetails implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly appointmentApi = inject(AppointmentApi);
+  private readonly outreachApi = inject(OutreachApi);
   private readonly fhirApi = inject(FhirDataApi);
   private readonly toast = inject(ToastState);
   private readonly sessionUser = getSessionUser();
@@ -70,9 +74,17 @@ export class AppointmentDetails implements OnInit {
   readonly loadingNurses = signal(false);
   readonly updatingAppointment = signal(false);
   readonly appointmentActionError = signal<string | null>(null);
+  readonly appointmentActions = signal<AppointmentAction[]>([]);
+  readonly savingCareAction = signal(false);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   readonly clinicalWarning = signal<string | null>(null);
+  careActionType = 'REVIEWED';
+  careActionOutcome: string | null = null;
+  careActionNotes = '';
+  careActionResolution = 'PENDING';
+  careActionFollowUp = false;
+  careActionFollowUpDue = '';
   readonly breadcrumbs: BreadcrumbItem[] = [
     { label: 'Appointments', route: '/transitional-care-nurse/appointments' },
     { label: 'Appointment Details' },
@@ -92,6 +104,7 @@ export class AppointmentDetails implements OnInit {
     }
 
     this.loadDetails(userId, appointmentId);
+    this.loadAppointmentActions(appointmentId);
   }
 
   get patientName(): string {
@@ -215,6 +228,52 @@ export class AppointmentDetails implements OnInit {
           );
         },
       });
+  }
+
+  recordCareAction(): void {
+    const appointment = this.appointment();
+    const userId = this.sessionUser?.user_id ?? this.sessionUser?.userId;
+    if (!appointment || !userId || !this.careActionNotes.trim()) {
+      this.appointmentActionError.set('Enter action notes before saving.');
+      return;
+    }
+    if (this.careActionFollowUp && !this.careActionFollowUpDue) {
+      this.appointmentActionError.set('Select a follow-up due date and time.');
+      return;
+    }
+
+    this.savingCareAction.set(true);
+    this.appointmentActionError.set(null);
+    this.outreachApi.createAppointmentAction(userId, appointment.appointment_id, {
+      contact_datetime: new Date().toISOString(),
+      contact_method: 'INTERNAL_REVIEW',
+      action_taken: this.careActionType,
+      outcome: this.careActionOutcome || null,
+      action_notes: this.careActionNotes.trim(),
+      resolution_status: this.careActionFollowUp ? 'FOLLOW_UP_REQUIRED' : this.careActionResolution,
+      follow_up_required: this.careActionFollowUp,
+      follow_up_notes: this.careActionFollowUp ? this.careActionNotes.trim() : null,
+      follow_up_due_at: this.careActionFollowUp ? new Date(this.careActionFollowUpDue).toISOString() : null,
+    }).pipe(finalize(() => this.savingCareAction.set(false))).subscribe({
+      next: (response) => {
+        this.appointmentActions.update((records) => [response.data, ...records]);
+        this.careActionNotes = '';
+        this.careActionOutcome = null;
+        this.careActionFollowUp = false;
+        this.careActionFollowUpDue = '';
+        this.toast.success(response.message);
+      },
+      error: (error: { error?: { message?: string } }) => {
+        this.appointmentActionError.set(error?.error?.message ?? 'Unable to record the appointment action.');
+      },
+    });
+  }
+
+  private loadAppointmentActions(appointmentId: number): void {
+    this.outreachApi.listAppointmentActions(appointmentId).subscribe({
+      next: (response) => this.appointmentActions.set(response.data.actions),
+      error: () => this.appointmentActionError.set('Unable to load recent appointment actions.'),
+    });
   }
 
   private loadDetails(userId: number, appointmentId: number): void {

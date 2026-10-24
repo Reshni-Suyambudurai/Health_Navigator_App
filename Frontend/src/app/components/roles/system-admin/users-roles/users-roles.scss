@@ -1,0 +1,51 @@
+.users-page { display: grid; gap: 1.25rem; padding-bottom: 2rem; color: var(--text); }
+.page-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+.page-header h1, .section-heading h2, .dialog h2, .confirm-dialog h2 { margin: 0; }
+.page-header p:last-child { margin-top: 0.35rem; color: var(--muted); }
+.eyebrow { margin-bottom: 0.25rem; color: var(--primary); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+.filter-bar { display: grid; grid-template-columns: minmax(220px, 1.5fr) minmax(170px, 0.75fr) minmax(150px, 0.65fr) auto; gap: 0.9rem; align-items: end; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--table-bg); padding: 1rem; }
+label { display: grid; gap: 0.35rem; color: var(--muted); font-size: 0.75rem; font-weight: 700; }
+.filter-actions, .row-actions, .pagination > div, .dialog footer, .confirm-dialog footer { display: flex; gap: 0.65rem; }
+.section-heading { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 0.75rem; }
+.section-heading strong, .pagination { color: var(--muted); font-size: 0.78rem; }
+.admin-users-table { min-width: 980px; }
+.filter-column { position: relative; overflow: visible; }
+.filter-heading { display: flex; align-items: center; gap: 0.35rem; }
+.filter-icon { position: relative; width: 1.75rem; height: 1.75rem; border: 0; background: transparent; padding: 0; box-shadow: none; color: var(--table-header-text); }
+.filter-icon:hover, .filter-icon.active { background: var(--hover-bg); color: var(--primary); box-shadow: none; }
+.filter-icon span { position: absolute; inset: 0; margin: auto; width: 0; height: 0; border-left: 0.36rem solid transparent; border-right: 0.36rem solid transparent; border-top: 0.48rem solid currentColor; }
+.filter-icon span::after { content: ''; position: absolute; width: 0.16rem; height: 0.38rem; background: currentColor; transform: translate(-50%, -0.48rem); }
+.filter-popover { position: absolute; z-index: 20; top: calc(100% + 0.35rem); left: 0.65rem; width: max-content; min-width: 220px; max-width: 290px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--table-bg); color: var(--text); box-shadow: var(--shadow-md); padding: 0.75rem; text-align: left; text-transform: none; }
+.filter-popover fieldset { display: grid; gap: 0.55rem; max-height: 220px; overflow-y: auto; border: 0; }
+.filter-popover legend { margin-bottom: 0.5rem; color: var(--muted); font-size: 0.72rem; font-weight: 700; }
+.filter-popover label { display: flex; align-items: center; gap: 0.55rem; color: var(--text); font-size: 0.78rem; font-weight: 600; }
+.filter-popover input { width: 1rem; height: 1rem; padding: 0; accent-color: var(--primary); }
+.filter-menu-actions { display: flex; align-items: center; justify-content: flex-end; gap: 0.4rem; margin-top: 0.75rem; border-top: 1px solid var(--border); padding-top: 0.65rem; }
+.filter-menu-actions button { padding: 0.38rem 0.55rem; font-size: 0.72rem; }
+.filter-menu-actions .menu-link { border: 0; background: transparent; color: var(--primary); box-shadow: none; }
+.filtered-empty { height: 110px; color: var(--muted) !important; text-align: center !important; }
+.row-actions { align-items: center; }
+.text-button { border: 0; background: transparent; color: var(--primary); padding-inline: 0.3rem; box-shadow: none; }
+.text-button:hover { background: var(--hover-bg); box-shadow: none; }
+.status-control select { min-width: 118px; padding-block: 0.38rem; font-size: 0.76rem; }
+.pagination { display: flex; align-items: center; justify-content: space-between; }
+.secondary-button { border-color: var(--border); background: var(--table-bg); color: var(--text); }
+.secondary-button:hover { background: var(--hover-bg); }
+.page-state { min-height: 150px; display: grid; place-items: center; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--table-bg); color: var(--muted); }
+.page-error, .form-error { border-left: 3px solid var(--status-critical-text); background: var(--status-critical-bg); color: var(--status-critical-text); padding: 0.75rem 0.9rem; }
+.dialog-backdrop { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; background: rgba(15, 23, 42, 0.52); padding: 1rem; }
+.dialog, .confirm-dialog { width: min(620px, 100%); max-height: calc(100vh - 2rem); overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--table-bg); box-shadow: var(--shadow-md); }
+.dialog > header { display: flex; align-items: flex-start; justify-content: space-between; padding: 1.2rem 1.25rem 1rem; border-bottom: 1px solid var(--border); }
+.dialog form { display: grid; gap: 1rem; padding: 1.25rem; }
+.form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.9rem 1rem; }
+.wide-field { grid-column: 1 / -1; }
+label small { color: var(--muted); font-weight: 400; }
+.organization-field { display: grid; gap: 0.25rem; border-top: 1px solid var(--border); padding-top: 0.85rem; }
+.organization-field span { color: var(--muted); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; }
+.dialog footer, .confirm-dialog footer { justify-content: flex-end; padding-top: 0.25rem; }
+.close-button { border: 0; background: transparent; color: var(--muted); padding: 0; font-size: 1.6rem; line-height: 1; box-shadow: none; }
+.close-button:hover { background: transparent; color: var(--text); box-shadow: none; }
+.confirm-dialog { padding: 1.25rem; }
+.confirm-dialog p:not(.eyebrow) { margin: 0.65rem 0 1.25rem; color: var(--muted); }
+@media (max-width: 850px) { .filter-bar { grid-template-columns: 1fr 1fr; }.search-field { grid-column: 1 / -1; }.filter-actions { justify-content: flex-end; }.page-header { align-items: flex-start; } }
+@media (max-width: 600px) { .page-header { flex-direction: column; }.page-header button { width: 100%; }.filter-bar, .form-grid { grid-template-columns: 1fr; }.search-field, .wide-field { grid-column: auto; }.filter-actions button { flex: 1; }.pagination { align-items: flex-start; flex-direction: column; }.dialog footer, .confirm-dialog footer { flex-direction: column-reverse; }.dialog footer button, .confirm-dialog footer button { width: 100%; } }
