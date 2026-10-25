@@ -22,6 +22,8 @@ import { SystemAdminUsersRoles } from './components/roles/system-admin/users-rol
 import { SystemAdminAuditTrail } from './components/roles/system-admin/audit-trail/audit-trail';
 import { SystemAdminOutreachCampaigns } from './components/roles/system-admin/outreach-campaigns/outreach-campaigns';
 import { SystemAdminOutreachWorkflows } from './components/roles/system-admin/outreach-workflows/outreach-workflows';
+import { SystemAdminOutreachEvents } from './components/roles/system-admin/outreach-events/outreach-events';
+import { CareManagerOutreachEvents } from './components/roles/care-manager/outreach-events/outreach-events';
 import { SystemAdminCheckinTemplate } from './components/roles/system-admin/checkin-template/checkin-template';
 import { ClinicalCheckinTemplateReviews } from './components/roles/clinical-governance/checkin-template-reviews/checkin-template-reviews';
 import { authGuard } from './guards/guards/auth.guard';
@@ -40,6 +42,7 @@ export const routes: Routes = [
       { path: 'clinical-governance/dashboard', component: ClinicalGovernanceDashbaord },
       { path: 'clinical-governance/checkin-template-reviews', component: ClinicalCheckinTemplateReviews },
       { path: 'care-manager/dashboard', component: CareManagerDashbaord },
+      { path: 'care-manager/outreach-events', component: CareManagerOutreachEvents },
       { path: 'population-health-manager/dashboard', component: PopulationHealthManagerDashbaord },
       { path: 'population-health-manager/outreach', component: OutreachTracker },
       { path: 'patient/dashboard', component: PatientDashbaord },
@@ -58,6 +61,7 @@ export const routes: Routes = [
       { path: 'system-admin/organization', component: SystemAdminOrganization },
       { path: 'system-admin/outreach-campaigns', component: SystemAdminOutreachCampaigns },
       { path: 'system-admin/outreach-campaigns/:campaignId/workflows', component: SystemAdminOutreachWorkflows },
+      { path: 'system-admin/outreach-events', component: SystemAdminOutreachEvents },
       { path: 'system-admin/checkin-template', component: SystemAdminCheckinTemplate },
       { path: 'system-admin/audit-trail', component: SystemAdminAuditTrail },
     ],

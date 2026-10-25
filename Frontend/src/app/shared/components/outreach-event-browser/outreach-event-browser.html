@@ -1,0 +1,49 @@
+<main class="event-page">
+  <header class="page-header">
+    <div><p class="eyebrow">Outreach operations</p><h1>{{ role() === 'admin' ? 'Organization outreach events' : 'Assigned outreach events' }}</h1></div>
+    <button type="button" class="icon-button refresh-button" title="Refresh outreach events" aria-label="Refresh outreach events" (click)="load()" [disabled]="loading()"><span aria-hidden="true">↻</span></button>
+  </header>
+
+  <form class="filters" (submit)="$event.preventDefault(); applyFilters()">
+    <label>Campaign<select [(ngModel)]="filters.campaign_id" name="campaign" (ngModelChange)="onCampaignChange()"><option [ngValue]="undefined">All campaigns</option>@for (campaign of filterOptions().campaigns; track campaign.campaign_id) { <option [ngValue]="campaign.campaign_id">{{ campaign.campaign_name }}</option> }</select></label>
+    <label>Workflow<select [(ngModel)]="filters.workflow_id" name="workflow" [disabled]="!filters.campaign_id"><option [ngValue]="undefined">All workflows</option>@for (workflow of filterOptions().workflows; track workflow.workflow_id) { <option [ngValue]="workflow.workflow_id">{{ workflow.workflow_name }}</option> }</select></label>
+    <label>Patient search<input [(ngModel)]="filters.patient_search" name="patientSearch" placeholder="Name, email, or ID" /></label>
+    <label>Event status<select [(ngModel)]="filters.event_status" name="eventStatus"><option [ngValue]="undefined">All statuses</option>@for (status of eventStatuses; track status) { <option [value]="status">{{ formatLabel(status) }}</option> }</select></label>
+    <label>Delivery<select [(ngModel)]="filters.delivery_status" name="deliveryStatus"><option [ngValue]="undefined">All statuses</option>@for (status of deliveryStatuses; track status) { <option [value]="status">{{ formatLabel(status) }}</option> }</select></label>
+    <label>Scheduled from<input type="datetime-local" [(ngModel)]="filters.scheduled_from" name="scheduledFrom" /></label>
+    <label>Scheduled to<input type="datetime-local" [(ngModel)]="filters.scheduled_to" name="scheduledTo" /></label>
+    <div class="filter-actions"><button type="submit">Apply filters</button><button type="button" class="text-button" (click)="clearFilters()">Clear</button></div>
+  </form>
+
+  @if (error()) { <p class="alert" role="alert">{{ error() }}</p> }
+  @if (loading()) { <div class="state-panel" aria-live="polite">Loading outreach events...</div> }
+  @else if (!events().length) { <div class="state-panel">No outreach events match the current filters.</div> }
+  @else {
+    <section class="table-column">
+        <div class="section-heading"><h2>Events</h2><span>{{ count() }} total</span></div>
+        <div class="table-shell"><table><thead><tr><th>Campaign / workflow</th><th>Patient</th><th>Channel</th><th>Status</th><th>Scheduled</th><th>Attempts</th></tr></thead><tbody>
+          @for (event of events(); track event.outreach_event_id) { <tr tabindex="0" [class.selected]="selected()?.outreach_event_id === event.outreach_event_id" (click)="selectEvent(event)" (keydown.enter)="selectEvent(event)"><td><strong>{{ event.campaign_name }}</strong><small>{{ event.workflow_name }}</small></td><td>{{ event.patient_name }}<small>#{{ event.patient_id }}</small></td><td>{{ event.channel }}</td><td><span class="status" [class]="'status ' + statusClass(event.delivery_status)">{{ formatLabel(event.delivery_status) }}</span><small>{{ formatLabel(event.event_status) }}</small></td><td>{{ formatDate(event.scheduled_at) }}</td><td>{{ event.attempt_count }}</td></tr> }
+        </tbody></table></div>
+        <div class="pagination"><button type="button" class="secondary-button" (click)="previousPage()" [disabled]="page() === 0 || loading()">Previous</button><span>Page {{ page() + 1 }}</span><button type="button" class="secondary-button" (click)="nextPage()" [disabled]="!hasMore() || loading()">Next</button></div>
+    </section>
+  }
+
+  @if (selected() || detailLoading()) {
+    <div class="panel-backdrop" role="presentation" (click)="closeDetails()"></div>
+    <aside class="detail-panel" role="dialog" aria-modal="true" aria-labelledby="event-panel-title" aria-live="polite">
+      <header class="panel-header">
+        <div><p class="eyebrow">Outreach event</p><h2 id="event-panel-title">{{ selected()?.campaign_name || 'Event details' }}</h2><span>{{ selected() ? '#' + selected()?.outreach_event_id : 'Loading...' }}</span></div>
+        <button type="button" class="icon-button" title="Close event details" aria-label="Close event details" (click)="closeDetails()">×</button>
+      </header>
+        @if (detailLoading()) { <div class="state-panel">Loading details...</div> }
+        @else if (selected(); as event) {
+          <div class="section-heading"><div><p class="eyebrow">Event #{{ event.outreach_event_id }}</p><h2>{{ event.campaign_name }}</h2></div><span class="status" [class]="'status ' + statusClass(event.event_status)">{{ formatLabel(event.event_status) }}</span></div>
+          <dl class="detail-list"><div><dt>Patient</dt><dd>{{ event.patient_name }} (#{{ event.patient_id }})</dd></div><div><dt>Workflow</dt><dd>{{ event.workflow_name }}</dd></div><div><dt>Scheduled</dt><dd>{{ formatDate(event.scheduled_at) }}</dd></div><div><dt>Last activity</dt><dd>{{ formatDate(event.last_activity_at) }}</dd></div></dl>
+          <section><h3>Delivery</h3><p>{{ event.delivery.attempt_count }} attempts; {{ formatLabel(event.delivery_status) }}.</p>@if (event.delivery.last_error) { <p class="error-note">{{ event.delivery.last_error }}</p> }</section>
+          <section><h3>Check-in responses</h3>@if (event.checkin_responses.length) { @for (response of event.checkin_responses; track response.response_id) { <div class="response"><strong>{{ response.question_text }}</strong><span>{{ response.answer_text || (response.answer_value | json) }}</span><small>{{ formatDate(response.answered_at) }}</small></div> } } @else { <p class="muted">No response recorded.</p> }</section>
+          <section><h3>Appointment</h3>@if (event.appointment; as appointment) { <p>{{ formatLabel(appointment.appointment_type) }} · {{ formatDate(appointment.appointment_datetime) }}</p><p class="muted">{{ appointment.location_or_channel || 'Channel not recorded' }}</p> } @else { <p class="muted">No appointment linked.</p> }</section>
+          <section><h3>Follow-up tasks</h3>@if (event.follow_up_tasks.length) { @for (task of event.follow_up_tasks; track task.follow_up_task_id) { <div class="task"><strong>{{ task.title }}</strong><span>{{ formatLabel(task.status) }} · {{ formatLabel(task.priority) }}</span></div> } } @else { <p class="muted">No related follow-up tasks.</p> }</section>
+        }
+    </aside>
+  }
+</main>

@@ -2,15 +2,18 @@
 
 from datetime import datetime, timedelta
 
-from sqlalchemy import func
+from sqlalchemy import func, tuple_
+from sqlalchemy.dialects.postgresql import insert as postgresql_insert
 from sqlalchemy.orm import Session
 
 from app.database.models.care_navigation_episode import CareNavigationEpisode, EpisodeStatus, EpisodeType, TriggerType as EpisodeTriggerType
 from app.database.models.checkin_template import CheckinTemplate, CheckinTemplateStatus
 from app.database.models.checkin_template_review import CheckinTemplateReview, CheckinTemplateReviewStatus
 from app.database.models.outreach_campaign import CampaignStatus, CampaignType, OutreachCampaign
+from app.database.models.outreach_event import OutreachEvent
 from app.database.models.outreach_workflow import OutreachWorkflow
 from app.database.models.patient_enrollment import EnrollmentProgram, EnrollmentStatus, PatientEnrollment
+from app.database.models.patient_consent_record import PatientConsentRecord
 from app.database.models.patient_profile import PatientProfile
 from app.database.models.role import Role, RoleName
 from app.database.models.user import User, UserStatus
@@ -55,6 +58,17 @@ class AdminOutreachCampaignRepository:
         total = query.count()
         campaigns = query.order_by(OutreachCampaign.updated_at.desc()).offset(skip).limit(limit).all()
         return campaigns, total
+
+    def list_auto_outreach_campaigns(self) -> list[OutreachCampaign]:
+        return (
+            self.db.query(OutreachCampaign)
+            .filter(
+                OutreachCampaign.status == CampaignStatus.ACTIVE,
+                OutreachCampaign.auto_outreach_enabled.is_(True),
+            )
+            .order_by(OutreachCampaign.campaign_id.asc())
+            .all()
+        )
 
     def find_campaign(self, campaign_id: int, organization_id: int) -> OutreachCampaign | None:
         return (
@@ -163,8 +177,90 @@ class AdminOutreachCampaignRepository:
         skip: int,
         limit: int,
     ) -> tuple[list, int]:
-        ranked = self._eligible_patient_query(organization_id, criteria).with_entities(
+        ranked = self._ranked_eligible_patients(organization_id, criteria)
+        query = self._eligible_patient_rows_query(ranked, organization_id)
+        total = query.count()
+        patients = (
+            query.order_by(User.last_name.asc(), User.first_name.asc(), PatientProfile.patient_id.asc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
+        return patients, total
+
+    def find_selected_eligible_patients(
+        self,
+        organization_id: int,
+        criteria: dict,
+        selections: list[tuple[int, int]],
+    ) -> list:
+        if not selections:
+            return []
+        ranked = self._ranked_eligible_patients(organization_id, criteria)
+        return (
+            self._eligible_patient_rows_query(ranked, organization_id)
+            .filter(tuple_(ranked.c.patient_id, ranked.c.episode_id).in_(selections))
+            .all()
+        )
+
+    def list_all_eligible_patients(self, organization_id: int, criteria: dict) -> list:
+        ranked = self._ranked_eligible_patients(organization_id, criteria)
+        return self._eligible_patient_rows_query(ranked, organization_id).all()
+
+    def list_eligible_outreach_events(
+        self,
+        organization_id: int,
+        criteria: dict,
+        campaign_id: int,
+        workflow_ids: list[int],
+        selections: list[tuple[int, int]] | None = None,
+    ) -> list[OutreachEvent]:
+        if not workflow_ids:
+            return []
+        ranked = self._ranked_eligible_patients(organization_id, criteria)
+        query = (
+            self.db.query(OutreachEvent)
+            .join(
+                ranked,
+                (ranked.c.patient_id == OutreachEvent.patient_id)
+                & (ranked.c.episode_id == OutreachEvent.episode_id)
+                & (ranked.c.patient_rank == 1),
+            )
+            .filter(
+                OutreachEvent.campaign_id == campaign_id,
+                OutreachEvent.workflow_id.in_(workflow_ids),
+            )
+        )
+        if selections:
+            query = query.filter(tuple_(OutreachEvent.patient_id, OutreachEvent.episode_id).in_(selections))
+        return query.all()
+
+    def stage_outreach_events(self, values: list[dict]) -> list[tuple[int, str]]:
+        if not values:
+            return []
+        statement = (
+            postgresql_insert(OutreachEvent)
+            .values(values)
+            .on_conflict_do_nothing(index_elements=[OutreachEvent.idempotency_key])
+            .returning(OutreachEvent.outreach_event_id, OutreachEvent.idempotency_key)
+        )
+        return [tuple(row) for row in self.db.execute(statement).all()]
+
+    def commit_with_audit(self, audit_entry) -> None:
+        try:
+            self.db.add(audit_entry)
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise
+
+    def rollback(self) -> None:
+        self.db.rollback()
+
+    def _ranked_eligible_patients(self, organization_id: int, criteria: dict):
+        return self._eligible_patient_query(organization_id, criteria).with_entities(
             PatientEnrollment.patient_id.label("patient_id"),
+            CareNavigationEpisode.episode_id.label("episode_id"),
             PatientEnrollment.enrollment_program.label("enrollment_program"),
             PatientEnrollment.enrollment_status.label("enrollment_status"),
             PatientEnrollment.enrollment_date.label("enrollment_date"),
@@ -178,10 +274,13 @@ class AdminOutreachCampaignRepository:
                 order_by=(CareNavigationEpisode.opened_at.desc(), CareNavigationEpisode.episode_id.desc()),
             ).label("patient_rank"),
         ).subquery()
-        query = (
+
+    def _eligible_patient_rows_query(self, ranked, organization_id: int):
+        return (
             self.db.query(
                 PatientProfile,
                 User,
+                ranked.c.episode_id,
                 ranked.c.enrollment_program,
                 ranked.c.enrollment_status,
                 ranked.c.enrollment_date,
@@ -198,16 +297,27 @@ class AdminOutreachCampaignRepository:
                 User.organization_id == organization_id,
             )
         )
-        total = query.count()
-        patients = (
-            query.order_by(User.last_name.asc(), User.first_name.asc(), PatientProfile.patient_id.asc())
-            .offset(skip)
-            .limit(limit)
-            .all()
-        )
-        return patients, total
 
     def _eligible_patient_query(self, organization_id: int, criteria: dict):
+        latest_outreach_consent = (
+            self.db.query(
+                PatientConsentRecord.patient_id.label("patient_id"),
+                PatientConsentRecord.consent_status.label("consent_status"),
+                PatientConsentRecord.revoked_at.label("revoked_at"),
+                func.row_number().over(
+                    partition_by=PatientConsentRecord.patient_id,
+                    order_by=(
+                        PatientConsentRecord.effective_at.desc(),
+                        PatientConsentRecord.consent_id.desc(),
+                    ),
+                ).label("consent_rank"),
+            )
+            .filter(
+                PatientConsentRecord.consent_type == "OUTREACH",
+                PatientConsentRecord.effective_at <= datetime.utcnow(),
+            )
+            .subquery()
+        )
         query = (
             self.db.query(PatientEnrollment)
             .join(
@@ -216,9 +326,19 @@ class AdminOutreachCampaignRepository:
             )
             .join(PatientProfile, PatientProfile.patient_id == PatientEnrollment.patient_id)
             .join(User, User.user_id == PatientProfile.user_id)
+            .join(Role, Role.role_id == User.role_id)
+            .join(
+                latest_outreach_consent,
+                latest_outreach_consent.c.patient_id == PatientProfile.patient_id,
+            )
             .filter(
                 PatientEnrollment.organization_id == organization_id,
                 User.organization_id == organization_id,
+                User.status == UserStatus.ACTIVE,
+                Role.role_name == RoleName.PATIENT,
+                latest_outreach_consent.c.consent_rank == 1,
+                latest_outreach_consent.c.consent_status == "ACCEPTED",
+                latest_outreach_consent.c.revoked_at.is_(None),
             )
         )
         enrollment_statuses = criteria.get("enrollment_statuses") or []

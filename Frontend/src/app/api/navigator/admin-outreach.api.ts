@@ -9,6 +9,8 @@ import {
   AdminCampaignResponse,
   AdminCampaignStatus,
   AdminCohortMembersResponse,
+  AdminCreateOutreachResponse,
+  AdminOutreachSelection,
   AdminTemplateListResponse,
   AdminWorkflowListResponse,
   AdminWorkflowRequest,
@@ -48,6 +50,18 @@ export class AdminOutreachApi {
     );
   }
 
+  createOutreachEvents(
+    userId: number,
+    campaignId: number,
+    selections: AdminOutreachSelection[],
+  ): Observable<AdminCreateOutreachResponse> {
+    return this.http.post<AdminCreateOutreachResponse>(
+      `${this.baseUrl}/${campaignId}/outreach-events`,
+      { selections },
+      { params: this.actorParams(userId) },
+    );
+  }
+
   createCampaign(userId: number, payload: AdminCampaignRequest): Observable<AdminCampaignResponse> {
     return this.http.post<AdminCampaignResponse>(this.baseUrl, payload, {
       params: this.actorParams(userId),
@@ -72,6 +86,18 @@ export class AdminOutreachApi {
     return this.http.patch<AdminCampaignResponse>(
       `${this.baseUrl}/${campaignId}/status`,
       { status },
+      { params: this.actorParams(userId) },
+    );
+  }
+
+  setAutoOutreach(
+    userId: number,
+    campaignId: number,
+    enabled: boolean,
+  ): Observable<AdminCampaignResponse> {
+    return this.http.patch<AdminCampaignResponse>(
+      `${this.baseUrl}/${campaignId}/auto-outreach`,
+      { enabled },
       { params: this.actorParams(userId) },
     );
   }

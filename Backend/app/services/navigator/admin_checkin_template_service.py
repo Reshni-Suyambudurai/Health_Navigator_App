@@ -245,11 +245,30 @@ class AdminCheckinTemplateService:
         approved = decision == CheckinTemplateReviewStatus.APPROVED.value
         if approved:
             self._validate_template_questions(self.repository.list_questions(template.checkin_template_id))
+        clean_notes = self._required_text(review_notes, "Review notes")
+        decision_label = "approved" if approved else "changes requested"
+        notifications = self.notifications.prepare_for_role(
+            sender_user_id=reviewer.user_id,
+            organization_id=reviewer.organization_id,
+            role_name=RoleName.SYSTEM_ADMIN,
+            title=f"Check-in template {decision_label}",
+            message=(
+                f"{template.template_name} v{template.version}: {decision_label}. "
+                f"Review notes: {clean_notes}"
+            ),
+            notification_type=NotificationType.FOLLOW_UP,
+            priority=NotificationPriority.NORMAL if approved else NotificationPriority.HIGH,
+        )
+        if not notifications:
+            raise ValidationException(
+                "No active System Administrator is available for this organization",
+                "SYSTEM_ADMIN_RECIPIENT_REQUIRED",
+            )
         review.status = CheckinTemplateReviewStatus.APPROVED if approved else CheckinTemplateReviewStatus.REJECTED
         review.reviewed_by_user_id = reviewer.user_id
-        review.review_notes = self._required_text(review_notes, "Review notes")
+        review.review_notes = clean_notes
         review.reviewed_at = datetime.now(timezone.utc).replace(tzinfo=None)
-        self.repository.decide_review(review, template, approved)
+        self.repository.decide_review(review, template, approved, notifications)
         return self._serialize_review(review, template, True)
 
     def _require_role(self, user_id: int, role_name: RoleName):

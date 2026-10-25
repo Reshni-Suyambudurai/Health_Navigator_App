@@ -40,6 +40,10 @@ class Settings(BaseSettings):
     HOST: str = "0.0.0.0"
     PORT: int = 8000
 
+    # Automatic outreach scheduler
+    AUTO_OUTREACH_SCHEDULER_ENABLED: bool = True
+    AUTO_OUTREACH_INTERVAL_SECONDS: int = 60
+
     # CORS Configuration
     CORS_ALLOWED_ORIGINS: list[str] = ["http://localhost:4200", "http://127.0.0.1:4200"]
     CORS_ALLOW_CREDENTIALS: bool = True

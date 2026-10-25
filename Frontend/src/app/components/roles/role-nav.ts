@@ -19,7 +19,7 @@ export const ROLE_SIDEBAR_CONFIG: RoleSidebarConfig[] = [
       { label: 'Patient assignments' },
       { label: 'Care plans' },
       { label: 'Escalation queue' },
-      { label: 'Messages' },
+      { label: 'Outreach Events', route: '/care-manager/outreach-events' },
       { label: 'Reports' },
       { label: 'Activity log' },
     ],
@@ -95,11 +95,9 @@ export const ROLE_SIDEBAR_CONFIG: RoleSidebarConfig[] = [
     route: '/clinical-governance/dashboard',
     topics: [
       { label: 'Governance Overview' },
-      { label: 'Guardrail rules' },
-      { label: 'Safety alerts' },
-      { label: 'Rule compliance' },
-      { label: 'Incidents' },
-      {label : 'Audit trail'},
+      { label: 'Safety Rules & Guardrails' },
+      { label: 'Check-in Template' },
+      { label: 'AI Safety Evaluations' },
       { label: 'Check-in Template Reviews', route: '/clinical-governance/checkin-template-reviews' },
       { label: 'Reports' },
       { label: 'Activity log' },
@@ -114,6 +112,7 @@ export const ROLE_SIDEBAR_CONFIG: RoleSidebarConfig[] = [
       { label: 'Users and roles', route: '/system-admin/users-roles' },
       { label: 'Outreach Campaigns', route: '/system-admin/outreach-campaigns' },
       { label: 'Check-In template', route: '/system-admin/checkin-template' },
+        { label: 'Outreach Events', route: '/system-admin/outreach-events' },
       { label: 'Audit trail', route: '/system-admin/audit-trail' }
 
     ],

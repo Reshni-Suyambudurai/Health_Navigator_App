@@ -77,6 +77,7 @@ export class Login {
     return {
       user_id: loginData.user_id,
       userId: loginData.user_id,
+      organization_id: loginData.organization_id,
       email: loginData.email,
       roleId: loginData.roleId,
       roleName: loginData.roleName ?? null,

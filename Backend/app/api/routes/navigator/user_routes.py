@@ -89,6 +89,7 @@ async def login_user(
     response_data = {
         "user_id": login_data.get("user_id"),
         "userId": login_data.get("user_id"),
+        "organization_id": login_data.get("organization_id"),
         "email": login_data.get("email"),
         "roleId": login_data.get("role_id"),
         "roleName": login_data.get("role_name"),

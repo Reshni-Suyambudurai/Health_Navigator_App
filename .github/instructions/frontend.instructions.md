@@ -38,6 +38,7 @@ These rules apply to frontend work under `Frontend/`.
 - Use the existing `UserApi` and feature API services for HTTP requests.
 - Keep API calls in services rather than directly in templates or unrelated components.
 - Use the existing session and toast utilities for authentication state and user feedback.
+- Use the active user data from `tokenstore` for API identity parameters when needed; do not hardcode user IDs,origanization_id,role_id2,name or email in the code.
 - Treat optional backend values defensively and provide clear fallback text in the UI.
 
 ## Styling

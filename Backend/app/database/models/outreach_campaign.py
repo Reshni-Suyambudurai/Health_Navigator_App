@@ -1,7 +1,7 @@
 """Outreach campaign model."""
 
 import enum
-from sqlalchemy import Column, BigInteger, String, ForeignKey, TIMESTAMP, JSON, Enum as SQLEnum
+from sqlalchemy import Boolean, Column, BigInteger, String, ForeignKey, TIMESTAMP, JSON, Enum as SQLEnum
 from sqlalchemy.sql import func
 from app.database.connection import Base
 
@@ -39,6 +39,7 @@ class OutreachCampaign(Base):
     start_at = Column(TIMESTAMP)
     end_at = Column(TIMESTAMP)
     status = Column(SQLEnum(CampaignStatus, name="campaign_status"), nullable=False, server_default="DRAFT", index=True)
+    auto_outreach_enabled = Column(Boolean, nullable=False, server_default="false", index=True)
     created_by_user_id = Column(BigInteger, ForeignKey("users.user_id", ondelete="RESTRICT"), nullable=False, index=True)
     updated_by_user_id = Column(BigInteger, ForeignKey("users.user_id", ondelete="SET NULL"), index=True)
     created_at = Column(TIMESTAMP, nullable=False, server_default=func.current_timestamp())

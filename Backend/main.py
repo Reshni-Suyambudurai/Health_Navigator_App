@@ -20,15 +20,18 @@ from app.api.routes.navigator import outreach_routes
 from app.api.routes.navigator import organization_routes
 from app.api.routes.navigator import admin_user_routes
 from app.api.routes.navigator import admin_outreach_campaign_routes
+from app.api.routes.navigator import outreach_event_routes
 from app.api.routes.navigator import admin_checkin_template_routes
 from app.api.routes import notification_routes
 from app.api.routes.patientFHIR import patient_fhir_routes
 from app.core.exception_handlers import register_exception_handlers  # Import exception handlers
+from app.services.navigator.automatic_outreach_scheduler import AutomaticOutreachScheduler
 import logging
 
 # Setup logging
 setup_logging()
 logger = logging.getLogger(__name__)
+automatic_outreach_scheduler = AutomaticOutreachScheduler()
 
 
 @asynccontextmanager
@@ -48,8 +51,11 @@ async def lifespan(app: FastAPI):
     else:
         logger.warning("Monster database connection unavailable - PatientFHIR endpoints may not function")
 
+    automatic_outreach_scheduler.start()
+
     yield
 
+    automatic_outreach_scheduler.shutdown()
     logger.info(f"Shutting down {settings.APP_NAME}")
 
 
@@ -89,6 +95,7 @@ app.include_router(outreach_routes.router, prefix="/api/v1")
 app.include_router(organization_routes.router, prefix="/api/v1")
 app.include_router(admin_user_routes.router, prefix="/api/v1")
 app.include_router(admin_outreach_campaign_routes.router, prefix="/api/v1")
+app.include_router(outreach_event_routes.router, prefix="/api/v1")
 app.include_router(admin_checkin_template_routes.admin_router, prefix="/api/v1")
 app.include_router(admin_checkin_template_routes.review_router, prefix="/api/v1")
 app.include_router(notification_routes.router, prefix="/api/v1")

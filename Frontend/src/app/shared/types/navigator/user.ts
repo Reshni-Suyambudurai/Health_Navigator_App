@@ -30,6 +30,7 @@ export interface LoginRequest {
 export interface LoginData {
 	user_id: number;
 	userId?: number;
+	organization_id: number;
 	email: string;
 	roleId: number;
 	roleName?: string | null;

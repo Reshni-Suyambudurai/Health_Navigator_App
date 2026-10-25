@@ -1,0 +1,73 @@
+<div class="panel-backdrop" role="presentation" (click)="close()"></div>
+<aside class="cohort-panel" role="dialog" aria-modal="true" aria-labelledby="cohort-panel-title">
+  <header class="panel-header">
+    <div>
+      <p>Eligible cohort</p>
+      <h2 id="cohort-panel-title">{{ campaign().campaign_name }}</h2>
+      <span>{{ total() }} matching {{ total() === 1 ? 'patient' : 'patients' }}</span>
+    </div>
+    <div class="header-actions">
+      <button type="button" class="icon-button" title="Refresh patients" aria-label="Refresh patients" [disabled]="loading() || creating()" (click)="refresh()">↻</button>
+      <button type="button" class="icon-button" title="Close patient panel" aria-label="Close patient panel" [disabled]="creating()" (click)="close()">×</button>
+    </div>
+  </header>
+
+  <div class="summary-strip">
+    <span><strong>{{ summary()?.eligible_for_workflow ?? 0 }}</strong> eligible occurrences</span>
+    <span><strong>{{ summary()?.newly_eligible ?? 0 }}</strong> newly eligible</span>
+    <span><strong>{{ summary()?.pending ?? 0 }}</strong> pending</span>
+  </div>
+
+  <div class="panel-body" aria-live="polite">
+    @if (loading()) {
+      <div class="panel-state">Loading eligible patients...</div>
+    } @else if (error() && !patients().length) {
+      <div class="panel-state error-state"><strong>Unable to load patients</strong><span>{{ error() }}</span><button type="button" (click)="retry()">Retry</button></div>
+    } @else if (!patients().length) {
+      <div class="panel-state"><strong>No eligible patients</strong><span>No patients currently match this campaign's cohort criteria.</span></div>
+    } @else {
+      <label class="select-all">
+        <input type="checkbox" [checked]="allSelectableSelected()" [disabled]="!selectablePatients().length || creating()" (change)="toggleAll($any($event.target).checked)" />
+        Select all eligible patients shown
+      </label>
+
+      <div class="patient-list">
+        @for (patient of patients(); track patient.patient_id + ':' + patient.episode_id) {
+          <article class="patient-card" [class.selected]="selected(patient)">
+            <header>
+              <label class="patient-choice">
+                <input type="checkbox" [checked]="selected(patient)" [disabled]="!patient.can_create_outreach || creating()" (change)="togglePatient(patient, $any($event.target).checked)" />
+                <span><strong>{{ patient.patient_name }}</strong><small>Patient ID {{ patient.patient_id }}</small></span>
+              </label>
+              <span class="outreach-status" [attr.data-status]="patient.outreach_status">{{ formatLabel(patient.outreach_status) }}</span>
+            </header>
+            @if (patient.external_fhir_patient_id) { <p class="patient-reference">FHIR patient ID: {{ patient.external_fhir_patient_id }}</p> }
+            <dl>
+              <div><dt>Program</dt><dd>{{ formatLabel(patient.enrollment_program) }}</dd></div>
+              <div><dt>Enrollment</dt><dd>{{ formatLabel(patient.enrollment_status) }}</dd></div>
+              <div><dt>Episode</dt><dd>{{ formatLabel(patient.episode_type) }}</dd></div>
+              <div><dt>Episode status</dt><dd>{{ formatLabel(patient.episode_status) }}</dd></div>
+              @if (patient.discharge_date) { <div><dt>Discharge date</dt><dd>{{ patient.discharge_date | date:'mediumDate' }}</dd></div> }
+              @if (patient.episode_created_at) { <div><dt>Episode created</dt><dd>{{ patient.episode_created_at | date:'mediumDate' }}</dd></div> }
+            </dl>
+            <div class="workflow-statuses">
+              @for (workflow of patient.workflow_statuses; track workflow.workflow_id) {
+                <span><strong>{{ workflow.workflow_name }}</strong>{{ formatLabel(workflow.status) }}</span>
+              }
+            </div>
+          </article>
+        }
+      </div>
+
+      @if (error()) { <div class="load-error"><span>{{ error() }}</span><button type="button" (click)="retry()">Retry</button></div> }
+      @if (hasMore()) { <button type="button" class="load-more" [disabled]="loadingMore()" (click)="loadMore()">{{ loadingMore() ? 'Loading...' : 'Load more patients' }}</button> }
+    }
+  </div>
+
+  <footer class="panel-footer">
+    @if (campaign().status !== 'ACTIVE') { <span>Activate this campaign to create outreach.</span> }
+    <button type="button" [disabled]="campaign().status !== 'ACTIVE' || !selectedCount() || creating()" (click)="createOutreach()">
+      {{ creating() ? 'Creating...' : 'Create Outreach (' + selectedCount() + ')' }}
+    </button>
+  </footer>
+</aside>

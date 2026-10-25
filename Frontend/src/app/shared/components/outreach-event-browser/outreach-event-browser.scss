@@ -1,0 +1,24 @@
+:host { display: block; }
+.event-page { color: var(--text); }
+.page-header, .section-heading, .pagination { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.page-header { padding-bottom: 1.1rem; border-bottom: 1px solid var(--border); }
+.eyebrow { margin: 0 0 .25rem; color: var(--primary); font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+h1 { margin: 0; font-size: 1.75rem; } h2 { font-size: 1.05rem; } h3 { margin: 1rem 0 .5rem; font-size: .9rem; }
+button { cursor: pointer; } .secondary-button, .text-button { border: 1px solid var(--border); background: transparent; color: var(--text); padding: .55rem .8rem; } .text-button { border: 0; color: var(--primary); }
+.filters { display: grid; grid-template-columns: repeat(4, minmax(130px, 1fr)); gap: .75rem; padding: 1rem 0; }
+label { display: grid; gap: .3rem; color: var(--muted); font-size: .72rem; font-weight: 700; } input, select { width: 100%; min-width: 0; }
+.filter-actions { display: flex; align-items: end; gap: .5rem; }
+.table-column { min-width: 0; } .table-shell { overflow-x: auto; background: var(--table-bg); border: 1px solid var(--border); }
+table { width: 100%; min-width: 760px; border-collapse: collapse; } th, td { padding: .7rem .75rem; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; } th { color: var(--muted); font-size: .68rem; text-transform: uppercase; } tbody tr { cursor: pointer; } tbody tr:hover, tbody tr.selected { background: var(--hover-bg); }
+small, .muted { display: block; color: var(--muted); font-size: .72rem; } .status { display: inline-flex; border: 1px solid currentColor; border-radius: 999px; padding: .15rem .45rem; font-size: .66rem; font-weight: 700; white-space: nowrap; } .status.positive { color: var(--status-positive-text); } .status.critical { color: var(--status-critical-text); } .status.warning { color: var(--status-warning-text); } .status.neutral { color: var(--primary); }
+.pagination { padding: .8rem 0; color: var(--muted); font-size: .78rem; }
+.panel-backdrop { position: fixed; inset: 0; z-index: 20; background: rgb(15 23 42 / 28%); }
+.detail-panel { position: fixed; inset: 0 0 0 auto; z-index: 21; width: min(520px, 100vw); overflow-y: auto; padding: 1.25rem; border-left: 1px solid var(--border); background: var(--table-bg); box-shadow: -12px 0 30px rgb(15 23 42 / 12%); animation: slide-in .2s ease-out; }
+.panel-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); } .panel-header h2 { margin: 0; } .panel-header span { color: var(--muted); font-size: .75rem; }
+.icon-button { width: 2rem; height: 2rem; padding: 0; border: 1px solid var(--border); background: transparent; color: var(--text); font-size: 1.3rem; line-height: 1; }
+.refresh-button { border-radius: 60%; width:36px }
+.detail-list { display: grid; gap: .65rem; margin: 1rem 0; } .detail-list div { display: grid; grid-template-columns: 110px 1fr; gap: .5rem; } dt { color: var(--muted); font-size: .72rem; } dd { margin: 0; font-size: .82rem; } .detail-panel section { padding-top: .75rem; border-top: 1px solid var(--border); } .detail-panel p { margin: .35rem 0; font-size: .8rem; } .response, .task { display: grid; gap: .2rem; padding: .55rem 0; border-bottom: 1px solid var(--border); font-size: .8rem; } .error-note { color: var(--status-critical-text); }
+.state-panel { padding: 2rem 1rem; color: var(--muted); text-align: center; border-block: 1px solid var(--border); } .alert { padding: .65rem .8rem; color: var(--status-critical-text); background: var(--status-critical-bg); border-left: 3px solid currentColor; }
+@keyframes slide-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@media (max-width: 1050px) { .filters { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 620px) { .page-header { align-items: flex-start; flex-direction: column; } .filters { grid-template-columns: 1fr; } .filter-actions { align-items: center; } }

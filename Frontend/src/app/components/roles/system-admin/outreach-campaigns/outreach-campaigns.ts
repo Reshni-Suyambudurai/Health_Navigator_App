@@ -11,7 +11,6 @@ import {
   AdminCampaignStatus,
   AdminCampaignType,
   AdminCohortCriteria,
-  AdminCohortPatient,
   EnrollmentProgram,
   EnrollmentStatus,
   EpisodeStatus,
@@ -19,6 +18,7 @@ import {
 } from '../../../../shared/types/navigator/admin-outreach';
 import { Breadcrumb, BreadcrumbItem } from '../../../../shared/ui/breadcrumb/breadcrumb';
 import { ToastState } from '../../../../shared/ui/toast/toast-state';
+import { CohortOutreachPanel } from './cohort-outreach-panel/cohort-outreach-panel';
 
 interface CampaignDraft {
   campaign_name: string;
@@ -35,10 +35,15 @@ interface PendingTransition {
   status: Extract<AdminCampaignStatus, 'ACTIVE' | 'PAUSED' | 'COMPLETED'>;
 }
 
+interface PendingAutoOutreach {
+  campaign: AdminCampaignRecord;
+  enabled: boolean;
+}
+
 @Component({
   selector: 'app-system-admin-outreach-campaigns',
   standalone: true,
-  imports: [CommonModule, FormsModule, Breadcrumb],
+  imports: [CommonModule, FormsModule, Breadcrumb, CohortOutreachPanel],
   templateUrl: './outreach-campaigns.html',
   styleUrl: './outreach-campaigns.scss',
 })
@@ -48,8 +53,6 @@ export class SystemAdminOutreachCampaigns implements OnInit {
   private readonly toast = inject(ToastState);
   private readonly sessionUser = getSessionUser();
   private readonly pageSize = 15;
-  private readonly cohortPageSize = 20;
-  private cohortRequestToken = 0;
 
   readonly campaigns = signal<AdminCampaignRecord[]>([]);
   readonly total = signal(0);
@@ -59,13 +62,8 @@ export class SystemAdminOutreachCampaigns implements OnInit {
   readonly dialogMode = signal<'create' | 'edit' | null>(null);
   readonly selectedCampaign = signal<AdminCampaignRecord | null>(null);
   readonly pendingTransition = signal<PendingTransition | null>(null);
+  readonly pendingAutoOutreach = signal<PendingAutoOutreach | null>(null);
   readonly cohortCampaign = signal<AdminCampaignRecord | null>(null);
-  readonly cohortPatients = signal<AdminCohortPatient[]>([]);
-  readonly cohortTotal = signal(0);
-  readonly cohortLoading = signal(false);
-  readonly cohortLoadingMore = signal(false);
-  readonly cohortHasMore = signal(false);
-  readonly cohortError = signal<string | null>(null);
   readonly visibleCampaigns = computed(() => {
     const term = this.search.trim().toLowerCase();
     return term
@@ -200,32 +198,15 @@ export class SystemAdminOutreachCampaigns implements OnInit {
   }
 
   openCohort(campaign: AdminCampaignRecord): void {
-    this.cohortRequestToken += 1;
     this.cohortCampaign.set(campaign);
-    this.cohortPatients.set([]);
-    this.cohortTotal.set(campaign.readiness.eligible_patient_count);
-    this.cohortHasMore.set(false);
-    this.cohortError.set(null);
-    this.cohortLoading.set(false);
-    this.cohortLoadingMore.set(false);
-    this.loadCohort(true);
   }
 
   closeCohort(): void {
-    this.cohortRequestToken += 1;
     this.cohortCampaign.set(null);
-    this.cohortPatients.set([]);
-    this.cohortError.set(null);
-    this.cohortLoading.set(false);
-    this.cohortLoadingMore.set(false);
   }
 
-  loadMoreCohort(): void {
-    if (this.cohortHasMore()) this.loadCohort(false);
-  }
-
-  retryCohort(): void {
-    this.loadCohort(this.cohortPatients().length === 0);
+  handleOutreachCreated(): void {
+    this.loadCampaigns();
   }
 
   requestTransition(campaign: AdminCampaignRecord, status: PendingTransition['status']): void {
@@ -254,6 +235,44 @@ export class SystemAdminOutreachCampaigns implements OnInit {
           this.showError(this.errorMessage(error, 'Unable to change campaign status.'));
         },
       });
+  }
+
+  requestAutoOutreach(campaign: AdminCampaignRecord): void {
+    this.pendingAutoOutreach.set({
+      campaign,
+      enabled: !campaign.auto_outreach_enabled,
+    });
+  }
+
+  cancelAutoOutreach(): void {
+    if (!this.saving()) this.pendingAutoOutreach.set(null);
+  }
+
+  confirmAutoOutreach(): void {
+    const actorId = this.actorId();
+    const pending = this.pendingAutoOutreach();
+    if (!actorId || !pending) return;
+    this.saving.set(true);
+    this.api.setAutoOutreach(actorId, pending.campaign.campaign_id, pending.enabled)
+      .pipe(finalize(() => this.saving.set(false)))
+      .subscribe({
+        next: (response) => {
+          this.toast.success(response.message);
+          this.pendingAutoOutreach.set(null);
+          this.loadCampaigns();
+        },
+        error: (error: unknown) => {
+          this.pendingAutoOutreach.set(null);
+          this.showError(this.errorMessage(error, 'Unable to update automatic outreach.'));
+        },
+      });
+  }
+
+  autoOutreachDisabled(campaign: AdminCampaignRecord): boolean {
+    return this.saving() || (
+      !campaign.auto_outreach_enabled
+      && (campaign.status !== 'ACTIVE' || !campaign.readiness.ready)
+    );
   }
 
   canEdit(campaign: AdminCampaignRecord): boolean {
@@ -304,40 +323,6 @@ export class SystemAdminOutreachCampaigns implements OnInit {
       },
       error: (error: unknown) => this.showError(this.errorMessage(error, 'Unable to load campaigns.')),
     });
-  }
-
-  private loadCohort(reset: boolean): void {
-    const campaign = this.cohortCampaign();
-    const actorId = this.actorId();
-    if (!campaign || (!reset && this.cohortLoadingMore())) return;
-    if (!actorId) {
-      this.cohortError.set('Your session has expired. Please sign in again.');
-      return;
-    }
-    const token = ++this.cohortRequestToken;
-    const skip = reset ? 0 : this.cohortPatients().length;
-    this.cohortError.set(null);
-    if (reset) this.cohortLoading.set(true);
-    else this.cohortLoadingMore.set(true);
-    this.api.listCohortMembers(actorId, campaign.campaign_id, skip, this.cohortPageSize)
-      .pipe(finalize(() => {
-        if (token !== this.cohortRequestToken) return;
-        this.cohortLoading.set(false);
-        this.cohortLoadingMore.set(false);
-      }))
-      .subscribe({
-        next: (response) => {
-          if (token !== this.cohortRequestToken) return;
-          const patients = response.data.patients;
-          this.cohortPatients.update((current) => reset ? patients : [...current, ...patients]);
-          this.cohortTotal.set(response.data.count);
-          this.cohortHasMore.set(response.data.has_more);
-        },
-        error: (error: unknown) => {
-          if (token !== this.cohortRequestToken) return;
-          this.cohortError.set(this.errorMessage(error, 'Unable to load eligible patients.'));
-        },
-      });
   }
 
   private validDraft(): boolean {

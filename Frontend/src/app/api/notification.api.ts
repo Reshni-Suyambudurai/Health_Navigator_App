@@ -2,6 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { getSessionUser } from './tokenstore';
 import {
   NotificationCreateRequest,
   NotificationListResponse,
@@ -45,6 +46,7 @@ export class NotificationApi {
   }
 
   private actor(userId: number): HttpParams {
-    return new HttpParams().set('user_id', userId);
+    const session = getSessionUser();
+    return new HttpParams().set('user_id', session?.user_id ?? session?.userId ?? userId);
   }
 }

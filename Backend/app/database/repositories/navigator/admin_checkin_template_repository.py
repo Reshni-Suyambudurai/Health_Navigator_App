@@ -233,6 +233,7 @@ class AdminCheckinTemplateRepository:
         review: CheckinTemplateReview,
         template: CheckinTemplate,
         approve: bool,
+        notifications: list,
     ) -> None:
         try:
             if approve:
@@ -245,6 +246,7 @@ class AdminCheckinTemplateRepository:
                 for active in active_versions:
                     active.status = CheckinTemplateStatus.INACTIVE
                 template.status = CheckinTemplateStatus.ACTIVE
+            self.db.add_all(notifications)
             self.db.commit()
         except Exception:
             self.db.rollback()

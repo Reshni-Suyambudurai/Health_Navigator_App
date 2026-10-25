@@ -1,5 +1,6 @@
 """Business logic for organization-scoped outreach campaign configuration."""
 
+from datetime import datetime, timedelta
 from typing import Any
 
 from sqlalchemy.exc import SQLAlchemyError
@@ -8,9 +9,16 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import AuthorizationException, ConflictException, NotFoundException, ValidationException
 from app.database.models.care_navigation_episode import EpisodeStatus, EpisodeType
 from app.database.models.outreach_campaign import CampaignStatus, CampaignType, OutreachCampaign
+from app.database.models.outreach_event import (
+    DeliveryStatus,
+    OutreachEventChannel,
+    OutreachEventStatus,
+    OutreachEventType,
+)
 from app.database.models.outreach_workflow import OutreachChannel, OutreachWorkflow, TriggerAnchor, TriggerType
 from app.database.models.patient_enrollment import EnrollmentProgram, EnrollmentStatus
 from app.database.repositories.navigator.admin_outreach_campaign_repository import AdminOutreachCampaignRepository
+from app.utils.audit_logger import AuditAction, AuditLogger
 
 
 class AdminOutreachCampaignService:
@@ -143,14 +151,156 @@ class AdminOutreachCampaignService:
             skip,
             limit,
         )
+        workflows = self._manual_outreach_workflows(campaign)
+        workflow_ids = [workflow.workflow_id for workflow in workflows]
+        selections = [(row[0].patient_id, row[2]) for row in rows]
+        events = self.repository.list_eligible_outreach_events(
+            admin.organization_id,
+            criteria,
+            campaign.campaign_id,
+            workflow_ids,
+            selections,
+        )
+        all_events = self.repository.list_eligible_outreach_events(
+            admin.organization_id,
+            criteria,
+            campaign.campaign_id,
+            workflow_ids,
+        )
+        all_rows = self.repository.list_all_eligible_patients(admin.organization_id, criteria)
+        event_map = {
+            (event.patient_id, event.episode_id, event.workflow_id): event
+            for event in events
+        }
         return {
             "campaign_id": campaign.campaign_id,
             "campaign_name": campaign.campaign_name,
-            "patients": [self._serialize_cohort_patient(row) for row in rows],
+            "patients": [
+                self._serialize_cohort_patient(row, campaign, workflows, event_map)
+                for row in rows
+            ],
             "count": total,
             "skip": skip,
             "limit": limit,
             "has_more": skip + len(rows) < total,
+            "outreach_summary": self._outreach_summary(all_rows, workflows, all_events),
+        }
+
+    def create_outreach_events(
+        self,
+        actor_user_id: int,
+        campaign_id: int,
+        selections: list[dict[str, int]],
+        ip_address: str | None = None,
+        correlation_id: str | None = None,
+    ) -> dict[str, Any]:
+        admin = self._require_admin(actor_user_id)
+        campaign = self._require_campaign(campaign_id, admin.organization_id)
+        if campaign.status != CampaignStatus.ACTIVE:
+            raise ValidationException(
+                "Outreach can only be created for an active campaign",
+                "CAMPAIGN_NOT_ACTIVE",
+            )
+        workflows = self._manual_outreach_workflows(campaign)
+        if not workflows:
+            raise ValidationException(
+                "No ready after-discharge workflows are available",
+                "OUTREACH_WORKFLOW_REQUIRED",
+            )
+        requested = list(dict.fromkeys(
+            (item["patient_id"], item["episode_id"])
+            for item in selections
+        ))
+        criteria = self._validate_cohort(self._metadata(campaign).get("criteria") or {})
+        rows = self.repository.find_selected_eligible_patients(
+            admin.organization_id,
+            criteria,
+            requested,
+        )
+        eligible_rows = {(row[0].patient_id, row[2]): row for row in rows}
+        eligible_keys = list(eligible_rows)
+        workflow_ids = [workflow.workflow_id for workflow in workflows]
+        existing_events = self.repository.list_eligible_outreach_events(
+            admin.organization_id,
+            criteria,
+            campaign.campaign_id,
+            workflow_ids,
+            eligible_keys,
+        )
+        existing = {
+            (event.patient_id, event.episode_id, event.workflow_id)
+            for event in existing_events
+        }
+        patients_with_outreach = {
+            (event.patient_id, event.episode_id)
+            for event in existing_events
+        }
+        values = []
+        occurrence_to_patient: dict[str, tuple[int, int]] = {}
+        for patient_key, row in eligible_rows.items():
+            if patient_key in patients_with_outreach:
+                continue
+            for workflow in workflows:
+                occurrence = (*patient_key, workflow.workflow_id)
+                if occurrence in existing:
+                    continue
+                idempotency_key = self._outreach_idempotency_key(
+                    campaign.campaign_id,
+                    workflow.workflow_id,
+                    patient_key[0],
+                    patient_key[1],
+                )
+                occurrence_to_patient[idempotency_key] = patient_key
+                values.append({
+                    "patient_id": patient_key[0],
+                    "episode_id": patient_key[1],
+                    "campaign_id": campaign.campaign_id,
+                    "workflow_id": workflow.workflow_id,
+                    "channel": OutreachEventChannel(workflow.channel.value),
+                    "event_type": OutreachEventType.CHECK_IN,
+                    "event_status": OutreachEventStatus.PENDING,
+                    "delivery_status": DeliveryStatus.PENDING,
+                    "scheduled_at": row[9] + timedelta(hours=workflow.trigger_offset_hours),
+                    "attempt_count": 0,
+                    "idempotency_key": idempotency_key,
+                })
+        try:
+            inserted = self.repository.stage_outreach_events(values)
+            inserted_keys = {key for _, key in inserted}
+            created_patients = {
+                occurrence_to_patient[key]
+                for key in inserted_keys
+            }
+            audit_entry = AuditLogger.create_entry(
+                action=AuditAction.CREATE_OUTREACH_EVENTS,
+                resource_type="OUTREACH_CAMPAIGN",
+                resource_id=campaign.campaign_id,
+                user_id=admin.user_id,
+                details={
+                    "workflow_ids": workflow_ids,
+                    "requested": len(requested),
+                    "created": len(created_patients),
+                    "already_existing": len(eligible_keys) - len(created_patients),
+                    "no_longer_eligible": len(requested) - len(eligible_keys),
+                    "created_occurrences": len(inserted),
+                },
+                ip_address=ip_address,
+                correlation_id=correlation_id,
+            )
+            self.repository.commit_with_audit(audit_entry)
+        except SQLAlchemyError as exc:
+            self.repository.rollback()
+            raise ConflictException(
+                f"Outreach events could not be created: {self._database_error_reason(exc)}",
+                "OUTREACH_EVENT_CONFLICT",
+            ) from exc
+        return {
+            "requested": len(requested),
+            "created": len(created_patients),
+            "already_existing": len(eligible_keys) - len(created_patients),
+            "no_longer_eligible": len(requested) - len(eligible_keys),
+            "created_occurrences": len(inserted),
+            "outreach_event_ids": [event_id for event_id, _ in inserted],
         }
 
     def transition_status(
@@ -175,8 +325,52 @@ class AdminOutreachCampaignService:
                     "CAMPAIGN_NOT_READY",
                 )
         campaign.status = next_status
+        if next_status == CampaignStatus.COMPLETED:
+            campaign.auto_outreach_enabled = False
         campaign.updated_by_user_id = admin.user_id
         self._save(campaign)
+        return self._serialize_campaign(campaign, include_workflows=True)
+
+    def set_auto_outreach(
+        self,
+        actor_user_id: int,
+        campaign_id: int,
+        enabled: bool,
+        ip_address: str | None = None,
+        correlation_id: str | None = None,
+    ) -> dict[str, Any]:
+        admin = self._require_admin(actor_user_id)
+        campaign = self._require_campaign(campaign_id, admin.organization_id)
+        current = bool(getattr(campaign, "auto_outreach_enabled", False))
+        if current == enabled:
+            return self._serialize_campaign(campaign, include_workflows=True)
+        if enabled:
+            if campaign.status != CampaignStatus.ACTIVE:
+                raise ValidationException(
+                    "Automatic outreach can only be enabled for an active campaign",
+                    "CAMPAIGN_NOT_ACTIVE",
+                )
+            readiness = self._readiness(campaign)
+            if not readiness["ready"]:
+                raise ValidationException(
+                    "Automatic outreach cannot be enabled: " + "; ".join(readiness["issues"]),
+                    "CAMPAIGN_NOT_READY",
+                )
+        campaign.auto_outreach_enabled = enabled
+        campaign.updated_by_user_id = admin.user_id
+        audit_entry = AuditLogger.create_entry(
+            action=(
+                AuditAction.ENABLE_AUTO_OUTREACH
+                if enabled else AuditAction.DISABLE_AUTO_OUTREACH
+            ),
+            resource_type="OUTREACH_CAMPAIGN",
+            resource_id=campaign.campaign_id,
+            user_id=admin.user_id,
+            details={"previous_enabled": current, "enabled": enabled},
+            ip_address=ip_address,
+            correlation_id=correlation_id,
+        )
+        self.repository.commit_with_audit(audit_entry)
         return self._serialize_campaign(campaign, include_workflows=True)
 
     def list_workflows(self, actor_user_id: int, campaign_id: int) -> dict[str, Any]:
@@ -284,6 +478,7 @@ class AdminOutreachCampaignService:
             "start_at": campaign.start_at.isoformat() if campaign.start_at else None,
             "end_at": campaign.end_at.isoformat() if campaign.end_at else None,
             "status": campaign.status.value,
+            "auto_outreach_enabled": bool(getattr(campaign, "auto_outreach_enabled", False)),
             "created_by": self._user_name(creator),
             "updated_by": self._user_name(updater),
             "created_at": campaign.created_at.isoformat() if campaign.created_at else None,
@@ -311,11 +506,11 @@ class AdminOutreachCampaignService:
             "configuration_status": "INACTIVE" if not workflow.is_active else ("READY" if configured else "INCOMPLETE"),
         }
 
-    @staticmethod
-    def _serialize_cohort_patient(row) -> dict[str, Any]:
+    def _serialize_cohort_patient(self, row, campaign, workflows, event_map) -> dict[str, Any]:
         (
             profile,
             user,
+            episode_id,
             enrollment_program,
             enrollment_status,
             enrollment_date,
@@ -325,8 +520,21 @@ class AdminOutreachCampaignService:
             episode_opened_at,
             episode_created_at,
         ) = row
+        workflow_statuses = []
+        for workflow in workflows:
+            event = event_map.get((profile.patient_id, episode_id, workflow.workflow_id))
+            workflow_statuses.append({
+                "workflow_id": workflow.workflow_id,
+                "workflow_name": workflow.step_name,
+                "status": self._outreach_status(event),
+                "outreach_event_id": event.outreach_event_id if event else None,
+            })
+        aggregate_status = self._aggregate_outreach_status(
+            [item["status"] for item in workflow_statuses]
+        )
         return {
             "patient_id": profile.patient_id,
+            "episode_id": episode_id,
             "external_fhir_patient_id": profile.external_fhir_patient_id,
             "patient_name": f"{user.first_name} {user.last_name}".strip(),
             "enrollment_program": enrollment_program.value,
@@ -339,7 +547,84 @@ class AdminOutreachCampaignService:
                 if trigger_type.value == "DISCHARGE" and episode_opened_at else None
             ),
             "episode_created_at": episode_created_at.isoformat() if episode_created_at else None,
+            "outreach_status": aggregate_status,
+            "can_create_outreach": (
+                campaign.status == CampaignStatus.ACTIVE
+                and bool(workflow_statuses)
+                and all(item["status"] == "NEWLY_ELIGIBLE" for item in workflow_statuses)
+            ),
+            "workflow_statuses": workflow_statuses,
         }
+
+    def _manual_outreach_workflows(self, campaign) -> list[OutreachWorkflow]:
+        return [
+            workflow
+            for workflow in self.repository.list_workflows(campaign.campaign_id)
+            if workflow.is_active
+            and workflow.trigger_type == TriggerType.AFTER_DISCHARGE
+            and workflow.trigger_anchor == TriggerAnchor.DISCHARGE_DATETIME
+            and workflow.checkin_template_id
+            and self.repository.find_active_template(workflow.checkin_template_id, campaign.organization_id)
+        ]
+
+    @staticmethod
+    def _outreach_status(event) -> str:
+        if event is None:
+            return "NEWLY_ELIGIBLE"
+        if event.event_status == OutreachEventStatus.FAILED or event.delivery_status == DeliveryStatus.FAILED:
+            return "FAILED"
+        if event.event_status == OutreachEventStatus.COMPLETED or event.delivery_status == DeliveryStatus.RESPONDED:
+            return "COMPLETED"
+        if event.delivery_status in (DeliveryStatus.SENT, DeliveryStatus.DELIVERED):
+            return "SENT"
+        return "PENDING"
+
+    @staticmethod
+    def _aggregate_outreach_status(statuses: list[str]) -> str:
+        for status in ("FAILED", "PENDING", "SENT", "COMPLETED", "NEWLY_ELIGIBLE"):
+            if status in statuses:
+                return status
+        return "NEWLY_ELIGIBLE"
+
+    @staticmethod
+    def _database_error_reason(exc: SQLAlchemyError) -> str:
+        original = getattr(exc, "orig", None)
+        reason = str(original or exc).strip().splitlines()[0]
+        return reason or "the database rejected the request"
+
+    def _outreach_summary(self, rows: list, workflows: list[OutreachWorkflow], events: list) -> dict[str, int]:
+        now = datetime.utcnow()
+        existing = {
+            (event.patient_id, event.episode_id, event.workflow_id)
+            for event in events
+        }
+        due_occurrences = 0
+        newly_eligible_patients: set[tuple[int, int]] = set()
+        for row in rows:
+            patient_key = (row[0].patient_id, row[2])
+            for workflow in workflows:
+                occurrence = (*patient_key, workflow.workflow_id)
+                if row[9] + timedelta(hours=workflow.trigger_offset_hours) <= now:
+                    due_occurrences += 1
+                    if occurrence not in existing:
+                        newly_eligible_patients.add(patient_key)
+        statuses = [self._outreach_status(event) for event in events]
+        return {
+            "cohort": len(rows),
+            "eligible_for_workflow": due_occurrences,
+            "outreach_created": len(events),
+            "newly_eligible": len(newly_eligible_patients),
+            "pending": statuses.count("PENDING"),
+        }
+
+    @staticmethod
+    def _outreach_idempotency_key(
+        campaign_id: int,
+        workflow_id: int,
+        patient_id: int,
+        episode_id: int,
+    ) -> str:
+        return f"campaign:{campaign_id}:workflow:{workflow_id}:patient:{patient_id}:episode:{episode_id}"
 
     def _workflow_payload(self, data: dict[str, Any], partial: bool = False) -> dict[str, Any]:
         payload = {key: value for key, value in data.items() if key in self.WORKFLOW_FIELDS}

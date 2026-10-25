@@ -115,6 +115,77 @@ export interface OutreachEvent {
   last_error: string | null;
 }
 
+export interface OutreachEventSummary extends OutreachEvent {
+  patient_name: string;
+  campaign_name: string;
+  workflow_name: string;
+  episode_id: number | null;
+  last_activity_at: string | null;
+}
+
+export interface OutreachEventDetail extends OutreachEventSummary {
+  delivery: {
+    sent_at: string | null;
+    responded_at: string | null;
+    completed_at: string | null;
+    attempt_count: number;
+    last_error: string | null;
+  };
+  checkin_responses: {
+    response_id: number;
+    question_id: number;
+    question_text: string;
+    answer_text: string | null;
+    answer_value: unknown;
+    response_source: string;
+    answered_at: string;
+  }[];
+  appointment: {
+    appointment_id: number;
+    appointment_type: string;
+    appointment_datetime: string;
+    end_datetime: string;
+    status: string;
+    location_or_channel: string | null;
+    reason: string | null;
+  } | null;
+  follow_up_tasks: {
+    follow_up_task_id: number;
+    task_type: string;
+    title: string;
+    description: string | null;
+    assigned_to_staff_id: number | null;
+    due_at: string | null;
+    priority: string;
+    status: string;
+  }[];
+}
+
+export interface OutreachEventFilters {
+  campaign_id?: number;
+  workflow_id?: number;
+  campaign_name?: string;
+  workflow_name?: string;
+  event_status?: EventStatus;
+  delivery_status?: DeliveryStatus;
+  scheduled_from?: string;
+  scheduled_to?: string;
+  patient_search?: string;
+  skip?: number;
+  limit?: number;
+}
+
+export interface OutreachEventFilterOptions {
+  campaigns: { campaign_id: number; campaign_name: string }[];
+  workflows: { workflow_id: number; campaign_id: number; workflow_name: string }[];
+}
+
+export interface OutreachEventListData {
+  events: OutreachEventSummary[];
+  count: number;
+  has_more: boolean;
+}
+
 export interface CheckinResponse {
   response_id: number;
   question_id: number;
@@ -178,6 +249,8 @@ export type WorkflowListResponse = ApiSuccessResponse<{ workflows: OutreachWorkf
 export type TemplateListResponse = ApiSuccessResponse<{ templates: CheckinTemplate[]; count: number }>;
 export type QuestionListResponse = ApiSuccessResponse<{ questions: CheckinQuestion[]; count: number }>;
 export type EventListResponse = ApiSuccessResponse<{ events: OutreachEvent[]; count: number }>;
+export type ProtectedOutreachEventListResponse = ApiSuccessResponse<OutreachEventListData>;
+export type ProtectedOutreachEventDetailResponse = ApiSuccessResponse<OutreachEventDetail>;
 export type SessionListResponse = ApiSuccessResponse<{ sessions: CheckinSession[]; count: number }>;
 export type AppointmentActionListResponse = ApiSuccessResponse<{ actions: AppointmentAction[]; count: number }>;
 export type FollowUpTaskListResponse = ApiSuccessResponse<{ tasks: FollowUpTask[]; count: number }>;

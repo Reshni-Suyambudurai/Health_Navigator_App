@@ -157,13 +157,82 @@ class AdminCheckinTemplateServiceTests(unittest.TestCase):
         self.service.repository.find_review.return_value = (review, template)
         self.service.repository.list_questions.return_value = [self.question()]
         self.service.repository.latest_review.return_value = review
+        notification = SimpleNamespace(notification_id=51)
+        self.service.notifications.prepare_for_role.return_value = [notification]
 
         result = self.service.decide_review(8, 31, "APPROVED", "Clinically appropriate")
 
         self.assertEqual(review.status, CheckinTemplateReviewStatus.APPROVED)
         self.assertEqual(review.reviewed_by_user_id, 8)
-        self.service.repository.decide_review.assert_called_once_with(review, template, True)
+        self.service.notifications.prepare_for_role.assert_called_once_with(
+            sender_user_id=8,
+            organization_id=7,
+            role_name=RoleName.SYSTEM_ADMIN,
+            title="Check-in template approved",
+            message="Initial Post-Discharge Check-in v1: approved. Review notes: Clinically appropriate",
+            notification_type=NotificationType.FOLLOW_UP,
+            priority=NotificationPriority.NORMAL,
+        )
+        self.service.repository.decide_review.assert_called_once_with(review, template, True, [notification])
         self.assertEqual(result["status"], "APPROVED")
+
+    def test_rejection_notifies_system_admin_with_review_reason(self):
+        template = self.template()
+        review = SimpleNamespace(
+            review_id=31,
+            checkin_template_id=11,
+            status=CheckinTemplateReviewStatus.PENDING,
+            submission_note=None,
+            review_notes=None,
+            submitted_by_user_id=4,
+            reviewed_by_user_id=None,
+            submitted_at=None,
+            reviewed_at=None,
+        )
+        notification = SimpleNamespace(notification_id=52)
+        self.service.repository.find_review.return_value = (review, template)
+        self.service.repository.latest_review.return_value = review
+        self.service.notifications.prepare_for_role.return_value = [notification]
+
+        result = self.service.decide_review(8, 31, "REJECTED", "Clarify the escalation question")
+
+        self.service.notifications.prepare_for_role.assert_called_once_with(
+            sender_user_id=8,
+            organization_id=7,
+            role_name=RoleName.SYSTEM_ADMIN,
+            title="Check-in template changes requested",
+            message=(
+                "Initial Post-Discharge Check-in v1: changes requested. "
+                "Review notes: Clarify the escalation question"
+            ),
+            notification_type=NotificationType.FOLLOW_UP,
+            priority=NotificationPriority.HIGH,
+        )
+        self.service.repository.decide_review.assert_called_once_with(review, template, False, [notification])
+        self.assertEqual(result["status"], "REJECTED")
+
+    def test_review_decision_requires_active_system_admin_recipient(self):
+        template = self.template()
+        review = SimpleNamespace(
+            review_id=31,
+            checkin_template_id=11,
+            status=CheckinTemplateReviewStatus.PENDING,
+            submission_note=None,
+            review_notes=None,
+            submitted_by_user_id=4,
+            reviewed_by_user_id=None,
+            submitted_at=None,
+            reviewed_at=None,
+        )
+        self.service.repository.find_review.return_value = (review, template)
+        self.service.repository.list_questions.return_value = [self.question()]
+        self.service.notifications.prepare_for_role.return_value = []
+
+        with self.assertRaises(ValidationException):
+            self.service.decide_review(8, 31, "APPROVED", "Clinically appropriate")
+
+        self.service.repository.decide_review.assert_not_called()
+        self.assertEqual(review.status, CheckinTemplateReviewStatus.PENDING)
 
     def test_submit_review_requires_active_clinical_governance_recipient(self):
         template = self.template()

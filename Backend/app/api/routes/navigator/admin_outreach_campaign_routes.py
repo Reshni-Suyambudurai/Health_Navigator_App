@@ -1,14 +1,16 @@
 """System Admin outreach campaign configuration routes."""
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.orm import Session
 
 from app.core.response_models import SuccessResponse
 from app.database.connection import get_db
 from app.schemas.admin_outreach_campaign import (
+    AdminAutoOutreachRequest,
     AdminCampaignCreateRequest,
     AdminCampaignStatusRequest,
     AdminCampaignUpdateRequest,
+    AdminCreateOutreachRequest,
     AdminWorkflowRequest,
     AdminWorkflowUpdateRequest,
 )
@@ -91,6 +93,24 @@ def list_cohort_members(
     return SuccessResponse(message="Eligible cohort patients retrieved successfully", data=data)
 
 
+@router.post("/{campaign_id}/outreach-events", response_model=SuccessResponse, status_code=status.HTTP_201_CREATED)
+def create_outreach_events(
+    campaign_id: int,
+    payload: AdminCreateOutreachRequest,
+    request: Request,
+    user_id: int,
+    db: Session = Depends(get_db),
+):
+    data = AdminOutreachCampaignService(db).create_outreach_events(
+        user_id,
+        campaign_id,
+        [selection.model_dump() for selection in payload.selections],
+        request.client.host if request.client else None,
+        request.headers.get("X-Correlation-ID"),
+    )
+    return SuccessResponse(message="Outreach creation completed", data=data)
+
+
 @router.patch("/{campaign_id}/status", response_model=SuccessResponse)
 def transition_campaign_status(
     campaign_id: int,
@@ -100,6 +120,25 @@ def transition_campaign_status(
 ):
     data = AdminOutreachCampaignService(db).transition_status(user_id, campaign_id, payload.status)
     return SuccessResponse(message=f"Campaign status changed to {payload.status}", data=data)
+
+
+@router.patch("/{campaign_id}/auto-outreach", response_model=SuccessResponse)
+def set_auto_outreach(
+    campaign_id: int,
+    payload: AdminAutoOutreachRequest,
+    request: Request,
+    user_id: int,
+    db: Session = Depends(get_db),
+):
+    data = AdminOutreachCampaignService(db).set_auto_outreach(
+        user_id,
+        campaign_id,
+        payload.enabled,
+        request.client.host if request.client else None,
+        request.headers.get("X-Correlation-ID"),
+    )
+    state = "enabled" if payload.enabled else "disabled"
+    return SuccessResponse(message=f"Automatic outreach {state}", data=data)
 
 
 @router.get("/{campaign_id}/workflows", response_model=SuccessResponse)

@@ -38,6 +38,19 @@ class AdminCampaignStatusRequest(BaseModel):
     status: Literal["ACTIVE", "PAUSED", "COMPLETED"]
 
 
+class AdminAutoOutreachRequest(BaseModel):
+    enabled: bool
+
+
+class AdminOutreachSelection(BaseModel):
+    patient_id: int = Field(gt=0)
+    episode_id: int = Field(gt=0)
+
+
+class AdminCreateOutreachRequest(BaseModel):
+    selections: list[AdminOutreachSelection] = Field(min_length=1, max_length=100)
+
+
 class AdminWorkflowRequest(BaseModel):
     step_order: int = Field(gt=0)
     step_name: str = Field(min_length=1, max_length=255)

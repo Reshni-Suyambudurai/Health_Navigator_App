@@ -37,7 +37,13 @@
                 <td><span class="status-pill" [class]="readinessClass(campaign)">{{ campaign.readiness.ready ? 'Ready' : 'Needs setup' }}</span><small>{{ campaign.readiness.active_workflow_count }} active of {{ campaign.readiness.workflow_count }} workflow steps</small></td>
                 <td><span class="status-pill" [class]="statusClass(campaign.status)">{{ formatLabel(campaign.status) }}</span></td>
                 <td>{{ formatDate(campaign.start_at) }}<small>{{ campaign.timezone }}</small></td>
-                <td><div class="row-actions"><button type="button" class="text-button" (click)="configureWorkflows(campaign)">Workflows</button>@if (canEdit(campaign)) { <button type="button" class="text-button" (click)="openEdit(campaign)">Edit</button> }@if (campaign.status === 'DRAFT' || campaign.status === 'PAUSED') { <button type="button" class="compact-button" (click)="requestTransition(campaign, 'ACTIVE')" [disabled]="!campaign.readiness.ready">Activate</button> } @else if (campaign.status === 'ACTIVE') { <button type="button" class="secondary-button compact-button" (click)="requestTransition(campaign, 'PAUSED')">Pause</button> }@if (campaign.status === 'ACTIVE' || campaign.status === 'PAUSED') { <button type="button" class="text-button danger-text" (click)="requestTransition(campaign, 'COMPLETED')">Complete</button> }</div></td>
+                <td class="actions-cell">
+                  <button type="button" class="auto-outreach-switch" role="switch" [attr.aria-checked]="campaign.auto_outreach_enabled" [class.enabled]="campaign.auto_outreach_enabled" [disabled]="autoOutreachDisabled(campaign)" [title]="campaign.auto_outreach_enabled ? 'Disable automatic outreach' : 'Enable automatic outreach'" (click)="requestAutoOutreach(campaign)">
+                    <span class="switch-track" aria-hidden="true"><span></span></span>
+                    Auto Outreach
+                  </button>
+                  <div class="row-actions"><button type="button" class="text-button" (click)="configureWorkflows(campaign)">Workflows</button>@if (canEdit(campaign)) { <button type="button" class="text-button" (click)="openEdit(campaign)">Edit</button> }@if (campaign.status === 'DRAFT' || campaign.status === 'PAUSED') { <button type="button" class="compact-button" (click)="requestTransition(campaign, 'ACTIVE')" [disabled]="!campaign.readiness.ready">Activate</button> } @else if (campaign.status === 'ACTIVE') { <button type="button" class="secondary-button compact-button" (click)="requestTransition(campaign, 'PAUSED')">Pause</button> }@if (campaign.status === 'ACTIVE' || campaign.status === 'PAUSED') { <button type="button" class="text-button danger-text" (click)="requestTransition(campaign, 'COMPLETED')">Complete</button> }</div>
+                </td>
               </tr>
             }
           </tbody>
@@ -90,69 +96,26 @@
       </section>
     </div>
   }
+
+  @if (pendingAutoOutreach(); as pending) {
+    <div class="dialog-backdrop" role="presentation">
+      <section class="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="auto-outreach-title">
+        <p class="eyebrow">Automatic outreach</p>
+        <h2 id="auto-outreach-title">{{ pending.enabled ? 'Enable' : 'Disable' }} Auto Outreach?</h2>
+        <p>
+          <strong>{{ pending.campaign.campaign_name }}</strong>
+          @if (pending.enabled) {
+            will automatically create each outreach event when its workflow step is due. Future steps will be created later at their scheduled time. This setting creates the events but does not send messages.
+          } @else {
+            will stop creating automatic outreach occurrences. Existing events remain unchanged and manual creation stays available.
+          }
+        </p>
+        <footer><button type="button" class="secondary-button" (click)="cancelAutoOutreach()" [disabled]="saving()">Cancel</button><button type="button" (click)="confirmAutoOutreach()" [disabled]="saving()">{{ saving() ? 'Updating...' : 'Confirm' }}</button></footer>
+      </section>
+    </div>
+  }
 </main>
 
 @if (cohortCampaign(); as campaign) {
-  <div class="cohort-backdrop" role="presentation" (click)="closeCohort()"></div>
-  <aside class="cohort-panel" role="dialog" aria-modal="true" aria-labelledby="cohort-panel-title">
-    <header class="cohort-panel-header">
-      <div>
-        <p>Eligible cohort</p>
-        <h2 id="cohort-panel-title">{{ campaign.campaign_name }}</h2>
-        <span>{{ cohortTotal() }} matching {{ cohortTotal() === 1 ? 'patient' : 'patients' }}</span>
-      </div>
-      <button type="button" class="cohort-close-button" title="Close patient panel" aria-label="Close patient panel" (click)="closeCohort()">×</button>
-    </header>
-
-    <div class="cohort-panel-body" aria-live="polite">
-      @if (cohortLoading()) {
-        <div class="cohort-panel-state">Loading eligible patients...</div>
-      } @else if (cohortError() && !cohortPatients().length) {
-        <div class="cohort-panel-state cohort-error-state">
-          <strong>Unable to load patients</strong>
-          <span>{{ cohortError() }}</span>
-          <button type="button" (click)="retryCohort()">Retry</button>
-        </div>
-      } @else if (!cohortPatients().length) {
-        <div class="cohort-panel-state"><strong>No eligible patients</strong><span>No patients currently match this campaign's cohort criteria.</span></div>
-      } @else {
-        <div class="cohort-patient-list">
-          @for (patient of cohortPatients(); track patient.patient_id) {
-            <article class="cohort-patient-card">
-              <header>
-                <div><h3>{{ patient.patient_name }}</h3><span>Patient ID {{ patient.patient_id }}</span></div>
-                <span class="cohort-status" [attr.data-status]="patient.enrollment_status">{{ formatLabel(patient.enrollment_status) }}</span>
-              </header>
-              @if (patient.external_fhir_patient_id) {
-                <p class="patient-reference">FHIR patient ID: {{ patient.external_fhir_patient_id }}</p>
-              }
-              <dl>
-                <div><dt>Program</dt><dd>{{ formatLabel(patient.enrollment_program) }}</dd></div>
-                <div><dt>Episode</dt><dd>{{ formatLabel(patient.episode_type) }}</dd></div>
-                <div><dt>Episode status</dt><dd>{{ formatLabel(patient.episode_status) }}</dd></div>
-                @if (patient.discharge_date) {
-                  <div><dt>Discharge date</dt><dd>{{ patient.discharge_date | date:'mediumDate' }}</dd></div>
-                }
-                @if (patient.episode_created_at) {
-                  <div><dt>Episode created</dt><dd>{{ patient.episode_created_at | date:'mediumDate' }}</dd></div>
-                }
-                @if (patient.enrollment_date) {
-                  <div><dt>Enrolled</dt><dd>{{ patient.enrollment_date | date:'mediumDate' }}</dd></div>
-                }
-              </dl>
-            </article>
-          }
-        </div>
-
-        @if (cohortError()) {
-          <div class="cohort-load-error"><span>{{ cohortError() }}</span><button type="button" (click)="retryCohort()">Retry</button></div>
-        }
-        @if (cohortHasMore()) {
-          <button type="button" class="cohort-load-more" [disabled]="cohortLoadingMore()" (click)="loadMoreCohort()">
-            {{ cohortLoadingMore() ? 'Loading...' : 'Load more patients' }}
-          </button>
-        }
-      }
-    </div>
-  </aside>
+  <app-cohort-outreach-panel [campaign]="campaign" (closed)="closeCohort()" (outreachCreated)="handleOutreachCreated()" />
 }

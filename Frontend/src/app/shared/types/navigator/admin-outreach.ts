@@ -9,6 +9,7 @@ export type EpisodeStatus = 'OPEN' | 'IN_PROGRESS' | 'ON_HOLD' | 'COMPLETED' | '
 export type WorkflowTriggerType = 'AFTER_DISCHARGE' | 'BEFORE_APPOINTMENT' | 'AFTER_EVENT';
 export type WorkflowTriggerAnchor = 'DISCHARGE_DATETIME' | 'APPOINTMENT_DATETIME' | 'EVENT_DATETIME';
 export type WorkflowChannel = 'SMS' | 'CALL' | 'PHONE' | 'EMAIL' | 'PORTAL';
+export type OutreachActivityStatus = 'NEWLY_ELIGIBLE' | 'PENDING' | 'SENT' | 'COMPLETED' | 'FAILED';
 
 export interface AdminCohortCriteria {
   enrollment_statuses: EnrollmentStatus[];
@@ -28,6 +29,7 @@ export interface CampaignReadiness {
 
 export interface AdminCohortPatient {
   patient_id: number;
+  episode_id: number;
   external_fhir_patient_id: string | null;
   patient_name: string;
   enrollment_program: EnrollmentProgram;
@@ -37,6 +39,29 @@ export interface AdminCohortPatient {
   episode_status: EpisodeStatus;
   discharge_date: string | null;
   episode_created_at: string | null;
+  outreach_status: OutreachActivityStatus;
+  can_create_outreach: boolean;
+  workflow_statuses: AdminWorkflowOutreachStatus[];
+}
+
+export interface AdminWorkflowOutreachStatus {
+  workflow_id: number;
+  workflow_name: string;
+  status: OutreachActivityStatus;
+  outreach_event_id: number | null;
+}
+
+export interface AdminOutreachSummary {
+  cohort: number;
+  eligible_for_workflow: number;
+  outreach_created: number;
+  newly_eligible: number;
+  pending: number;
+}
+
+export interface AdminOutreachSelection {
+  patient_id: number;
+  episode_id: number;
 }
 
 export interface AdminCampaignRecord {
@@ -50,6 +75,7 @@ export interface AdminCampaignRecord {
   start_at: string | null;
   end_at: string | null;
   status: AdminCampaignStatus;
+  auto_outreach_enabled: boolean;
   created_by: string | null;
   updated_by: string | null;
   created_at: string | null;
@@ -127,6 +153,15 @@ export type AdminCohortMembersResponse = ApiSuccessResponse<{
   skip: number;
   limit: number;
   has_more: boolean;
+  outreach_summary: AdminOutreachSummary;
+}>;
+export type AdminCreateOutreachResponse = ApiSuccessResponse<{
+  requested: number;
+  created: number;
+  already_existing: number;
+  no_longer_eligible: number;
+  created_occurrences: number;
+  outreach_event_ids: number[];
 }>;
 export type AdminWorkflowListResponse = ApiSuccessResponse<{ campaign: AdminCampaignRecord; workflows: AdminWorkflowRecord[]; count: number }>;
 export type AdminWorkflowResponse = ApiSuccessResponse<AdminWorkflowRecord>;

@@ -15,6 +15,7 @@ class Gender(enum.Enum):
     MALE = "MALE"
     NON_BINARY = "NON_BINARY"
     OTHER = "OTHER"
+    PREFER_NOT_TO_SAY = "PREFER_NOT_TO_SAY"
     UNKNOWN = "UNKNOWN"
     NOT_DISCLOSED = "NOT_DISCLOSED"
 
