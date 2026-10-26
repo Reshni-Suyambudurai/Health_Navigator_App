@@ -9,7 +9,9 @@ import { PatientDashbaord } from './components/roles/patients/dashboard/patient_
 import { PatientAppointments } from './components/roles/patients/appointments/appointments';
 import { PatientCareTeam } from './components/roles/patients/care-team/care-team';
 import { PatientTalkToPerson } from './components/roles/patients/talk-to-person/talk-to-person';
+import { PatientMedicines } from './components/roles/patients/medicines/patient-medicines';
 import { TransitionalCareNurseDashbaord } from './components/roles/transitional-care-nurse/dashboard/transitional_care_nurse_dashbaord';
+import { EscalationQueue } from './components/roles/transitional-care-nurse/escalation-queue/escalation-queue';
 import { MyPatient } from './components/roles/transitional-care-nurse/my-patient/my-patient';
 import { MyPatientDetails } from './components/roles/transitional-care-nurse/my-patient-details/my-patient-details';
 import { TransitionalCareNurseAppointments } from './components/roles/transitional-care-nurse/appointments/appointments';
@@ -49,7 +51,9 @@ export const routes: Routes = [
       { path: 'patient/appointments', component: PatientAppointments },
       { path: 'patient/care-team', component: PatientCareTeam },
       { path: 'patient/talk-to-person', component: PatientTalkToPerson },
+      { path: 'patient/medicines', component: PatientMedicines },
       { path: 'transitional-care-nurse/dashboard', component: TransitionalCareNurseDashbaord },
+      { path: 'transitional-care-nurse/escalation-queue', component: EscalationQueue },
       { path: 'transitional-care-nurse/my-patient', component: MyPatient },
       { path: 'transitional-care-nurse/my-patient/:patientId/details', component: MyPatientDetails },
       { path: 'transitional-care-nurse/appointments', component: TransitionalCareNurseAppointments },

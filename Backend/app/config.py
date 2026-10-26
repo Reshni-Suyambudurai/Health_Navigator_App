@@ -50,6 +50,14 @@ class Settings(BaseSettings):
     CORS_ALLOW_METHODS: list[str] = ["*"]
     CORS_ALLOW_HEADERS: list[str] = ["*"]
 
+    # OpenAI-compatible LLM provider. Credentials belong in Backend/.env only.
+    LLM_ENABLED: bool = False
+    LLM_API_KEY: Optional[str] = None
+    LLM_BASE_URL: str = "https://api.openai.com/v1"
+    LLM_MODEL: str = "gpt-4o-mini"
+    LLM_TIMEOUT_SECONDS: int = 30
+    LLM_MAX_TOKENS: int = 350
+
     @field_validator("CORS_ALLOWED_ORIGINS", mode="before")
     @classmethod
     def parse_cors_allowed_origins(cls, value: object) -> object:

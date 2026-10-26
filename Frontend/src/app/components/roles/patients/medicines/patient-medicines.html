@@ -1,0 +1,46 @@
+<section class="medicines-page" aria-labelledby="medicines-title">
+  <header class="medicines-page__header">
+    <div>
+      <p class="medicines-page__eyebrow">PATIENT RECORD</p>
+      <h1 id="medicines-title">My medicines</h1>
+      <p>From your hospital discharge list and matched pharmacy records.</p>
+    </div>
+    <div class="medicines-page__actions">
+      <button type="button" class="medicines-page__secondary-action" (click)="printList()">Print list</button>
+      <button type="button" (click)="toggleReminders()">{{ remindersOn() ? 'Pause reminders' : 'Set reminders' }}</button>
+    </div>
+  </header>
+
+  <div class="medicines-page__notice" role="note">
+    <strong>Before changing a medicine, talk with your nurse, pharmacist, or prescriber.</strong>
+    <span>Health Navigator can explain the list, but cannot change a dose or authorize a refill.</span>
+  </div>
+
+  <p *ngIf="loading()" class="medicines-page__state">Loading your active medicines...</p>
+  <p *ngIf="!loading() && medications().length === 0" class="medicines-page__state">No active medicines are available in your health record.</p>
+
+  <div *ngIf="!loading() && medications().length > 0" class="medicines-page__layout">
+    <div class="medicines-page__cards">
+      <article *ngFor="let medication of medications()" class="medicine-card">
+        <header class="medicine-card__header">
+          <span class="medicine-card__icon" aria-hidden="true">⌁</span>
+          <span class="medicine-card__status">Active</span>
+        </header>
+        <h2>{{ medicationName(medication) }}</h2>
+        <p class="medicine-card__dosage">{{ dosage(medication) }}</p>
+        <p *ngIf="reason(medication)" class="medicine-card__reason">Used for: {{ reason(medication) }}</p>
+        <p *ngIf="startedOn(medication)" class="medicine-card__started">On record since {{ startedOn(medication) }}</p>
+        <footer class="medicine-card__actions">
+          <button type="button" (click)="askAboutMedicine(medication)">Ask Health Navigator</button>
+        </footer>
+      </article>
+    </div>
+
+    <aside class="medicine-help" aria-label="Medication help">
+      <span class="medicine-help__icon" aria-hidden="true">+</span>
+      <h2>Need help with a medicine?</h2>
+      <p>For side effects, missed doses, or questions about your list, contact your care team.</p>
+      <a routerLink="/patient/dashboard">Message Health Navigator</a>
+    </aside>
+  </div>
+</section>

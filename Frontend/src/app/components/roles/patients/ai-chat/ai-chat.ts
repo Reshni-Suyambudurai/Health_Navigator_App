@@ -1,40 +1,241 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { finalize } from 'rxjs';
 
-interface DemoChatMessage {
-  sender: 'patient' | 'assistant';
-  text: string;
-  time: string;
-}
+import { ConversationApi } from '../../../../api/navigator/conversation.api';
+import { getSessionUser } from '../../../../api/tokenstore';
+import {
+  CareTeamRequestStatus,
+  ConversationMessage,
+  ConversationThreadSummary,
+} from '../../../../shared/types/navigator/conversation';
+import { ToastState } from '../../../../shared/ui/toast/toast-state';
 
 @Component({
   selector: 'app-ai-chat',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './ai-chat.html',
   styleUrl: './ai-chat.scss',
 })
-export class AiChat {
-  readonly messages: DemoChatMessage[] = [
-    {
+export class AiChat implements OnInit {
+  private readonly conversationApi = inject(ConversationApi);
+  private readonly toast = inject(ToastState);
+  private readonly sessionUser = getSessionUser();
+
+  readonly messages = signal<ConversationMessage[]>([]);
+  readonly threads = signal<ConversationThreadSummary[]>([]);
+  readonly selectedThreadId = signal<number | null>(null);
+  readonly careTeamRequests = signal<CareTeamRequestStatus[]>([]);
+  readonly messageDraft = signal('');
+  readonly loading = signal(true);
+  readonly isResponding = signal(false);
+  readonly emergencyPaused = signal(false);
+  readonly largeText = signal(false);
+  readonly historyOpen = signal(false);
+  readonly newSession = signal(false);
+  private navigatorPrompt = this.navigationPromptFromState();
+
+  ngOnInit(): void {
+    if (!this.sessionUser) {
+      this.loading.set(false);
+      return;
+    }
+
+    this.loadHistory(undefined, true);
+    this.loadCareTeamRequests();
+  }
+
+  sendMessage(): void {
+    const text = this.messageDraft().trim();
+    if (!text || this.isResponding() || this.emergencyPaused() || !this.sessionUser) {
+      return;
+    }
+
+    const optimisticMessage = this.optimisticPatientMessage(text);
+    const shouldCreateNewSession = this.newSession();
+    this.isResponding.set(true);
+    this.messageDraft.set('');
+    this.messages.update((messages) => [...messages, optimisticMessage]);
+    this.conversationApi
+      .sendMessage(this.sessionUser.userId, text, shouldCreateNewSession)
+      .pipe(finalize(() => this.isResponding.set(false)))
+      .subscribe({
+        next: (response) => {
+          this.selectedThreadId.set(response.data.thread_id);
+          this.newSession.set(false);
+          this.emergencyPaused.set(response.data.emergency_chat_paused);
+          this.loadHistory(response.data.thread_id);
+          this.loadCareTeamRequests();
+        },
+        error: (error: unknown) => {
+          this.messages.update((messages) => messages.filter((message) => message.message_id !== optimisticMessage.message_id));
+          this.messageDraft.set(text);
+          this.toast.error(this.extractErrorMessage(error));
+        },
+      });
+  }
+
+  onComposerKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      this.sendMessage();
+    }
+  }
+
+  toggleLargeText(): void {
+    this.largeText.set(!this.largeText());
+  }
+
+  toggleHistory(): void {
+    this.historyOpen.set(!this.historyOpen());
+  }
+
+  startNewSession(): void {
+    if (this.isResponding()) {
+      return;
+    }
+
+    this.messages.set([]);
+    this.messageDraft.set('');
+    this.selectedThreadId.set(null);
+    this.emergencyPaused.set(false);
+    this.newSession.set(true);
+    this.historyOpen.set(false);
+  }
+
+  selectThread(threadId: number): void {
+    if (this.isResponding() || threadId === this.selectedThreadId()) {
+      return;
+    }
+    this.loadHistory(threadId);
+  }
+
+  acknowledgeAnswer(): void {
+    this.messageDraft.set('Thank you, that helps.');
+  }
+
+  askForSimplerExplanation(): void {
+    this.messageDraft.set('Please explain that in simpler words.');
+  }
+
+  formatTime(sentAt: string): string {
+    return new Intl.DateTimeFormat('en-IN', {
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZone: 'Asia/Kolkata',
+      timeZoneName: 'short',
+    }).format(this.parseUtcTimestamp(sentAt));
+  }
+
+  formatThreadDate(startedAt: string): string {
+    return new Intl.DateTimeFormat('en-IN', {
+      dateStyle: 'medium',
+      timeZone: 'Asia/Kolkata',
+    }).format(this.parseUtcTimestamp(startedAt));
+  }
+
+  formatThreadStatus(status: ConversationThreadSummary['status']): string {
+    return status.replace('_', ' ').toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
+  }
+
+  isSelectedThreadReadOnly(): boolean {
+    const selectedThread = this.threads().find((thread) => thread.thread_id === this.selectedThreadId());
+    return Boolean(selectedThread && selectedThread.status !== 'ACTIVE');
+  }
+
+  private parseUtcTimestamp(timestamp: string): Date {
+    const hasTimeZone = /(?:Z|[+-]\d{2}:\d{2})$/i.test(timestamp);
+    return new Date(hasTimeZone ? timestamp : `${timestamp}Z`);
+  }
+
+  formatRequestStatus(status: CareTeamRequestStatus['status']): string {
+    return status.replace('_', ' ').toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
+  }
+
+  careTeamRequestFor(escalationId: number): CareTeamRequestStatus | undefined {
+    return this.careTeamRequests().find((request) => request.escalation_id === escalationId);
+  }
+
+  private loadCareTeamRequests(): void {
+    if (!this.sessionUser) {
+      return;
+    }
+    this.conversationApi.getCareTeamRequests(this.sessionUser.userId).subscribe({
+      next: ({ data }) => this.careTeamRequests.set(data.requests),
+      error: () => this.careTeamRequests.set([]),
+    });
+  }
+
+  private loadHistory(threadId?: number, sendPrompt = false): void {
+    if (!this.sessionUser) {
+      return;
+    }
+
+    this.loading.set(true);
+    this.conversationApi
+      .getHistory(this.sessionUser.userId, threadId)
+      .pipe(finalize(() => this.loading.set(false)))
+      .subscribe({
+        next: (response) => {
+          this.messages.set(response.data.messages);
+          this.threads.set(response.data.threads);
+          this.selectedThreadId.set(response.data.selected_thread_id);
+          this.newSession.set(false);
+          this.emergencyPaused.set(response.data.emergency_chat_paused);
+          if (sendPrompt) {
+            this.sendNavigationPrompt();
+          }
+        },
+        error: () => {
+          this.toast.warning('Conversation history is temporarily unavailable.');
+          if (sendPrompt) {
+            this.sendNavigationPrompt();
+          }
+        },
+      });
+  }
+
+  private navigationPromptFromState(): string | null {
+    const state = history.state as Record<string, unknown> | null;
+    const prompt = state?.['navigatorPrompt'];
+    if (state && typeof prompt === 'string') {
+      const { navigatorPrompt: _navigatorPrompt, ...remainingState } = state;
+      history.replaceState(remainingState, document.title);
+    }
+    return typeof prompt === 'string' && prompt.trim() ? prompt.trim() : null;
+  }
+
+  private sendNavigationPrompt(): void {
+    if (!this.navigatorPrompt || this.emergencyPaused()) {
+      return;
+    }
+
+    this.messageDraft.set(this.navigatorPrompt);
+    this.navigatorPrompt = null;
+    this.sendMessage();
+  }
+
+  private optimisticPatientMessage(text: string): ConversationMessage {
+    return {
+      message_id: -Date.now(),
       sender: 'patient',
-      text: 'I have a question about my care plan.',
-      time: '9:14 AM',
-    },
-    {
-      sender: 'assistant',
-      text: 'I can help explain your care plan in plain language. For urgent symptoms, contact your care team or call 911.',
-      time: '9:15 AM',
-    },
-    {
-      sender: 'patient',
-      text: 'Can you remind me what I should do today?',
-      time: '9:16 AM',
-    },
-    {
-      sender: 'assistant',
-      text: 'Your next check-in is scheduled for today. You can also review your medicines and follow-up tasks in the care plan.',
-      time: '9:16 AM',
-    },
-  ];
+      text,
+      sent_at: new Date().toISOString(),
+      safety_category: null,
+      escalation_id: null,
+      is_guardrail_override: false,
+      source_labels: [],
+    };
+  }
+
+  private extractErrorMessage(error: unknown): string {
+    if (typeof error !== 'object' || error === null) {
+      return 'We could not send your message. Please try again.';
+    }
+
+    const response = error as { error?: { message?: string }; message?: string };
+    return response.error?.message ?? response.message ?? 'We could not send your message. Please try again.';
+  }
 }

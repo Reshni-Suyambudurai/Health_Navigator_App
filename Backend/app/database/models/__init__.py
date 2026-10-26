@@ -15,6 +15,7 @@ from .conversation_thread import ConversationThread
 from .conversation_message import ConversationMessage
 from .clinical_guardrail import ClinicalGuardrail
 from .clinical_guardrail_rule import ClinicalGuardrailRule
+from .clinical_guardrail_matcher import ClinicalGuardrailMatcher
 from .conversation_guardrail_hit import ConversationGuardrailHit
 from .emergency_event import EmergencyEvent
 from .care_team_queue import CareTeamQueue
@@ -50,6 +51,7 @@ __all__ = [
     "ConversationMessage",
     "ClinicalGuardrail",
     "ClinicalGuardrailRule",
+    "ClinicalGuardrailMatcher",
     "ConversationGuardrailHit",
     "EmergencyEvent",
     "CareTeamQueue",

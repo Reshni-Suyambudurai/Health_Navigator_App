@@ -23,7 +23,7 @@
     <a
       *ngFor="let topic of topics"
       class="topic-link"
-      [routerLink]="topic.route ?? roleConfig.route"
+      [routerLink]="topic.route"
       [class.topic-link--active]="!topic.route && activeTopic() === topic.label"
       [routerLinkActive]="topic.route ? 'topic-link--active' : ''"
       [routerLinkActiveOptions]="{ exact: true }"

@@ -44,3 +44,9 @@ class PatientFHIRException(BaseAPIException):
     """Raised for PatientFHIR/Monster DB access failures (503 Service Unavailable)."""
     def __init__(self, message: str = "PatientFHIR data source unavailable", error_code: str = "PATIENT_FHIR_001"):
         super().__init__(message, error_code)
+
+
+class AIProviderException(BaseAPIException):
+    """Raised when the configured LLM provider cannot serve a response."""
+    def __init__(self, message: str = "AI provider unavailable", error_code: str = "LLM_UNAVAILABLE"):
+        super().__init__(message, error_code)

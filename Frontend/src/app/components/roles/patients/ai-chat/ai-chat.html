@@ -2,30 +2,115 @@
   <header class="ai-chat__header">
     <div class="ai-chat__avatar" aria-hidden="true">AI</div>
     <div>
-      
       <h2 id="ai-chat-title">Health Navigator</h2>
-      <span class="ai-chat__status"><span></span> Online</span>
+      <span class="ai-chat__status"><span></span> Online · usually answers right away</span>
     </div>
-    <span class="ai-chat__badge">Preview</span>
+    <div class="ai-chat__tools">
+      <button type="button" (click)="toggleHistory()" [attr.aria-pressed]="historyOpen()">Session</button>
+      <button type="button" (click)="toggleLargeText()" [attr.aria-pressed]="largeText()">{{ largeText() ? 'Standard text' : 'Larger text' }}</button>
+    </div>
   </header>
 
-  <div class="ai-chat__messages" aria-live="polite">
+  <section *ngIf="historyOpen()" class="ai-chat__thread-history" aria-label="Conversation history">
+    <p>Conversation history</p>
+    <button
+      *ngFor="let thread of threads()"
+      type="button"
+      [class.ai-chat__thread--selected]="thread.thread_id === selectedThreadId()"
+      [attr.aria-pressed]="thread.thread_id === selectedThreadId()"
+      (click)="selectThread(thread.thread_id)">
+      <span>{{ formatThreadDate(thread.started_at) }}</span>
+      <small>{{ formatThreadStatus(thread.status) }} · {{ thread.message_count }} messages</small>
+    </button>
+    <span *ngIf="threads().length === 0" class="ai-chat__thread-history-empty">No conversation history yet.</span>
+    <button type="button" class="ai-chat__new-session" (click)="startNewSession()" [disabled]="isResponding()">
+      <span aria-hidden="true">+</span> New session
+    </button>
+  </section>
+
+  <div class="ai-chat__messages" [class.ai-chat__messages--large]="largeText()" aria-live="polite">
     <p class="ai-chat__date">Today</p>
+    <section *ngIf="emergencyPaused()" class="ai-chat__emergency-banner" role="alert" aria-label="Emergency instructions">
+      <strong>Emergency support needed</strong>
+      <span>Call 911 now. Chat is paused for your safety.</span>
+    </section>
+    <p *ngIf="isSelectedThreadReadOnly()" class="ai-chat__history">You are viewing a previous conversation. Select an active thread to continue chatting.</p>
+    <p *ngIf="loading()" class="ai-chat__empty">Loading your conversation...</p>
+    <p *ngIf="!loading() && messages().length === 0" class="ai-chat__empty">Ask a question about your care plan, medicines, or next appointment.</p>
     <article
-      *ngFor="let message of messages"
+      *ngFor="let message of messages()"
       class="ai-chat__message"
       [class.ai-chat__message--patient]="message.sender === 'patient'"
+      [class.ai-chat__message--staff]="message.sender === 'staff'"
+      [class.ai-chat__message--emergency]="message.safety_category === 'emergency'"
+      [class.ai-chat__message--medication-review]="message.safety_category === 'medication' || message.safety_category === 'symptom' || message.safety_category === 'clinical_scope'"
     >
+      <p *ngIf="message.safety_category === 'emergency'" class="ai-chat__safety-label">Emergency response</p>
+      <p *ngIf="message.safety_category === 'medication'" class="ai-chat__safety-label">Medication safety review</p>
+      <p *ngIf="message.safety_category === 'symptom'" class="ai-chat__safety-label">Care-team symptom review</p>
+      <p *ngIf="message.safety_category === 'clinical_scope'" class="ai-chat__safety-label">Care-team clinical review</p>
+      <div class="ai-chat__assistant-heading" *ngIf="message.sender !== 'patient'">
+        <span class="ai-chat__assistant-mark" aria-hidden="true">{{ message.sender === 'staff' ? 'CT' : 'AI' }}</span>
+        <span>{{ message.sender === 'staff' ? 'Care team' : 'Health Navigator' }}</span>
+      </div>
       <div class="ai-chat__bubble">{{ message.text }}</div>
-      <time>{{ message.time }}</time>
+      <div *ngIf="message.sender === 'assistant' && message.source_labels?.length" class="ai-chat__sources" aria-label="Answer sources">
+        <span *ngFor="let source of message.source_labels" class="ai-chat__source">{{ source }}</span>
+      </div>
+      <div *ngIf="message.sender === 'assistant' && message.source_labels?.length && !message.safety_category" class="ai-chat__follow-up">
+        <p>Was this helpful?</p>
+        <div>
+          <button type="button" (click)="acknowledgeAnswer()">Yes, thanks</button>
+          <button type="button" (click)="askForSimplerExplanation()">Explain differently</button>
+        </div>
+      </div>
+      <section *ngIf="message.sender === 'assistant' && message.safety_category === 'emergency'" class="ai-chat__emergency-card" aria-label="Emergency action">
+        <strong>Call 911 now</strong>
+        <p>Do not wait for a chat response or drive yourself if you feel unsafe.</p>
+        <a href="tel:911">Call 911</a>
+      </section>
+      <section *ngIf="message.sender === 'assistant' && message.escalation_id && message.safety_category !== 'emergency'" class="ai-chat__escalation-card" aria-label="Care-team request status">
+        <div class="ai-chat__escalation-card-heading">
+          <span aria-hidden="true">✓</span>
+          <strong>I&apos;ve sent this to your care team</strong>
+        </div>
+        <p>Do not start, stop, skip, or change a medicine until a care-team member has reviewed your request.</p>
+        <ng-container *ngIf="careTeamRequestFor(message.escalation_id) as request; else newlyCreatedRequest">
+          <div class="ai-chat__escalation-card-status">
+            <span>Request #{{ request.escalation_id }}</span>
+            <strong>{{ formatRequestStatus(request.status) }}</strong>
+          </div>
+        </ng-container>
+        <ng-template #newlyCreatedRequest>
+          <div class="ai-chat__escalation-card-status">
+            <span>Request #{{ message.escalation_id }}</span>
+            <strong>Sent for review</strong>
+          </div>
+        </ng-template>
+      </section>
+      <time>{{ formatTime(message.sent_at) }}</time>
     </article>
+    <p *ngIf="isResponding()" class="ai-chat__typing" role="status">Health Navigator is writing...</p>
   </div>
 
-  <footer class="ai-chat__footer">
-    <p class="ai-chat__disclaimer">This assistant provides general information and is not a doctor. It is not for emergencies.</p>
-    <div class="ai-chat__composer" aria-label="Chat input unavailable in preview">
-      <span>Ask about your care plan...</span>
-      <button type="button" disabled aria-label="Send message">&#8593;</button>
+  <footer class="ai-chat__footer" [class.ai-chat__footer--emergency-paused]="emergencyPaused()">
+    <p class="ai-chat__disclaimer">AI assistant · General guidance only. It does not replace your care team and is not for emergencies.</p>
+    <p *ngIf="emergencyPaused()" id="emergency-chat-paused" class="ai-chat__paused-message">Chat is paused for your safety. Please call 911 now.</p>
+    <div class="ai-chat__composer">
+      <label class="sr-only" for="patient-message">Type your question</label>
+      <textarea
+        id="patient-message"
+        [ngModel]="messageDraft()"
+        (ngModelChange)="messageDraft.set($event)"
+        (keydown)="onComposerKeydown($event)"
+        [disabled]="isResponding() || emergencyPaused() || isSelectedThreadReadOnly()"
+        [attr.aria-describedby]="emergencyPaused() ? 'emergency-chat-paused' : null"
+        [placeholder]="emergencyPaused() ? 'Chat is paused for your safety.' : isSelectedThreadReadOnly() ? 'Previous conversations are read-only.' : 'Type your question...'"
+        rows="1"
+      ></textarea>
+      <button type="button" (click)="sendMessage()" [disabled]="!messageDraft().trim() || isResponding() || emergencyPaused() || isSelectedThreadReadOnly()">
+        Send
+      </button>
     </div>
   </footer>
 </section>

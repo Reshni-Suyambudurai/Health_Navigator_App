@@ -41,8 +41,8 @@ export const ROLE_SIDEBAR_CONFIG: RoleSidebarConfig[] = [
     label: 'Patient',
     route: '/patient/dashboard',
     topics: [
-      { label: 'Dashboard' },
-      { label: 'My medicine' },
+     { label: 'Dashboard', route: '/patient/dashboard' },
+      { label: 'My medicine', route: '/patient/medicines' },
       { label: 'Care plan' },
       { label: 'Appointments', route: '/patient/appointments' },
       { label: 'Care Team', route: '/patient/care-team' },
@@ -55,7 +55,7 @@ export const ROLE_SIDEBAR_CONFIG: RoleSidebarConfig[] = [
     route: '/transitional-care-nurse/dashboard',
     topics: [
       { label: 'Dashboard' },
-      { label: 'Escalation queue' },
+      { label: 'Escalation queue', route: '/transitional-care-nurse/escalation-queue' },
       { label: 'My patients', route: '/transitional-care-nurse/my-patient' },
       { label: 'Appointments', route: '/transitional-care-nurse/appointments' },
       { label: 'TCM tracker' },

@@ -143,6 +143,7 @@ async def get_all_users(
     """
     service = UserService(db)
     users = service.get_all_users(skip, limit)
+    user_data = [UserResponse.model_validate(user).model_dump(mode="json") for user in users]
     
     return SuccessResponse(
         status="success",
@@ -218,6 +219,7 @@ async def get_active_users(db: Session = Depends(get_db)):
     """
     service = UserService(db)
     users = service.get_active_users()
+    user_data = [UserResponse.model_validate(user).model_dump(mode="json") for user in users]
     
     return SuccessResponse(
         status="success",
