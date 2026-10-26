@@ -1,7 +1,7 @@
 <main class="event-page">
   <header class="page-header">
     <div><p class="eyebrow">Outreach operations</p><h1>{{ role() === 'admin' ? 'Organization outreach events' : 'Assigned outreach events' }}</h1></div>
-    <button type="button" class="icon-button refresh-button" title="Refresh outreach events" aria-label="Refresh outreach events" (click)="load()" [disabled]="loading()"><span aria-hidden="true">↻</span></button>
+    <app-refresh-button label="Refresh outreach events" [disabled]="loading()" (refresh)="load()" />
   </header>
 
   <form class="filters" (submit)="$event.preventDefault(); applyFilters()">
@@ -24,7 +24,17 @@
         <div class="table-shell"><table><thead><tr><th>Campaign / workflow</th><th>Patient</th><th>Channel</th><th>Status</th><th>Scheduled</th><th>Attempts</th></tr></thead><tbody>
           @for (event of events(); track event.outreach_event_id) { <tr tabindex="0" [class.selected]="selected()?.outreach_event_id === event.outreach_event_id" (click)="selectEvent(event)" (keydown.enter)="selectEvent(event)"><td><strong>{{ event.campaign_name }}</strong><small>{{ event.workflow_name }}</small></td><td>{{ event.patient_name }}<small>#{{ event.patient_id }}</small></td><td>{{ event.channel }}</td><td><span class="status" [class]="'status ' + statusClass(event.delivery_status)">{{ formatLabel(event.delivery_status) }}</span><small>{{ formatLabel(event.event_status) }}</small></td><td>{{ formatDate(event.scheduled_at) }}</td><td>{{ event.attempt_count }}</td></tr> }
         </tbody></table></div>
-        <div class="pagination"><button type="button" class="secondary-button" (click)="previousPage()" [disabled]="page() === 0 || loading()">Previous</button><span>Page {{ page() + 1 }}</span><button type="button" class="secondary-button" (click)="nextPage()" [disabled]="!hasMore() || loading()">Next</button></div>
+        <app-pagination
+          ariaLabel="Outreach event pages"
+          [start]="pageStart"
+          [end]="pageEnd"
+          [total]="count()"
+          [previousDisabled]="page() === 0"
+          [nextDisabled]="!hasMore()"
+          [disabled]="loading()"
+          (previous)="previousPage()"
+          (next)="nextPage()"
+        />
     </section>
   }
 

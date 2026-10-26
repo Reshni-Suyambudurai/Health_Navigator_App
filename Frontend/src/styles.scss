@@ -170,6 +170,56 @@ button {
   background: var(--hover-bg);
 }
 
+.ui-refresh-button {
+  display: grid;
+  flex: 0 0 36px;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0;
+  border-color: var(--border);
+  background: var(--table-bg);
+  color: var(--primary);
+  font-size: 1.1rem;
+}
+
+.ui-refresh-button:hover {
+  background: var(--hover-bg);
+}
+
+.ui-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.ui-pagination__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.ui-pagination .secondary-button {
+  border-color: var(--border);
+  background: var(--table-bg);
+  color: var(--text);
+}
+
+.ui-pagination .secondary-button:hover {
+  background: var(--hover-bg);
+}
+
+@media (max-width: 650px) {
+  .ui-pagination {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
 input,
 textarea,
 select {

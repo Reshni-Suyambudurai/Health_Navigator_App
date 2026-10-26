@@ -10,11 +10,12 @@ import {
   AdminOutreachSummary,
 } from '../../../../../shared/types/navigator/admin-outreach';
 import { ToastState } from '../../../../../shared/ui/toast/toast-state';
+import { RefreshButton } from '../../../../../shared/ui/refresh-button/refresh-button';
 
 @Component({
   selector: 'app-cohort-outreach-panel',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RefreshButton],
   templateUrl: './cohort-outreach-panel.html',
   styleUrl: './cohort-outreach-panel.scss',
 })

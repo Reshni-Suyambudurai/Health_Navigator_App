@@ -4,7 +4,7 @@
   <header class="page-header">
     <div><p class="eyebrow">Campaign configuration</p><h1>Workflow steps</h1><p>Set the sequence, timing, channel, check-in template, and retry behavior for this campaign.</p></div>
     <div class="admin-page-actions">
-      <button type="button" class="admin-refresh-button" title="Refresh workflow steps" aria-label="Refresh workflow steps" [disabled]="loading()" (click)="refresh()"><span aria-hidden="true">↻</span></button>
+      <app-refresh-button label="Refresh workflow steps" [disabled]="loading()" (refresh)="refresh()" />
       <button type="button" (click)="openCreate()" [disabled]="!isEditable() || !templates().length">Add step</button>
     </div>
   </header>

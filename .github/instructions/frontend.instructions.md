@@ -22,6 +22,7 @@ These rules apply to frontend work under `Frontend/`.
 - Use Angular standalone components.
 - Keep components organized by feature under `Frontend/src/app/`.
 - Prefer the existing shared components, services, API clients, types, and layout primitives before adding new abstractions.
+- Reuse the shared refresh and pagination UI components wherever those controls are needed.
 - Keep route-specific behavior in the owning feature component and shared behavior in shared services or UI components.
 - Preserve existing public APIs and route paths unless the feature requires a change.
 

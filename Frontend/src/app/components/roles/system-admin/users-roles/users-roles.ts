@@ -13,6 +13,8 @@ import {
   AdminUserUpdateRequest,
 } from '../../../../shared/types/navigator/admin-user';
 import { Breadcrumb, BreadcrumbItem } from '../../../../shared/ui/breadcrumb/breadcrumb';
+import { Pagination } from '../../../../shared/ui/pagination/pagination';
+import { RefreshButton } from '../../../../shared/ui/refresh-button/refresh-button';
 import { ToastState } from '../../../../shared/ui/toast/toast-state';
 
 interface UserDraft {
@@ -32,7 +34,7 @@ interface StatusChange {
 @Component({
   selector: 'app-system-admin-users-roles',
   standalone: true,
-  imports: [CommonModule, FormsModule, Breadcrumb],
+  imports: [CommonModule, FormsModule, Breadcrumb, Pagination, RefreshButton],
   templateUrl: './users-roles.html',
   styleUrl: './users-roles.scss',
 })

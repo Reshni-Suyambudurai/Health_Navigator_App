@@ -15,12 +15,13 @@ import {
   WorkflowTriggerType,
 } from '../../../../shared/types/navigator/admin-outreach';
 import { Breadcrumb, BreadcrumbItem } from '../../../../shared/ui/breadcrumb/breadcrumb';
+import { RefreshButton } from '../../../../shared/ui/refresh-button/refresh-button';
 import { ToastState } from '../../../../shared/ui/toast/toast-state';
 
 @Component({
   selector: 'app-system-admin-outreach-workflows',
   standalone: true,
-  imports: [CommonModule, FormsModule, Breadcrumb],
+  imports: [CommonModule, FormsModule, Breadcrumb, RefreshButton],
   templateUrl: './outreach-workflows.html',
   styleUrl: './outreach-workflows.scss',
 })

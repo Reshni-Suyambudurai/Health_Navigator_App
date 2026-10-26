@@ -39,5 +39,14 @@
     }
   </section>
 
-  <nav class="pagination" aria-label="Audit trail pages"><span>{{ pageStart }}-{{ pageEnd }} of {{ total() }}</span><div><button type="button" class="secondary-button" (click)="previousPage()" [disabled]="page === 0">Previous</button><button type="button" class="secondary-button" (click)="nextPage()" [disabled]="pageEnd >= total()">Next</button></div></nav>
+  <app-pagination
+    ariaLabel="Audit trail pages"
+    [start]="pageStart"
+    [end]="pageEnd"
+    [total]="total()"
+    [previousDisabled]="page === 0"
+    [nextDisabled]="pageEnd >= total()"
+    (previous)="previousPage()"
+    (next)="nextPage()"
+  />
 </main>

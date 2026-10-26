@@ -8,7 +8,7 @@
       <p>Build versioned patient check-ins and route them through clinical review.</p>
     </div>
     <div class="admin-page-actions">
-      <button type="button" class="admin-refresh-button" title="Refresh templates" aria-label="Refresh templates" [disabled]="loading() || detailLoading()" (click)="refresh()"><span aria-hidden="true">↻</span></button>
+      <app-refresh-button label="Refresh templates" [disabled]="loading() || detailLoading()" (refresh)="refresh()" />
       <button type="button" class="primary-button" (click)="openCreateTemplate()">Add template</button>
     </div>
   </header>

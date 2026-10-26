@@ -7,7 +7,7 @@
       <span>{{ total() }} matching {{ total() === 1 ? 'patient' : 'patients' }}</span>
     </div>
     <div class="header-actions">
-      <button type="button" class="icon-button" title="Refresh patients" aria-label="Refresh patients" [disabled]="loading() || creating()" (click)="refresh()">↻</button>
+      <app-refresh-button label="Refresh patients" [disabled]="loading() || creating()" (refresh)="refresh()" />
       <button type="button" class="icon-button" title="Close patient panel" aria-label="Close patient panel" [disabled]="creating()" (click)="close()">×</button>
     </div>
   </header>

@@ -6,12 +6,13 @@ import { AdminAuditApi } from '../../../../api/navigator/admin-audit.api';
 import { getSessionUser } from '../../../../api/tokenstore';
 import { AdminAuditAction, AdminAuditEntry } from '../../../../shared/types/navigator/audit-trail';
 import { Breadcrumb, BreadcrumbItem } from '../../../../shared/ui/breadcrumb/breadcrumb';
+import { Pagination } from '../../../../shared/ui/pagination/pagination';
 import { ToastState } from '../../../../shared/ui/toast/toast-state';
 
 @Component({
   selector: 'app-system-admin-audit-trail',
   standalone: true,
-  imports: [CommonModule, FormsModule, Breadcrumb],
+  imports: [CommonModule, FormsModule, Breadcrumb, Pagination],
   templateUrl: './audit-trail.html',
   styleUrl: './audit-trail.scss',
 })

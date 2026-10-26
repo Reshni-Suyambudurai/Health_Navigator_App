@@ -13,6 +13,7 @@ import {
   CheckinTemplateType,
 } from '../../../../shared/types/navigator/admin-checkin-template';
 import { Breadcrumb, BreadcrumbItem } from '../../../../shared/ui/breadcrumb/breadcrumb';
+import { RefreshButton } from '../../../../shared/ui/refresh-button/refresh-button';
 import { CheckinTemplatePreview } from './checkin-template-preview/checkin-template-preview';
 import { ToastState } from '../../../../shared/ui/toast/toast-state';
 
@@ -33,7 +34,7 @@ type PendingDeletion =
 @Component({
   selector: 'app-system-admin-checkin-template',
   standalone: true,
-  imports: [CommonModule, FormsModule, Breadcrumb, CheckinTemplatePreview],
+  imports: [CommonModule, FormsModule, Breadcrumb, CheckinTemplatePreview, RefreshButton],
   templateUrl: './checkin-template.html',
   styleUrl: './checkin-template.scss',
 })

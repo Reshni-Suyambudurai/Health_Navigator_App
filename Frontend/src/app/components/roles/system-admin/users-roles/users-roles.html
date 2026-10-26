@@ -8,7 +8,7 @@
       <p>Manage staff access, role assignments, and account status for your organization.</p>
     </div>
     <div class="admin-page-actions">
-      <button type="button" class="admin-refresh-button" title="Refresh users" aria-label="Refresh users" [disabled]="loading()" (click)="refresh()"><span aria-hidden="true">↻</span></button>
+      <app-refresh-button label="Refresh users" [disabled]="loading()" (refresh)="refresh()" />
       <button type="button" (click)="openCreate()">Add user</button>
     </div>
   </header>
@@ -49,7 +49,16 @@
     }
   </section>
 
-  <nav class="pagination" aria-label="User pages"><span>{{ pageStart }}-{{ pageEnd }} of {{ total() }}</span><div><button type="button" class="secondary-button" (click)="previousPage()" [disabled]="page === 0">Previous</button><button type="button" class="secondary-button" (click)="nextPage()" [disabled]="pageEnd >= total()">Next</button></div></nav>
+  <app-pagination
+    ariaLabel="User pages"
+    [start]="pageStart"
+    [end]="pageEnd"
+    [total]="total()"
+    [previousDisabled]="page === 0"
+    [nextDisabled]="pageEnd >= total()"
+    (previous)="previousPage()"
+    (next)="nextPage()"
+  />
 
   @if (dialogMode()) {
     <div class="dialog-backdrop" role="presentation" (click)="closeDialog()">

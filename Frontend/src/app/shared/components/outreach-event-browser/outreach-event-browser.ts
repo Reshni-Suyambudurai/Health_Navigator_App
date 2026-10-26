@@ -12,12 +12,14 @@ import {
   OutreachEventFilters,
   OutreachEventSummary,
 } from '../../types/navigator/outreach';
+import { Pagination } from '../../ui/pagination/pagination';
+import { RefreshButton } from '../../ui/refresh-button/refresh-button';
 import { ToastState } from '../../ui/toast/toast-state';
 
 @Component({
   selector: 'app-outreach-event-browser',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, Pagination, RefreshButton],
   templateUrl: './outreach-event-browser.html',
   styleUrl: './outreach-event-browser.scss',
 })
@@ -40,6 +42,14 @@ export class OutreachEventBrowser implements OnInit {
   readonly eventStatuses: EventStatus[] = ['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'CANCELLED'];
   readonly deliveryStatuses: DeliveryStatus[] = ['PENDING', 'SENT', 'DELIVERED', 'FAILED', 'RESPONDED'];
   filters: OutreachEventFilters = { limit: this.pageSize };
+
+  get pageStart(): number {
+    return this.count() ? this.page() * this.pageSize + 1 : 0;
+  }
+
+  get pageEnd(): number {
+    return Math.min((this.page() + 1) * this.pageSize, this.count());
+  }
 
   ngOnInit(): void {
     this.loadFilterOptions();

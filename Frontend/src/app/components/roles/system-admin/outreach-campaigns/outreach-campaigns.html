@@ -4,7 +4,7 @@
   <header class="page-header">
     <div><p class="eyebrow">Outreach administration</p><h1>Outreach campaigns</h1><p>Define eligible patient cohorts and prepare follow-up workflows for activation.</p></div>
     <div class="admin-page-actions">
-      <button type="button" class="admin-refresh-button" title="Refresh campaigns" aria-label="Refresh campaigns" [disabled]="loading()" (click)="refresh()"><span aria-hidden="true">↻</span></button>
+      <app-refresh-button label="Refresh campaigns" [disabled]="loading()" (refresh)="refresh()" />
       <button type="button" (click)="openCreate()">Add campaign</button>
     </div>
   </header>
@@ -52,7 +52,16 @@
     }
   </section>
 
-  <nav class="pagination" aria-label="Campaign pages"><span>{{ pageStart }}-{{ pageEnd }} of {{ total() }}</span><div><button type="button" class="secondary-button" (click)="previousPage()" [disabled]="page === 0">Previous</button><button type="button" class="secondary-button" (click)="nextPage()" [disabled]="pageEnd >= total()">Next</button></div></nav>
+  <app-pagination
+    ariaLabel="Campaign pages"
+    [start]="pageStart"
+    [end]="pageEnd"
+    [total]="total()"
+    [previousDisabled]="page === 0"
+    [nextDisabled]="pageEnd >= total()"
+    (previous)="previousPage()"
+    (next)="nextPage()"
+  />
 
   @if (dialogMode()) {
     <div class="dialog-backdrop" role="presentation" (click)="closeDialog()">
