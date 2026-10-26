@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { EscalationDetail, EscalationQueueData } from '../../shared/types/navigator/escalation';
+import { EscalationActionType, EscalationDetail, EscalationQueueData } from '../../shared/types/navigator/escalation';
 
 interface ApiSuccessResponse<TData> {
   status: string;
@@ -36,7 +36,7 @@ export class EscalationApi {
     });
   }
 
-  addAction(nurseUserId: number, escalationId: number, actionType: string, notes: string): Observable<ApiSuccessResponse<EscalationDetail>> {
+  addAction(nurseUserId: number, escalationId: number, actionType: EscalationActionType, notes: string): Observable<ApiSuccessResponse<EscalationDetail>> {
     return this.http.post<ApiSuccessResponse<EscalationDetail>>(`${this.baseUrl}/${escalationId}/actions`, {
       nurse_user_id: nurseUserId,
       action_type: actionType,

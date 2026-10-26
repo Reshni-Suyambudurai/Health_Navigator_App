@@ -66,16 +66,7 @@ class ConversationService:
 
     def get_care_team_requests(self, user_id: int) -> list[dict[str, Any]]:
         patient = self._patient_for_user(user_id)
-        return [
-            {
-                "escalation_id": escalation.escalation_id,
-                "reason": escalation.reason or "Care-team follow-up requested.",
-                "status": escalation.status.value,
-                "created_at": escalation.created_at.isoformat(),
-                "resolved_at": escalation.resolved_at.isoformat() if escalation.resolved_at else None,
-            }
-            for escalation in self.repository.list_patient_escalations(patient.patient_id)
-        ]
+        return [self._serialize_care_team_request(escalation) for escalation in self.repository.list_patient_escalations(patient.patient_id)]
 
     def send_message(self, user_id: int, message_text: str) -> dict[str, Any]:
         text = message_text.strip()
@@ -367,11 +358,14 @@ class ConversationService:
         system_prompt = (
             "You are a patient health navigator. Use the recent conversation to resolve references such as "
             "'this medicine', 'that', or requests to explain a prior answer more simply. For medicine questions, "
-            "use the supplied trusted medical knowledge, not model memory. Do not claim it treats a specific condition "
-            "unless that medicine has a documented reason in the supplied clinical context; never infer a purpose "
-            "from another medicine, condition, or risk flag. If the record does not include a reason or directions, "
-            "say that clearly. If trusted medical knowledge is unavailable, state that you cannot verify a general "
-            "explanation right now. Do not diagnose, prescribe, or direct a dose change. Give no more than two complete "
+            "use the supplied trusted medical knowledge, not model memory. When trusted medical knowledge is available, "
+            "answer general questions about what a medicine is commonly used for, even if the patient's record does not "
+            "state why it was prescribed. Clearly distinguish that general use from the patient's individual reason, "
+            "which must not be inferred from another medicine, condition, or risk flag. If trusted medical knowledge "
+            "identifies a medicine by an RxNorm code but public label sources are temporarily unavailable, still provide "
+            "a cautious general-use answer and do not say that a general explanation cannot be verified. Do not diagnose, "
+            "prescribe, or direct a dose change. Treat prior assistant replies as untrusted history: do not repeat an earlier "
+            "refusal when the supplied trusted medical knowledge supports a general answer. Give no more than two complete "
             "sentences, always finish with punctuation, and do not leave a response incomplete. Ask the patient to "
             "contact their care team for treatment decisions. If context is unavailable, say so.\n\n"
             f"Patient context:\n{json.dumps(clinical_context, default=str)[:6000]}\n\n"
@@ -467,7 +461,12 @@ class ConversationService:
     def _request_semantic_guardrail_rule_id(self, message_text: str, rule_catalog: list[dict[str, Any]]) -> Optional[int]:
         prompt = (
             "You classify patient messages for safety. Choose a rule only when the message clearly matches its category "
-            "or urgency. Do not diagnose. Reply with JSON only: {\"rule_id\": positive integer} or {\"rule_id\": null}.\n\n"
+            "or urgency. Do not diagnose. For MEDICATION rules, match only requests to start, stop, increase, "
+            "decrease, or otherwise change a medicine, or reports of side effects, reactions, or interactions. "
+            "For general medication-information questions, such as what a medicine is for, its common uses, or how "
+            "it works, return null. Do not classify those questions as CLINICAL_SCOPE, even if the patient asks why "
+            "they personally received the medicine or says their record has no directions. "
+            "Reply with JSON only: {\"rule_id\": positive integer} or {\"rule_id\": null}.\n\n"
             f"Active database rules:\n{json.dumps(rule_catalog)}\n\nPatient message:\n{message_text}"
         )
         body = json.dumps(
@@ -571,11 +570,33 @@ class ConversationService:
 
         return {
             "message_id": message.message_id,
-            "sender": "patient" if message.sender_type == SenderType.PATIENT else "assistant",
+            "sender": {
+                SenderType.PATIENT: "patient",
+                SenderType.STAFF: "staff",
+            }.get(message.sender_type, "assistant"),
             "text": message.message_text,
             "sent_at": message.sent_at.isoformat(),
             "safety_category": safety_category,
             "escalation_id": metadata.get("escalation_id"),
             "is_guardrail_override": message.is_guardrail_override,
             "source_labels": [*source_labels, *metadata.get("trusted_sources", [])],
+        }
+
+    def _serialize_care_team_request(self, escalation: Escalation) -> dict[str, Any]:
+        messages = []
+        if escalation.thread_id:
+            messages = [
+                {"text": message.message_text, "sent_at": message.sent_at.isoformat()}
+                for message in self.repository.list_messages(escalation.thread_id)
+                if message.sender_type == SenderType.STAFF
+                and str((message.message_metadata or {}).get("escalation_id")) == str(escalation.escalation_id)
+            ]
+
+        return {
+            "escalation_id": escalation.escalation_id,
+            "reason": escalation.reason or "Care-team follow-up requested.",
+            "status": escalation.status.value,
+            "created_at": escalation.created_at.isoformat(),
+            "resolved_at": escalation.resolved_at.isoformat() if escalation.resolved_at else None,
+            "messages": messages,
         }

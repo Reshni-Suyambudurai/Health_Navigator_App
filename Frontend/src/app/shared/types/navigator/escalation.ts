@@ -1,4 +1,5 @@
 export type EscalationStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
+export type EscalationActionType = 'MESSAGE_SENT' | 'CALL_PLACED' | 'TASK_CREATED';
 
 export interface EscalationSummary {
   escalation_id: number;
@@ -23,6 +24,10 @@ export interface EscalationAction {
 export interface EscalationDetail extends EscalationSummary {
   patient_summary: string | null;
   actions: EscalationAction[];
+  is_assigned_to_current_nurse: boolean;
+  can_claim: boolean;
+  can_act: boolean;
+  is_emergency: boolean;
 }
 
 export interface EscalationQueueData {

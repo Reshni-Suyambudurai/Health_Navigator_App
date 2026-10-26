@@ -141,7 +141,6 @@
       <section class="patient-home">
         <div class="patient-home__safety-notice" role="note">
           <span><strong>You are chatting with an AI assistant,</strong> not a doctor or nurse. It is not for emergencies. Call 911 if you have chest pain or trouble breathing.</span>
-          <a *ngIf="careTeam()[0]?.phone" [href]="'tel:' + careTeam()[0].phone">Want a person? Call your care team</a>
         </div>
 
         <div class="patient-home__layout">
@@ -150,22 +149,24 @@
           </main>
 
           <aside class="care-plan-sidebar" aria-label="Your care plan">
-            <section class="care-plan-summary">
-              <p class="care-plan-sidebar__eyebrow">YOUR CARE PLAN</p>
-              <h2>{{ carePlanTitle }}</h2>
-              <p>{{ carePlanSubtitle }}</p>
-              <div class="care-plan-progress" aria-label="Care plan progress"><span [style.width.%]="carePlanProgress"></span></div>
-
-              <div class="care-plan-tasks" *ngIf="carePlanTasks.length > 0; else noPlanTasks">
-                <div class="care-plan-task" *ngFor="let task of carePlanTasks">
-                  <span class="care-plan-task__state" [class.care-plan-task__state--complete]="task.completed" aria-hidden="true">{{ task.completed ? '✓' : '!' }}</span>
-                  <span><strong>{{ task.title }}</strong><small>{{ task.detail }}</small></span>
+            <section class="care-plan-section care-plan-section--status">
+              <header><p>CARE-TEAM REQUESTS</p><span>{{ careTeamRequests().length || '' }}</span></header>
+              <ng-container *ngIf="careTeamRequests().length; else noCareRequest">
+                <div class="care-request-thread" *ngFor="let request of careTeamRequests()">
+                  <div class="care-request-thread__header">
+                    <span>Request #{{ request.escalation_id }}</span>
+                    <strong [class.care-request--open]="request.status !== 'RESOLVED' && request.status !== 'CLOSED'">Status: {{ request.status.replace('_', ' ') }}</strong>
+                  </div>
+                  <p class="care-request-thread__question"><span>You asked</span>{{ request.reason }}</p>
+                  <div class="care-request-thread__reply" *ngFor="let message of request.messages">
+                    <span>Care team</span>
+                    <p>{{ message.text }}</p>
+                    <time>{{ formatRequestMessageTime(message.sent_at) }}</time>
+                  </div>
+                  <p class="care-plan-empty" *ngIf="!request.messages.length">Your care team has your request.</p>
                 </div>
-              </div>
-              <ng-template #noPlanTasks>
-                <p class="care-plan-empty" *ngIf="carePlanLoading()">Loading care plan...</p>
-                <p class="care-plan-empty" *ngIf="!carePlanLoading()">Your active care-plan tasks will appear here.</p>
-              </ng-template>
+              </ng-container>
+              <ng-template #noCareRequest><p class="care-plan-empty">Use the chat to ask your care team for follow-up.</p></ng-template>
             </section>
 
             <section class="care-plan-section">
@@ -177,12 +178,6 @@
                 </div>
               </div>
               <ng-template #noMedicines><p class="care-plan-empty">No active medicines are available.</p></ng-template>
-            </section>
-
-            <section class="care-plan-section care-plan-section--status">
-              <header><p>CARE-TEAM REQUEST</p><span [class.care-request--open]="latestCareTeamRequest && latestCareTeamRequest.status !== 'RESOLVED' && latestCareTeamRequest.status !== 'CLOSED'">{{ careTeamRequestLabel }}</span></header>
-              <p class="care-plan-empty" *ngIf="latestCareTeamRequest; else noCareRequest">Your most recent request is visible to your care team.</p>
-              <ng-template #noCareRequest><p class="care-plan-empty">Use the chat to ask your care team for follow-up.</p></ng-template>
             </section>
 
             <section class="care-plan-section care-plan-section--team">

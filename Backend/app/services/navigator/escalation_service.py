@@ -8,6 +8,7 @@ from app.core.exceptions import AuthorizationException, ConflictException, NotFo
 from app.database.models.escalation import Escalation, EscalationStatus
 from app.database.models.escalation_action import EscalationAction, EscalationActionType
 from app.database.models.escalation_assignment import EscalationAssignment
+from app.database.models.conversation_message import ConversationMessage, SenderType
 from app.database.models.role import RoleName
 from app.database.repositories.navigator.escalation_repository import EscalationRepository
 
@@ -25,10 +26,22 @@ class EscalationService:
         return [self._serialize_summary(escalation) for escalation in escalations]
 
     def get_detail(self, nurse_user_id: int, escalation_id: int) -> dict:
+        nurse = self._nurse_context(nurse_user_id)
         escalation = self._authorized_escalation(nurse_user_id, escalation_id)
         detail = self._serialize_summary(escalation)
         detail["patient_summary"] = escalation.patient_summary
         detail["actions"] = [self._serialize_action(action) for action in self.repository.list_actions(escalation_id)]
+        assignment = self.repository.find_active_assignment(escalation_id)
+        is_assigned_to_current_nurse = bool(assignment and assignment.assigned_to_staff_id == nurse["staff_id"])
+        is_active = escalation.status not in {EscalationStatus.RESOLVED, EscalationStatus.CLOSED}
+        detail.update(
+            {
+                "is_assigned_to_current_nurse": is_assigned_to_current_nurse,
+                "can_claim": escalation.status == EscalationStatus.OPEN and assignment is None,
+                "can_act": is_active and is_assigned_to_current_nurse,
+                "is_emergency": escalation.escalation_type.value == "EMERGENCY",
+            }
+        )
         return detail
 
     def claim(self, nurse_user_id: int, escalation_id: int) -> dict:
@@ -58,7 +71,8 @@ class EscalationService:
         return self.get_detail(nurse_user_id, escalation_id)
 
     def add_action(self, nurse_user_id: int, escalation_id: int, action_type: str, notes: Optional[str]) -> dict:
-        self._authorized_escalation(nurse_user_id, escalation_id)
+        escalation = self._authorized_escalation(nurse_user_id, escalation_id)
+        self._require_active_assignment(escalation, nurse_user_id)
         try:
             parsed_action_type = EscalationActionType(action_type)
         except ValueError as exc:
@@ -66,6 +80,20 @@ class EscalationService:
 
         if parsed_action_type in {EscalationActionType.ASSIGN, EscalationActionType.RESOLVED}:
             raise ValidationException("Use the claim or resolve endpoint for this action.", "INVALID_ESCALATION_ACTION")
+        if parsed_action_type == EscalationActionType.MESSAGE_SENT:
+            if not notes or not notes.strip():
+                raise ValidationException("A patient message is required.", "PATIENT_MESSAGE_REQUIRED")
+            self.repository.add_conversation_message(
+                ConversationMessage(
+                    thread_id=escalation.thread_id,
+                    sender_type=SenderType.STAFF,
+                    sender_user_id=nurse_user_id,
+                    message_text=notes.strip(),
+                    message_intent="care_team_message",
+                    message_metadata={"escalation_id": escalation_id},
+                    sent_at=self.repository.now(),
+                )
+            )
 
         self._add_action(escalation_id, nurse_user_id, parsed_action_type, notes)
         self._commit()
@@ -75,6 +103,7 @@ class EscalationService:
         escalation = self._authorized_escalation(nurse_user_id, escalation_id)
         if escalation.status in {EscalationStatus.RESOLVED, EscalationStatus.CLOSED}:
             raise ConflictException("This escalation is already resolved.", "ESCALATION_ALREADY_RESOLVED")
+        self._require_active_assignment(escalation, nurse_user_id)
 
         escalation.status = EscalationStatus.RESOLVED
         escalation.resolved_at = self.repository.now()
@@ -99,6 +128,12 @@ class EscalationService:
         if not self.repository.has_active_queue_membership(escalation.queue_id, nurse["staff_id"]):
             raise AuthorizationException("You do not have access to this escalation.", "ESCALATION_ACCESS_DENIED")
         return escalation
+
+    def _require_active_assignment(self, escalation: Escalation, nurse_user_id: int) -> None:
+        nurse = self._nurse_context(nurse_user_id)
+        assignment = self.repository.find_active_assignment(escalation.escalation_id)
+        if not assignment or assignment.assigned_to_staff_id != nurse["staff_id"]:
+            raise AuthorizationException("Claim this escalation before documenting actions or resolving it.", "ESCALATION_ASSIGNMENT_REQUIRED")
 
     def _serialize_summary(self, escalation: Escalation) -> dict:
         patient = self.repository.find_patient(escalation.patient_id)

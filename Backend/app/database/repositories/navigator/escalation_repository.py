@@ -9,6 +9,7 @@ from app.database.models.care_team_queue import CareTeamQueue
 from app.database.models.escalation import Escalation, EscalationStatus
 from app.database.models.escalation_action import EscalationAction
 from app.database.models.escalation_assignment import EscalationAssignment
+from app.database.models.conversation_message import ConversationMessage
 from app.database.models.patient_profile import PatientProfile
 from app.database.models.queue_membership import QueueMembership
 from app.database.models.staff_profile import StaffProfile
@@ -86,6 +87,11 @@ class EscalationRepository:
         self.db.add(action)
         self.db.flush()
         return action
+
+    def add_conversation_message(self, message: ConversationMessage) -> ConversationMessage:
+        self.db.add(message)
+        self.db.flush()
+        return message
 
     def commit(self) -> None:
         self.db.commit()

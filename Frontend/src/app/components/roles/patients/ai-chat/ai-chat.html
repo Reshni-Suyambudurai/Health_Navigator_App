@@ -18,19 +18,13 @@
       <span>Call 911 now. Chat is paused for your safety.</span>
     </section>
     <p *ngIf="historyOpen()" class="ai-chat__history">Conversation history is available in this chat while you are signed in.</p>
-    <section *ngIf="careTeamRequests().length" class="ai-chat__requests" aria-label="Care-team request status">
-      <h3>Care-team requests</h3>
-      <article *ngFor="let request of careTeamRequests()">
-        <div><strong>Request #{{ request.escalation_id }}</strong><span [class.resolved]="request.status === 'RESOLVED' || request.status === 'CLOSED'">{{ formatRequestStatus(request.status) }}</span></div>
-        <p>{{ request.reason }}</p>
-      </article>
-    </section>
     <p *ngIf="loading()" class="ai-chat__empty">Loading your conversation...</p>
     <p *ngIf="!loading() && messages().length === 0" class="ai-chat__empty">Ask a question about your care plan, medicines, or next appointment.</p>
     <article
       *ngFor="let message of messages()"
       class="ai-chat__message"
       [class.ai-chat__message--patient]="message.sender === 'patient'"
+      [class.ai-chat__message--staff]="message.sender === 'staff'"
       [class.ai-chat__message--emergency]="message.safety_category === 'emergency'"
       [class.ai-chat__message--medication-review]="message.safety_category === 'medication' || message.safety_category === 'symptom' || message.safety_category === 'clinical_scope'"
     >
@@ -38,9 +32,9 @@
       <p *ngIf="message.safety_category === 'medication'" class="ai-chat__safety-label">Medication safety review</p>
       <p *ngIf="message.safety_category === 'symptom'" class="ai-chat__safety-label">Care-team symptom review</p>
       <p *ngIf="message.safety_category === 'clinical_scope'" class="ai-chat__safety-label">Care-team clinical review</p>
-      <div class="ai-chat__assistant-heading" *ngIf="message.sender === 'assistant'">
-        <span class="ai-chat__assistant-mark" aria-hidden="true">AI</span>
-        <span>Health Navigator</span>
+      <div class="ai-chat__assistant-heading" *ngIf="message.sender !== 'patient'">
+        <span class="ai-chat__assistant-mark" aria-hidden="true">{{ message.sender === 'staff' ? 'CT' : 'AI' }}</span>
+        <span>{{ message.sender === 'staff' ? 'Care team' : 'Health Navigator' }}</span>
       </div>
       <div class="ai-chat__bubble">{{ message.text }}</div>
       <div *ngIf="message.sender === 'assistant' && message.source_labels?.length" class="ai-chat__sources" aria-label="Answer sources">

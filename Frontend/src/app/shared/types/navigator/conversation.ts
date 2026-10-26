@@ -2,7 +2,7 @@ export type ConversationSafetyCategory = 'emergency' | 'medication' | 'symptom' 
 
 export interface ConversationMessage {
   message_id: number;
-  sender: 'patient' | 'assistant';
+  sender: 'patient' | 'assistant' | 'staff';
   text: string;
   sent_at: string;
   safety_category: ConversationSafetyCategory;
@@ -29,4 +29,10 @@ export interface CareTeamRequestStatus {
   status: 'OPEN' | 'ASSIGNED' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
   created_at: string;
   resolved_at: string | null;
+  messages: CareTeamRequestMessage[];
+}
+
+export interface CareTeamRequestMessage {
+  text: string;
+  sent_at: string;
 }

@@ -824,6 +824,93 @@
   color: var(--primary-dark);
 }
 
+.care-plan-section--status {
+  max-height: 19rem;
+  overflow-y: auto;
+  scrollbar-color: var(--border) transparent;
+  scrollbar-width: thin;
+}
+
+.care-plan-section--status header {
+  position: sticky;
+  z-index: 1;
+  top: -1.25rem;
+  padding: 1.25rem 0 0.6rem;
+  background: var(--surface-strong);
+}
+
+.care-request-thread {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border);
+}
+
+.care-request-thread:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.care-request-thread__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.care-request-thread__header strong {
+  color: var(--muted);
+  font-size: 0.66rem;
+}
+
+.care-request-thread__header strong.care-request--open {
+  color: var(--primary-dark);
+}
+
+.care-request-thread__question,
+.care-request-thread__reply {
+  margin: 0;
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
+.care-request-thread__question {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.care-request-thread__question span,
+.care-request-thread__reply > span,
+.care-request-thread__reply time {
+  display: block;
+  color: var(--muted);
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
+.care-request-thread__question span {
+  margin-bottom: 0.25rem;
+}
+
+.care-request-thread__reply {
+  border-left: 4px solid var(--status-positive-text);
+  padding: 0.5rem 0.55rem;
+  background: var(--status-positive-bg);
+}
+
+.care-request-thread__reply > span {
+  color: var(--status-positive-text);
+}
+
+.care-request-thread__reply p {
+  margin: 0.3rem 0;
+  color: var(--text);
+}
+
 .care-plan-section--team .care-team-list {
   gap: 0.7rem;
   padding-top: 0.75rem;

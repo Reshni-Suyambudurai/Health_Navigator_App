@@ -335,6 +335,15 @@
   border-radius: 15px 4px 15px 15px;
 }
 
+.ai-chat__message--staff .ai-chat__bubble {
+  border-color: var(--status-positive-text);
+  background: var(--status-positive-bg);
+}
+
+.ai-chat__message--staff .ai-chat__assistant-mark {
+  background: var(--status-positive-text);
+}
+
 .ai-chat__assistant-heading {
   display: inline-flex;
   align-items: center;

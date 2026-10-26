@@ -108,7 +108,17 @@ export class AiChat implements OnInit {
   }
 
   formatTime(sentAt: string): string {
-    return new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' }).format(new Date(sentAt));
+    return new Intl.DateTimeFormat('en-IN', {
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZone: 'Asia/Kolkata',
+      timeZoneName: 'short',
+    }).format(this.parseUtcTimestamp(sentAt));
+  }
+
+  private parseUtcTimestamp(timestamp: string): Date {
+    const hasTimeZone = /(?:Z|[+-]\d{2}:\d{2})$/i.test(timestamp);
+    return new Date(hasTimeZone ? timestamp : `${timestamp}Z`);
   }
 
   formatRequestStatus(status: CareTeamRequestStatus['status']): string {

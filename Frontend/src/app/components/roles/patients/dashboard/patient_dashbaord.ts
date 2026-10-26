@@ -135,6 +135,20 @@ export class PatientDashbaord implements OnInit {
       return status.replace('_', ' ').toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
     }
 
+    formatRequestMessageTime(sentAt: string): string {
+      return new Intl.DateTimeFormat('en-IN', {
+        hour: 'numeric',
+        minute: '2-digit',
+        timeZone: 'Asia/Kolkata',
+        timeZoneName: 'short',
+      }).format(this.parseUtcTimestamp(sentAt));
+    }
+
+    private parseUtcTimestamp(timestamp: string): Date {
+      const hasTimeZone = /(?:Z|[+-]\d{2}:\d{2})$/i.test(timestamp);
+      return new Date(hasTimeZone ? timestamp : `${timestamp}Z`);
+    }
+
     toggleCareTeamPhone(member: CareTeamMember): void {
       this.visibleCareTeamPhoneId.update((visibleMemberId) =>
         visibleMemberId === member.user_id ? null : member.user_id
