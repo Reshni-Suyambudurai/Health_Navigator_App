@@ -220,9 +220,28 @@ class AdminCheckinTemplateService:
         items = self.repository.list_pending_reviews(reviewer.organization_id)
         return {"reviews": [self._serialize_review(review, template, True) for review, template in items]}
 
+    def list_reviews(self, actor_user_id: int, status: str | None = None, organization_id: int | None = None) -> dict[str, Any]:
+        reviewer_user = self._require_role(actor_user_id, RoleName.CLINICAL_GOVERNANCE)
+        selected_organization_id = organization_id or reviewer_user.organization_id
+        if not self.repository.organization_exists(selected_organization_id):
+            raise NotFoundException("Organization not found", "ORGANIZATION_NOT_FOUND")
+        review_status = None if not status or status == "ALL" else self._enum(CheckinTemplateReviewStatus, status, "review status")
+        items = self.repository.list_reviews(selected_organization_id, review_status)
+        reviews = []
+        for review, template, submitter_first, submitter_last, reviewer_first, reviewer_last in items:
+            item = self._serialize_review(review, template, True)
+            item["submitted_by_name"] = f"{submitter_first} {submitter_last}"
+            item["reviewed_by_name"] = f"{reviewer_first} {reviewer_last}" if reviewer_first else None
+            reviews.append(item)
+        organizations = [
+            {"organization_id": organization.organization_id, "organization_name": organization.organization_name}
+            for organization in self.repository.list_active_organizations()
+        ]
+        return {"reviews": reviews, "organizations": organizations, "selected_organization_id": selected_organization_id}
+
     def get_review(self, actor_user_id: int, review_id: int) -> dict[str, Any]:
         reviewer = self._require_role(actor_user_id, RoleName.CLINICAL_GOVERNANCE)
-        result = self.repository.find_review(review_id, reviewer.organization_id)
+        result = self.repository.find_review(review_id)
         if result is None:
             raise NotFoundException("Template review not found", "TEMPLATE_REVIEW_NOT_FOUND")
         review, template = result
@@ -236,7 +255,7 @@ class AdminCheckinTemplateService:
         review_notes: str,
     ) -> dict[str, Any]:
         reviewer = self._require_role(actor_user_id, RoleName.CLINICAL_GOVERNANCE)
-        result = self.repository.find_review(review_id, reviewer.organization_id)
+        result = self.repository.find_review(review_id)
         if result is None:
             raise NotFoundException("Template review not found", "TEMPLATE_REVIEW_NOT_FOUND")
         review, template = result
@@ -249,7 +268,7 @@ class AdminCheckinTemplateService:
         decision_label = "approved" if approved else "changes requested"
         notifications = self.notifications.prepare_for_role(
             sender_user_id=reviewer.user_id,
-            organization_id=reviewer.organization_id,
+            organization_id=template.organization_id,
             role_name=RoleName.SYSTEM_ADMIN,
             title=f"Check-in template {decision_label}",
             message=(

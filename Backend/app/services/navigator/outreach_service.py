@@ -85,8 +85,8 @@ class OutreachService:
     def create_workflow(self, campaign_id: int, data: dict[str, Any]) -> dict[str, Any]:
         self._require_campaign(campaign_id)
         template_id = data.get("checkin_template_id")
-        if template_id and not self.repository.get_template(template_id):
-            raise NotFoundException("Check-in template not found", "CHECKIN_TEMPLATE_NOT_FOUND")
+        if template_id and not self.repository.get_approved_active_template(template_id):
+            raise ValidationException("Only an approved active check-in template can be assigned", "TEMPLATE_NOT_APPROVED")
         payload = dict(data)
         payload["channel"] = self._enum(OutreachChannel, data["channel"], "outreach channel")
         payload["trigger_type"] = self._enum(TriggerType, data["trigger_type"], "trigger type")
@@ -99,8 +99,8 @@ class OutreachService:
         if not workflow:
             raise NotFoundException("Workflow not found", "WORKFLOW_NOT_FOUND")
         updates = {key: value for key, value in data.items() if key in self.WORKFLOW_FIELDS}
-        if updates.get("checkin_template_id") and not self.repository.get_template(updates["checkin_template_id"]):
-            raise NotFoundException("Check-in template not found", "CHECKIN_TEMPLATE_NOT_FOUND")
+        if updates.get("checkin_template_id") and not self.repository.get_approved_active_template(updates["checkin_template_id"]):
+            raise ValidationException("Only an approved active check-in template can be assigned", "TEMPLATE_NOT_APPROVED")
         if "channel" in updates:
             updates["channel"] = self._enum(OutreachChannel, updates["channel"], "outreach channel")
         if "trigger_type" in updates:
@@ -119,7 +119,7 @@ class OutreachService:
         self._require_user(user_id)
         payload = dict(data)
         payload["template_type"] = self._enum(CheckinTemplateType, data["template_type"], "template type")
-        payload["status"] = self._enum(CheckinTemplateStatus, data.get("status", "DRAFT"), "template status")
+        payload["status"] = CheckinTemplateStatus.DRAFT
         return self._save(CheckinTemplate(**payload, created_by_user_id=user_id))
 
     def list_questions(self, template_id: int) -> list[dict[str, Any]]:

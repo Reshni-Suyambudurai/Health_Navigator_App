@@ -8,8 +8,12 @@ h1 { font-size: 1.7rem; }
 .page-header div > p:last-child { margin-top: 0.3rem; color: var(--muted); font-size: 0.82rem; }
 .eyebrow { margin-bottom: 0.25rem; color: var(--primary); font-size: 0.7rem; font-weight: 800; letter-spacing: 0; text-transform: uppercase; }
 .queue-actions { display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem; }
+.organization-filter { display: flex; align-items: center; gap: 0.4rem; }
+.organization-filter span { color: var(--muted); font-size: 0.68rem; font-weight: 800; }
+.organization-filter select { min-width: 12rem; min-height: 2rem; padding: 0.3rem 1.8rem 0.3rem 0.5rem; border: 1px solid var(--border); border-radius: 5px; background: var(--table-bg); color: var(--text); font-size: 0.7rem; }
 .queue-refresh-button { display: grid; place-items: center; width: 2rem; height: 2rem; min-height: 0; padding: 0; border: 1px solid var(--border); border-radius: 50%; background: var(--table-bg); color: var(--primary); font-size: 1rem; }
 .queue-refresh-button:hover { background: var(--hover-bg); box-shadow: none; }
+.queue-refresh-button ng-icon { width: 1rem; height: 1rem; }
 .queue-count { border: 1px solid var(--border); border-radius: 5px; padding: 0.4rem 0.6rem; color: var(--primary); font-size: 0.73rem; font-weight: 800; }
 .page-error { padding: 0.75rem 0.9rem; border-left: 3px solid var(--status-critical-text); background: var(--status-critical-bg); color: var(--status-critical-text); }
 
@@ -18,12 +22,19 @@ h1 { font-size: 1.7rem; }
 .queue > header { padding: 0.9rem; border-bottom: 1px solid var(--border); }
 .queue > header h2 { font-size: 0.88rem; }
 .queue > header p { margin-top: 0.2rem; color: var(--muted); font-size: 0.7rem; }
+.review-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 0.25rem; margin-top: 0.65rem; padding: 0.18rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); }
+.review-tabs button { min-height: 29px; padding: 0.28rem; border: 0; border-radius: 5px; background: transparent; color: var(--muted); font-size: 0.68rem; }
+.review-tabs button.active { background: var(--table-bg); color: var(--text); box-shadow: 0 1px 4px rgba(17,38,56,.12); }
+.review-tabs span { margin-left: 0.2rem; color: var(--primary); }
 .queue-list { display: grid; max-height: 52rem; overflow-y: auto; }
 .queue-row { display: grid; gap: 0.3rem; width: 100%; padding: 0.9rem; border: 0; border-bottom: 1px solid var(--table-row-border); background: transparent; color: var(--text); text-align: left; cursor: pointer; }
 .queue-row:hover, .queue-row.selected { background: var(--hover-bg); }
 .queue-row.selected { border-left: 3px solid var(--primary); padding-left: calc(0.9rem - 3px); }
 .queue-row strong { font-size: 0.8rem; line-height: 1.3; }
 .queue-row span, .queue-row small { color: var(--muted); font-size: 0.68rem; }
+.decision-dot { display: inline-block; width: 6px; height: 6px; margin-right: 0.3rem; border-radius: 50%; background: var(--status-warning-text); }
+.decision-dot.approved { background: var(--status-positive-text); }
+.decision-dot.rejected { background: var(--status-critical-text); }
 .state, .empty-queue { padding: 2rem 1rem; color: var(--muted); text-align: center; }
 .empty-queue { display: grid; gap: 0.3rem; }
 .empty-queue strong { color: var(--text); font-size: 0.85rem; }
@@ -36,6 +47,8 @@ h1 { font-size: 1.7rem; }
 .title-line span { border: 1px solid var(--border); border-radius: 4px; padding: 0.15rem 0.38rem; color: var(--muted); font-size: 0.68rem; font-weight: 800; }
 .detail-header p { margin-top: 0.35rem; color: var(--muted); font-size: 0.8rem; }
 .pending-badge { border-radius: 4px; padding: 0.28rem 0.48rem; background: var(--status-warning-bg); color: var(--status-warning-text); font-size: 0.68rem; font-weight: 800; white-space: nowrap; }
+.pending-badge.approved { background: var(--status-positive-bg); color: var(--status-positive-text); }
+.pending-badge.rejected { background: var(--status-critical-bg); color: var(--status-critical-text); }
 .review-metadata { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0; border-block: 1px solid var(--border); }
 .review-metadata div { padding: 0.7rem; border-right: 1px solid var(--border); }
 .review-metadata div:last-child { border-right: 0; }
@@ -52,8 +65,18 @@ dd { margin: 0.25rem 0 0; font-size: 0.76rem; font-weight: 700; overflow-wrap: a
 textarea { width: 100%; border: 1px solid var(--border); border-radius: 5px; background: var(--surface-strong); color: var(--text); padding: 0.65rem; resize: vertical; }
 .decision-actions { display: flex; justify-content: flex-end; gap: 0.55rem; }
 .reject-button, .approve-button { border-radius: 5px; padding: 0.58rem 0.82rem; cursor: pointer; font-weight: 800; }
+.reject-button, .approve-button { display: inline-flex; align-items: center; justify-content: center; gap: 0.3rem; }
+.reject-button ng-icon, .approve-button ng-icon { width: 14px; height: 14px; }
 .reject-button { border: 1px solid var(--status-critical-text); background: transparent; color: var(--status-critical-text); }
 .approve-button { border: 1px solid var(--status-positive-text); background: var(--status-positive-text); color: #fff; }
+.previous-decision { display: grid; gap: 0.65rem; padding: 0.85rem; border: 1px solid var(--status-positive-text); border-radius: 7px; background: var(--status-positive-bg); }
+.previous-decision.rejected { border-color: var(--status-critical-text); background: var(--status-critical-bg); }
+.previous-decision > div:first-child { display: flex; align-items: center; gap: 0.4rem; }
+.previous-decision ng-icon { width: 17px; height: 17px; color: var(--status-positive-text); }
+.previous-decision.rejected ng-icon { color: var(--status-critical-text); }
+.previous-decision h3 { font-size: 0.82rem; }
+.previous-decision dl { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); margin: 0; }
+.previous-decision p { color: var(--muted); font-size: 0.75rem; }
 button:disabled { cursor: not-allowed; opacity: 0.5; }
 .empty-detail { display: grid; place-items: center; align-content: center; min-height: 30rem; color: var(--muted); text-align: center; }
 .empty-detail p { margin-top: 0.35rem; font-size: 0.8rem; }
@@ -74,4 +97,6 @@ button:disabled { cursor: not-allowed; opacity: 0.5; }
   .review-metadata div { border-right: 0; border-bottom: 1px solid var(--border); }
   .review-metadata div:last-child { border-bottom: 0; }
   .decision-actions { flex-direction: column-reverse; }
+  .queue-actions, .organization-filter { align-items: stretch; flex-direction: column; width: 100%; }
+  .organization-filter select { width: 100%; }
 }

@@ -28,6 +28,8 @@ import { SystemAdminOutreachEvents } from './components/roles/system-admin/outre
 import { CareManagerOutreachEvents } from './components/roles/care-manager/outreach-events/outreach-events';
 import { SystemAdminCheckinTemplate } from './components/roles/system-admin/checkin-template/checkin-template';
 import { ClinicalCheckinTemplateReviews } from './components/roles/clinical-governance/checkin-template-reviews/checkin-template-reviews';
+import { SafetyRules } from './components/roles/clinical-governance/safety-rules/safety-rules';
+import { SafetyEvaluations } from './components/roles/clinical-governance/safety-evaluations/safety-evaluations';
 import { authGuard } from './guards/guards/auth.guard';
 import { roleAccessGuard } from './guards/guards/role-access.guard';
 
@@ -43,6 +45,9 @@ export const routes: Routes = [
       { path: '', redirectTo: 'clinical-governance/dashboard', pathMatch: 'full' },
       { path: 'clinical-governance/dashboard', component: ClinicalGovernanceDashbaord },
       { path: 'clinical-governance/checkin-template-reviews', component: ClinicalCheckinTemplateReviews },
+      { path: 'clinical-governance/checkin-template', component: ClinicalCheckinTemplateReviews },
+      { path: 'clinical-governance/safety-rules', component: SafetyRules },
+      { path: 'clinical-governance/safety-evaluations', component: SafetyEvaluations },
       { path: 'care-manager/dashboard', component: CareManagerDashbaord },
       { path: 'care-manager/outreach-events', component: CareManagerOutreachEvents },
       { path: 'population-health-manager/dashboard', component: PopulationHealthManagerDashbaord },

@@ -7,7 +7,8 @@ from app.database.models.appointment_action import AppointmentAction
 from app.database.models.checkin_question import CheckinQuestion
 from app.database.models.checkin_response import CheckinResponse
 from app.database.models.checkin_session import CheckinSession
-from app.database.models.checkin_template import CheckinTemplate
+from app.database.models.checkin_template import CheckinTemplate, CheckinTemplateStatus
+from app.database.models.checkin_template_review import CheckinTemplateReview, CheckinTemplateReviewStatus
 from app.database.models.follow_up_task import FollowUpTask
 from app.database.models.organization import Organization
 from app.database.models.outreach_campaign import OutreachCampaign
@@ -54,6 +55,18 @@ class OutreachRepository:
 
     def get_template(self, template_id: int) -> CheckinTemplate | None:
         return self.db.query(CheckinTemplate).filter_by(checkin_template_id=template_id).one_or_none()
+
+    def get_approved_active_template(self, template_id: int) -> CheckinTemplate | None:
+        return (
+            self.db.query(CheckinTemplate)
+            .join(CheckinTemplateReview, CheckinTemplateReview.checkin_template_id == CheckinTemplate.checkin_template_id)
+            .filter(
+                CheckinTemplate.checkin_template_id == template_id,
+                CheckinTemplate.status == CheckinTemplateStatus.ACTIVE,
+                CheckinTemplateReview.status == CheckinTemplateReviewStatus.APPROVED,
+            )
+            .one_or_none()
+        )
 
     def list_questions(self, template_id: int) -> list[CheckinQuestion]:
         return (

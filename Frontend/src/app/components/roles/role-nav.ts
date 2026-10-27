@@ -95,9 +95,9 @@ export const ROLE_SIDEBAR_CONFIG: RoleSidebarConfig[] = [
     route: '/clinical-governance/dashboard',
     topics: [
       { label: 'Governance Overview' },
-      { label: 'Safety Rules & Guardrails' },
-      { label: 'Check-in Template' },
-      { label: 'AI Safety Evaluations' },
+      { label: 'Safety Rules & Guardrails', route: '/clinical-governance/safety-rules' },
+      { label: 'Check-in Template', route: '/clinical-governance/checkin-template' },
+      { label: 'AI Safety Evaluations', route: '/clinical-governance/safety-evaluations' },
       { label: 'Check-in Template Reviews', route: '/clinical-governance/checkin-template-reviews' },
       { label: 'Reports' },
       { label: 'Activity log' },

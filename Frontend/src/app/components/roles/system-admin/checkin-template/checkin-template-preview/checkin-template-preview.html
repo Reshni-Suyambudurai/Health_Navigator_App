@@ -32,7 +32,14 @@
               @case ('NUMBER') {
                 <input [id]="'preview-' + question.question_id" type="number" disabled placeholder="0" />
               }
-              @default {
+              @case ('SINGLE_CHOICE') {
+                <div class="option-list" [id]="'preview-' + question.question_id">
+                  @for (option of question.options ?? []; track option) {
+                    <label><input type="radio" disabled [name]="'preview-choice-' + question.question_id" /> {{ option }}</label>
+                  }
+                </div>
+              }
+              @case ('MULTIPLE_CHOICE') {
                 <div class="option-list" [id]="'preview-' + question.question_id">
                   @for (option of question.options ?? []; track option) {
                     <label><input type="checkbox" disabled /> {{ option }}</label>

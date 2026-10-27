@@ -1,11 +1,12 @@
 """Database operations for authorized check-in template management."""
 
 from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 
 from app.database.models.checkin_question import CheckinQuestion
 from app.database.models.checkin_template import CheckinTemplate, CheckinTemplateStatus
 from app.database.models.checkin_template_review import CheckinTemplateReview, CheckinTemplateReviewStatus
+from app.database.models.organization import Organization, OrganizationStatus
 from app.database.models.role import Role, RoleName
 from app.database.models.user import User, UserStatus
 
@@ -148,16 +149,47 @@ class AdminCheckinTemplateRepository:
             .all()
         )
 
-    def find_review(self, review_id: int, organization_id: int):
+    def list_reviews(self, organization_id: int, status: CheckinTemplateReviewStatus | None = None):
+        submitter = aliased(User)
+        reviewer = aliased(User)
+        query = (
+            self.db.query(
+                CheckinTemplateReview,
+                CheckinTemplate,
+                submitter.first_name,
+                submitter.last_name,
+                reviewer.first_name,
+                reviewer.last_name,
+            )
+            .join(CheckinTemplate, CheckinTemplate.checkin_template_id == CheckinTemplateReview.checkin_template_id)
+            .join(submitter, submitter.user_id == CheckinTemplateReview.submitted_by_user_id)
+            .outerjoin(reviewer, reviewer.user_id == CheckinTemplateReview.reviewed_by_user_id)
+            .filter(CheckinTemplate.organization_id == organization_id)
+        )
+        if status is not None:
+            query = query.filter(CheckinTemplateReview.status == status)
+        return query.order_by(CheckinTemplateReview.submitted_at.desc(), CheckinTemplateReview.review_id.desc()).all()
+
+    def list_active_organizations(self) -> list[Organization]:
         return (
+            self.db.query(Organization)
+            .filter(Organization.status == OrganizationStatus.ACTIVE)
+            .order_by(Organization.organization_name.asc())
+            .all()
+        )
+
+    def organization_exists(self, organization_id: int) -> bool:
+        return self.db.query(Organization.organization_id).filter(Organization.organization_id == organization_id).first() is not None
+
+    def find_review(self, review_id: int, organization_id: int | None = None):
+        query = (
             self.db.query(CheckinTemplateReview, CheckinTemplate)
             .join(CheckinTemplate, CheckinTemplate.checkin_template_id == CheckinTemplateReview.checkin_template_id)
-            .filter(
-                CheckinTemplateReview.review_id == review_id,
-                CheckinTemplate.organization_id == organization_id,
-            )
-            .one_or_none()
+            .filter(CheckinTemplateReview.review_id == review_id)
         )
+        if organization_id is not None:
+            query = query.filter(CheckinTemplate.organization_id == organization_id)
+        return query.one_or_none()
 
     def save(self, entity):
         try:
