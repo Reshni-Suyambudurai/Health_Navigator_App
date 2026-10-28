@@ -77,6 +77,36 @@ class SafetyRulesRepository:
         self.db.commit()
         return True
 
+    def update_rule(self, rule_id: int, values: dict[str, Any]) -> bool:
+        exists = self.db.execute(
+            text("SELECT 1 FROM clinical_guardrail_rules WHERE rule_id=:rule_id"),
+            {"rule_id": rule_id},
+        ).scalar_one_or_none()
+        if not exists:
+            return False
+        self.db.execute(text("""
+            UPDATE clinical_guardrail
+            SET guardrail_name=:guardrail_name, guardrail_markdown=:guardrail_markdown,
+                updated_at=CURRENT_TIMESTAMP
+            WHERE guardrail_id=(SELECT guardrail_id FROM clinical_guardrail_rules WHERE rule_id=:rule_id)
+        """), values | {"rule_id": rule_id})
+        self.db.execute(text("""
+            UPDATE clinical_guardrail_rules
+            SET rule_name=:rule_name,
+                rule_category=CAST(:category AS rule_category),
+                urgency_level=CAST(:urgency AS urgency_level),
+                action_type=CAST(:action_type AS guardrail_action_type),
+                status=CAST(:status AS rule_status),
+                patient_response_template=:patient_response_template,
+                target_queue_type=CAST(:target_queue_type AS queue_type),
+                escalation_type=CAST(:escalation_type AS escalation_type),
+                escalation_priority=CAST(:escalation_priority AS escalation_priority),
+                updated_at=CURRENT_TIMESTAMP
+            WHERE rule_id=:rule_id
+        """), values | {"rule_id": rule_id})
+        self.db.commit()
+        return True
+
     @staticmethod
     def _serialize(row: Any) -> dict[str, Any]:
         return {key: value.isoformat() if hasattr(value, "isoformat") else value for key, value in row.items()}

@@ -178,6 +178,9 @@ class AdminCheckinTemplateRepository:
             .all()
         )
 
+    def find_organization(self, organization_id: int) -> Organization | None:
+        return self.db.query(Organization).filter(Organization.organization_id == organization_id).one_or_none()
+
     def organization_exists(self, organization_id: int) -> bool:
         return self.db.query(Organization.organization_id).filter(Organization.organization_id == organization_id).first() is not None
 

@@ -48,12 +48,6 @@ export class ClinicalCheckinTemplateReviews implements OnInit {
     this.loadReviews();
   }
 
-  changeOrganization(organizationId: number | string): void {
-    this.selectedOrganizationId.set(Number(organizationId));
-    this.selected.set(null);
-    this.loadReviews();
-  }
-
   selectReview(review: CheckinTemplateReview): void {
     this.error.set(null);
     this.reviewNotes = '';
@@ -100,7 +94,7 @@ export class ClinicalCheckinTemplateReviews implements OnInit {
 
   private loadReviews(): void {
     this.loading.set(true);
-    this.api.list(this.userId(), 'ALL', this.selectedOrganizationId()).pipe(finalize(() => this.loading.set(false))).subscribe({
+    this.api.list(this.userId(), 'ALL').pipe(finalize(() => this.loading.set(false))).subscribe({
       next: (response) => {
         this.reviews.set(response.data.reviews);
         this.organizations.set(response.data.organizations);

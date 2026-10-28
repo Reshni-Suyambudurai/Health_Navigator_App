@@ -50,6 +50,20 @@ export interface SafetyRulesOverview {
   rules: SafetyRule[];
 }
 
+export interface SafetyRuleUpdate {
+  guardrail_name: string;
+  guardrail_markdown: string;
+  rule_name: string;
+  category: string;
+  urgency: string;
+  action_type: string;
+  status: string;
+  patient_response_template: string | null;
+  target_queue_type: string | null;
+  escalation_type: string | null;
+  escalation_priority: string | null;
+}
+
 export interface ScenarioTestResult {
   matched: boolean;
   rule: SafetyRule | null;

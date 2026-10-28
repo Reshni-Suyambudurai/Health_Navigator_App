@@ -8,7 +8,7 @@
       <p>Review clinical appropriateness, versions, required fields and patient-facing answer options.</p>
     </div>
     <div class="queue-actions">
-      <label class="organization-filter"><span>Organization</span><select [ngModel]="selectedOrganizationId()" (ngModelChange)="changeOrganization($event)" aria-label="Organization"><option *ngFor="let organization of organizations()" [value]="organization.organization_id">{{ organization.organization_name }}</option></select></label>
+      <label class="organization-filter"><span>Organization</span><select [ngModel]="selectedOrganizationId()" aria-label="Organization" disabled><option *ngFor="let organization of organizations()" [value]="organization.organization_id">{{ organization.organization_name }}</option></select></label>
       <button type="button" class="queue-refresh-button" title="Refresh review queue" aria-label="Refresh review queue" [disabled]="loading()" (click)="refresh()"><ng-icon name="heroArrowPath" aria-hidden="true" /></button>
       <span class="queue-count">{{ pendingCount }} pending</span>
     </div>

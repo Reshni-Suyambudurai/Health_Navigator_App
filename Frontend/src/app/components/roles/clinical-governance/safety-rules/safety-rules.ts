@@ -6,7 +6,7 @@ import { heroBeaker, heroBolt, heroCheckCircle, heroClock, heroDocumentDuplicate
 import { finalize } from 'rxjs/operators';
 import { SafetyRulesApi } from '../../../../api/navigator/safety-rules.api';
 import { getSessionUser } from '../../../../api/tokenstore';
-import { SafetyRule, SafetyRulesOverview, ScenarioTestResult } from '../../../../shared/types/navigator/safety-rules';
+import { SafetyRule, SafetyRuleUpdate, SafetyRulesOverview, ScenarioTestResult } from '../../../../shared/types/navigator/safety-rules';
 import { ToastState } from '../../../../shared/ui/toast/toast-state';
 
 @Component({
@@ -33,8 +33,18 @@ export class SafetyRules {
   readonly statusFilter = signal('ALL');
   readonly categoryFilter = signal('ALL');
   readonly testResult = signal<ScenarioTestResult | null>(null);
+  readonly editingRuleId = signal<number | null>(null);
   scenarioText = '';
   approvalNote = '';
+  editForm: SafetyRuleUpdate = this.emptyEditForm();
+
+  readonly categoryOptions = ['EMERGENCY', 'MEDICATION', 'SYMPTOM', 'PRIVACY', 'CLINICAL_SCOPE', 'SYMPTOM_SAFETY'];
+  readonly urgencyOptions = ['ROUTINE', 'SAME_DAY', 'EMERGENCY', 'HIGH'];
+  readonly actionOptions = ['SAFE_RESPOND', 'BLOCK_RESPONSE', 'ESCALATE', 'EMERGENCY_PROTOCOL', 'CREATE_ESCALATION'];
+  readonly statusOptions = ['DRAFT', 'ACTIVE', 'INACTIVE', 'RETIRED'];
+  readonly queueOptions = ['MEDICATION', 'APPOINTMENT', 'SOCIAL_SUPPORT', 'CLINICAL', 'CLINICAL_REVIEW', 'EMERGENCY'];
+  readonly escalationTypeOptions = ['MEDICATION', 'APPOINTMENT', 'SOCIAL_SUPPORT', 'CLINICAL_REVIEW', 'EMERGENCY'];
+  readonly escalationPriorityOptions = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
 
   ngOnInit(): void { this.loadRules(); }
 
@@ -65,6 +75,36 @@ export class SafetyRules {
 
   selectRule(rule: SafetyRule): void { this.selectedRuleId.set(rule.rule_id); this.testResult.set(null); this.approvalNote = ''; }
 
+  startEdit(rule: SafetyRule): void {
+    this.editingRuleId.set(rule.rule_id);
+    this.editForm = {
+      guardrail_name: rule.guardrail_name,
+      guardrail_markdown: rule.guardrail_markdown,
+      rule_name: rule.rule_name,
+      category: rule.category,
+      urgency: rule.urgency,
+      action_type: rule.action_type,
+      status: rule.status,
+      patient_response_template: rule.patient_response_template,
+      target_queue_type: rule.target_queue_type,
+      escalation_type: rule.escalation_type,
+      escalation_priority: rule.escalation_priority,
+    };
+  }
+
+  cancelEdit(): void { this.editingRuleId.set(null); }
+
+  saveEdit(): void {
+    const userId = this.sessionUser?.user_id ?? this.sessionUser?.userId;
+    const ruleId = this.editingRuleId();
+    if (!userId || ruleId === null) return;
+    this.saving.set(true); this.error.set(null);
+    this.api.updateRule(userId, ruleId, this.editForm).pipe(finalize(() => this.saving.set(false))).subscribe({
+      next: () => { this.toast.success('Safety rule updated.'); this.editingRuleId.set(null); this.loadRules(); },
+      error: (error: { error?: { message?: string } }) => this.error.set(error?.error?.message ?? 'Unable to update this safety rule.'),
+    });
+  }
+
   approveSelected(): void {
     const userId = this.sessionUser?.user_id ?? this.sessionUser?.userId; const rule = this.selectedRule;
     if (!userId || !rule || !this.approvalNote.trim()) { this.error.set('Enter an approval note before activating this rule.'); return; }
@@ -89,4 +129,7 @@ export class SafetyRules {
   label(value: string | null): string { return value ? value.replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase()) : 'Not configured'; }
   formatDate(value: string | null): string { return value ? new Date(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Never'; }
   historyNote(event: SafetyRule['approval_history'][number]): string { return typeof event.details === 'object' && event.details?.note ? event.details.note : 'Rule status updated'; }
+  private emptyEditForm(): SafetyRuleUpdate {
+    return { guardrail_name: '', guardrail_markdown: '', rule_name: '', category: 'EMERGENCY', urgency: 'ROUTINE', action_type: 'SAFE_RESPOND', status: 'DRAFT', patient_response_template: null, target_queue_type: null, escalation_type: null, escalation_priority: null };
+  }
 }

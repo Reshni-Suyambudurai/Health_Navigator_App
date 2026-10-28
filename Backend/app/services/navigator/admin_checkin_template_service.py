@@ -222,8 +222,14 @@ class AdminCheckinTemplateService:
 
     def list_reviews(self, actor_user_id: int, status: str | None = None, organization_id: int | None = None) -> dict[str, Any]:
         reviewer_user = self._require_role(actor_user_id, RoleName.CLINICAL_GOVERNANCE)
-        selected_organization_id = organization_id or reviewer_user.organization_id
-        if not self.repository.organization_exists(selected_organization_id):
+        selected_organization_id = reviewer_user.organization_id
+        if organization_id is not None and organization_id != selected_organization_id:
+            raise AuthorizationException(
+                "You can only review templates for your organization",
+                "ORGANIZATION_ACCESS_DENIED",
+            )
+        organization = self.repository.find_organization(selected_organization_id)
+        if organization is None:
             raise NotFoundException("Organization not found", "ORGANIZATION_NOT_FOUND")
         review_status = None if not status or status == "ALL" else self._enum(CheckinTemplateReviewStatus, status, "review status")
         items = self.repository.list_reviews(selected_organization_id, review_status)
@@ -233,10 +239,10 @@ class AdminCheckinTemplateService:
             item["submitted_by_name"] = f"{submitter_first} {submitter_last}"
             item["reviewed_by_name"] = f"{reviewer_first} {reviewer_last}" if reviewer_first else None
             reviews.append(item)
-        organizations = [
-            {"organization_id": organization.organization_id, "organization_name": organization.organization_name}
-            for organization in self.repository.list_active_organizations()
-        ]
+        organizations = [{
+            "organization_id": organization.organization_id,
+            "organization_name": organization.organization_name,
+        }]
         return {"reviews": reviews, "organizations": organizations, "selected_organization_id": selected_organization_id}
 
     def get_review(self, actor_user_id: int, review_id: int) -> dict[str, Any]:
@@ -245,6 +251,11 @@ class AdminCheckinTemplateService:
         if result is None:
             raise NotFoundException("Template review not found", "TEMPLATE_REVIEW_NOT_FOUND")
         review, template = result
+        if template.organization_id != reviewer.organization_id:
+            raise AuthorizationException(
+                "You can only review templates for your organization",
+                "ORGANIZATION_ACCESS_DENIED",
+            )
         return self._serialize_review(review, template, True)
 
     def decide_review(
@@ -259,6 +270,11 @@ class AdminCheckinTemplateService:
         if result is None:
             raise NotFoundException("Template review not found", "TEMPLATE_REVIEW_NOT_FOUND")
         review, template = result
+        if template.organization_id != reviewer.organization_id:
+            raise AuthorizationException(
+                "You can only review templates for your organization",
+                "ORGANIZATION_ACCESS_DENIED",
+            )
         if review.status != CheckinTemplateReviewStatus.PENDING:
             raise ConflictException("This review has already been decided", "REVIEW_ALREADY_DECIDED")
         approved = decision == CheckinTemplateReviewStatus.APPROVED.value

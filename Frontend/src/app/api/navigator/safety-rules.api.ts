@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { SafetyRulesResponse, ScenarioTestResponse } from '../../shared/types/navigator/safety-rules';
+import { SafetyRuleUpdate, SafetyRulesResponse, ScenarioTestResponse } from '../../shared/types/navigator/safety-rules';
 import { ApiSuccessResponse } from '../../shared/types/navigator/user';
 
 @Injectable({ providedIn: 'root' })
@@ -16,6 +16,10 @@ export class SafetyRulesApi {
 
   approveRule(userId: number, ruleId: number, note: string): Observable<ApiSuccessResponse<{ rule_id: number }>> {
     return this.http.post<ApiSuccessResponse<{ rule_id: number }>>(`${this.baseUrl}/${ruleId}/approve`, { note }, { params: this.userParams(userId) });
+  }
+
+  updateRule(userId: number, ruleId: number, update: SafetyRuleUpdate): Observable<ApiSuccessResponse<{ rule_id: number }>> {
+    return this.http.put<ApiSuccessResponse<{ rule_id: number }>>(`${this.baseUrl}/${ruleId}`, update, { params: this.userParams(userId) });
   }
 
   testScenario(userId: number, text: string, ruleId: number | null): Observable<ScenarioTestResponse> {
