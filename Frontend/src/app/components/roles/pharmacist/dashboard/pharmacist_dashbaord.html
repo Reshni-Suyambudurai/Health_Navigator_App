@@ -1,4 +1,270 @@
-<section class="role-page">
-  <h1>Pharmacist</h1>
-  <p>Handle medication-related concerns and review adherence or interaction alerts.</p>
+<section class="pharmacist-dashboard">
+  <header class="page-head">
+    <div>
+      <p class="eyebrow">Pharmacist workspace</p>
+      <h1>Pharmacist dashboard</h1>
+      <p>Review your assigned escalations, check-in cases, and appointments.</p>
+    </div>
+    <button
+      type="button"
+      class="ui-refresh-button"
+      aria-label="Refresh staff dashboard"
+      title="Refresh"
+      [disabled]="loading()"
+      (click)="loadAnalytics()"
+    >
+      &#8635;
+    </button>
+  </header>
+
+  <div class="period-filter" role="group" aria-label="Dashboard period">
+    <button
+      type="button"
+      [class.active]="selectedPeriod() === 'TODAY'"
+      [attr.aria-pressed]="selectedPeriod() === 'TODAY'"
+      (click)="selectPeriod('TODAY')"
+    >
+      Today
+    </button>
+    <button
+      type="button"
+      [class.active]="selectedPeriod() === 'THIS_MONTH'"
+      [attr.aria-pressed]="selectedPeriod() === 'THIS_MONTH'"
+      (click)="selectPeriod('THIS_MONTH')"
+    >
+      Date Range
+    </button>
+  </div>
+
+  @if (selectedPeriod() === 'THIS_MONTH') {
+    <div class="month-filter">
+      <div class="month-filter__controls">
+        <label>
+          <span>From date</span>
+          <input
+            type="date"
+            [value]="fromDate()"
+            [max]="toDate()"
+            (change)="updateFromDate($event)"
+          />
+        </label>
+        <label>
+          <span>To date</span>
+          <input
+            type="date"
+            [value]="toDate()"
+            [min]="fromDate()"
+            (change)="updateToDate($event)"
+          />
+        </label>
+        <button
+          type="button"
+          [disabled]="loading() || !fromDate() || !toDate()"
+          (click)="applyDateRange()"
+        >
+          Apply
+        </button>
+      </div>
+    </div>
+  }
+
+  @if (loading() && !analytics()) {
+    <div class="state-panel" role="status">Loading your dashboard...</div>
+  } @else if (error() && !analytics()) {
+    <div class="state-panel error" role="alert">
+      <p>{{ error() }}</p>
+      <button type="button" (click)="loadAnalytics()">Try again</button>
+    </div>
+  } @else if (analytics(); as data) {
+    <div class="metrics">
+      @for (metric of metrics(); track metric.label) {
+        <article [attr.data-tone]="metric.tone">
+          <p>{{ metric.label }}</p>
+          <h2>{{ metric.value }}</h2>
+        </article>
+      }
+    </div>
+
+    <div class="emergency-panels">
+      <section class="emergency-panel" aria-labelledby="recent-emergency-escalations-heading">
+        <div class="emergency-panel__head">
+          <div>
+            <p class="emergency-panel__label">Emergency workload</p>
+            <h2 id="recent-emergency-escalations-heading">Recent Emergency Escalations</h2>
+          </div>
+          <span>{{ data.details.recent_emergency_escalations.length }}</span>
+        </div>
+        <p class="emergency-panel__description">General escalations assigned to you</p>
+
+        @if (data.details.recent_emergency_escalations.length) {
+          <div class="emergency-list">
+            @for (item of data.details.recent_emergency_escalations; track $index) {
+              <article class="emergency-case">
+                <div class="emergency-case__title">
+                  <strong>{{ item.patient }}</strong>
+                  <span>Patient ID {{ item.patient_id }}</span>
+                </div>
+                <p>{{ item.reason }}</p>
+                <div class="emergency-case__meta">
+                  <span>{{ item.assigned_at | date: 'medium' }}</span>
+                  <span class="status-pill">{{ displayLabel(item.status) }}</span>
+                </div>
+              </article>
+            }
+          </div>
+        } @else {
+          <p class="empty-state">No emergency escalations were assigned to you in this period.</p>
+        }
+      </section>
+
+      <section class="emergency-panel" aria-labelledby="recent-emergency-checkins-heading">
+        <div class="emergency-panel__head">
+          <div>
+            <p class="emergency-panel__label">Check-in workload</p>
+            <h2 id="recent-emergency-checkins-heading">Recent Emergency Check-in Escalations</h2>
+          </div>
+          <span>{{ data.details.recent_emergency_checkins.length }}</span>
+        </div>
+        <p class="emergency-panel__description">Emergency check-in cases assigned to you</p>
+
+        @if (data.details.recent_emergency_checkins.length) {
+          <div class="emergency-list">
+            @for (item of data.details.recent_emergency_checkins; track $index) {
+              <article class="emergency-case">
+                <div class="emergency-case__title">
+                  <strong>{{ item.patient }}</strong>
+                  <span>Patient ID {{ item.patient_id }}</span>
+                </div>
+                <p>{{ item.reason !== 'Not specified' ? item.reason : item.response }}</p>
+                <div class="emergency-case__meta">
+                  <span>{{ item.assigned_at | date: 'medium' }}</span>
+                  <span class="status-pill">{{ displayLabel(item.status) }}</span>
+                </div>
+              </article>
+            }
+          </div>
+        } @else {
+          <p class="empty-state">No emergency check-in escalations were assigned to you in this period.</p>
+        }
+      </section>
+    </div>
+
+    <section class="panel" aria-labelledby="assigned-escalations-heading">
+      <div class="panel-head">
+        <h2 id="assigned-escalations-heading">My assigned escalations</h2>
+        <span>{{ data.details.assigned_escalations.length }} records</span>
+      </div>
+      @if (data.details.assigned_escalations.length) {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Patient</th>
+                <th scope="col">Type</th>
+                <th scope="col">Priority</th>
+                <th scope="col">Status</th>
+                <th scope="col">Reason</th>
+                <th scope="col">Assigned</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of data.details.assigned_escalations; track $index) {
+                <tr>
+                  <td>{{ item.patient }}</td>
+                  <td>{{ displayLabel(item.type) }}</td>
+                  <td>{{ displayLabel(item.priority) }}</td>
+                  <td>{{ displayLabel(item.status) }}</td>
+                  <td>{{ item.reason }}</td>
+                  <td>{{ item.assigned_at | date: 'medium' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <p class="empty-state">No escalations were assigned to you in this period.</p>
+      }
+    </section>
+
+    <section class="panel" aria-labelledby="checkin-escalations-heading">
+      <div class="panel-head">
+        <h2 id="checkin-escalations-heading">My check-in escalations</h2>
+        <span>{{ data.details.checkin_escalations.length }} records</span>
+      </div>
+      @if (data.details.checkin_escalations.length) {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Patient</th>
+                <th scope="col">Type</th>
+                <th scope="col">Status</th>
+                <th scope="col">Reason</th>
+                <th scope="col">Trigger source</th>
+                <th scope="col">Assigned</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of data.details.checkin_escalations; track $index) {
+                <tr>
+                  <td>{{ item.patient }}</td>
+                  <td>{{ displayLabel(item.type) }}</td>
+                  <td>{{ displayLabel(item.status) }}</td>
+                  <td>{{ item.reason }}</td>
+                  <td>{{ displayLabel(item.trigger_source) }}</td>
+                  <td>{{ item.assigned_at | date: 'medium' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <p class="empty-state">No check-in escalations were assigned to you in this period.</p>
+      }
+    </section>
+
+    <section class="panel" aria-labelledby="appointments-heading">
+      <div class="panel-head">
+        <h2 id="appointments-heading">My appointments</h2>
+        <span>{{ data.details.appointments.length }} records</span>
+      </div>
+      @if (data.details.appointments.length) {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Patient</th>
+                <th scope="col">Type</th>
+                <th scope="col">Status</th>
+                <th scope="col">Date and time</th>
+                <th scope="col">Location / channel</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of data.details.appointments; track $index) {
+                <tr>
+                  <td>{{ item.patient }}</td>
+                  <td>{{ displayLabel(item.type) }}</td>
+                  <td>{{ displayLabel(item.status) }}</td>
+                  <td>{{ item.date_time | date: 'medium' }}</td>
+                  <td>{{ item.location_or_channel }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <p class="empty-state">No appointments are assigned to you in this period.</p>
+      }
+    </section>
+
+    <p class="period-note">
+      @if (data.from_date && data.to_date) {
+        Showing {{ data.from_date | date: 'mediumDate': 'UTC' }} through
+        {{ data.to_date | date: 'mediumDate': 'UTC' }}.
+      } @else {
+        Showing {{ data.period_start | date: 'mediumDate' }}.
+      }
+    </p>
+  }
 </section>

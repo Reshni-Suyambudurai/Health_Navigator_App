@@ -2,7 +2,6 @@ import { Routes } from '@angular/router';
 import { Login } from './components/auth/pages/login/login';
 import { RoleShell } from './shared/layout/role-shell/role-shell';
 import { ClinicalGovernanceDashbaord } from './components/roles/clinical-governance/dashboard/clinical_governance_dashbaord';
-import { CareManagerDashbaord } from './components/roles/care-manager/dashboard/care_manager_dashbaord';
 import { PopulationHealthManagerDashbaord } from './components/roles/population-health-manager/dashboard/population_health_manager_dashbaord';
 import { OutreachTracker } from './components/roles/population-health-manager/outreach-tracker/outreach-tracker';
 import { PatientDashbaord } from './components/roles/patients/dashboard/patient_dashbaord';
@@ -16,8 +15,6 @@ import { MyPatient } from './components/roles/transitional-care-nurse/my-patient
 import { MyPatientDetails } from './components/roles/transitional-care-nurse/my-patient-details/my-patient-details';
 import { TransitionalCareNurseAppointments } from './components/roles/transitional-care-nurse/appointments/appointments';
 import { AppointmentDetails } from './components/roles/transitional-care-nurse/appointment-details/appointment-details';
-import { PharmacistDashbaord } from './components/roles/pharmacist/dashboard/pharmacist_dashbaord';
-import { SocialWorkerDashbaord } from './components/roles/social-worker/dashboard/social_worker_dashbaord';
 import { SystemAdminDashboard } from './components/roles/system-admin/dashboard/system-admin-dashboard';
 import { SystemAdminOrganization } from './components/roles/system-admin/organization/organization';
 import { SystemAdminUsersRoles } from './components/roles/system-admin/users-roles/users-roles';
@@ -48,13 +45,62 @@ export const routes: Routes = [
       { path: 'clinical-governance/checkin-template', component: ClinicalCheckinTemplateReviews },
       { path: 'clinical-governance/safety-rules', component: SafetyRules },
       { path: 'clinical-governance/safety-evaluations', component: SafetyEvaluations },
-      { path: 'care-manager/dashboard', component: CareManagerDashbaord, data: { careManagerSection: 'dashboard' } },
-      { path: 'care-manager/patient-caseload', component: CareManagerDashbaord, data: { careManagerSection: 'caseload' } },
-      { path: 'care-manager/appointment-tracking', component: CareManagerDashbaord, data: { careManagerSection: 'appointments' } },
-      { path: 'care-manager/outreach-checkins', component: CareManagerDashbaord, data: { careManagerSection: 'outreach' } },
-      { path: 'care-manager/escalation-management', component: CareManagerDashbaord, data: { careManagerSection: 'escalations' } },
-      { path: 'care-manager/follow-up-management', component: CareManagerDashbaord, data: { careManagerSection: 'follow_up' } },
-      { path: 'care-manager/program-performance', component: CareManagerDashbaord, data: { careManagerSection: 'program_performance' } },
+      {
+        path: 'care-manager/dashboard',
+        loadComponent: () =>
+          import('./components/roles/care-manager/dashboard/care_manager_dashbaord').then(
+            (module) => module.CareManagerDashbaord,
+          ),
+        data: { careManagerSection: 'dashboard' },
+      },
+      {
+        path: 'care-manager/patient-caseload',
+        loadComponent: () =>
+          import('./components/roles/care-manager/dashboard/care_manager_dashbaord').then(
+            (module) => module.CareManagerDashbaord,
+          ),
+        data: { careManagerSection: 'caseload' },
+      },
+      {
+        path: 'care-manager/appointment-tracking',
+        loadComponent: () =>
+          import('./components/roles/care-manager/dashboard/care_manager_dashbaord').then(
+            (module) => module.CareManagerDashbaord,
+          ),
+        data: { careManagerSection: 'appointments' },
+      },
+      {
+        path: 'care-manager/outreach-checkins',
+        loadComponent: () =>
+          import('./components/roles/care-manager/dashboard/care_manager_dashbaord').then(
+            (module) => module.CareManagerDashbaord,
+          ),
+        data: { careManagerSection: 'outreach' },
+      },
+      {
+        path: 'care-manager/escalation-management',
+        loadComponent: () =>
+          import('./components/roles/care-manager/dashboard/care_manager_dashbaord').then(
+            (module) => module.CareManagerDashbaord,
+          ),
+        data: { careManagerSection: 'escalations' },
+      },
+      {
+        path: 'care-manager/follow-up-management',
+        loadComponent: () =>
+          import('./components/roles/care-manager/dashboard/care_manager_dashbaord').then(
+            (module) => module.CareManagerDashbaord,
+          ),
+        data: { careManagerSection: 'follow_up' },
+      },
+      {
+        path: 'care-manager/program-performance',
+        loadComponent: () =>
+          import('./components/roles/care-manager/dashboard/care_manager_dashbaord').then(
+            (module) => module.CareManagerDashbaord,
+          ),
+        data: { careManagerSection: 'program_performance' },
+      },
       { path: 'care-manager/outreach-events', component: CareManagerOutreachEvents },
       { path: 'population-health-manager/dashboard', component: PopulationHealthManagerDashbaord },
       { path: 'population-health-manager/outreach', component: OutreachTracker },
@@ -69,8 +115,20 @@ export const routes: Routes = [
       { path: 'transitional-care-nurse/my-patient/:patientId/details', component: MyPatientDetails },
       { path: 'transitional-care-nurse/appointments', component: TransitionalCareNurseAppointments },
       { path: 'transitional-care-nurse/appointments/:appointmentId/details', component: AppointmentDetails },
-      { path: 'pharmacist/dashboard', component: PharmacistDashbaord },
-      { path: 'social-worker/dashboard', component: SocialWorkerDashbaord },
+      {
+        path: 'pharmacist/dashboard',
+        loadComponent: () =>
+          import('./components/roles/pharmacist/dashboard/pharmacist_dashbaord').then(
+            (module) => module.PharmacistDashbaord,
+          ),
+      },
+      {
+        path: 'social-worker/dashboard',
+        loadComponent: () =>
+          import('./components/roles/social-worker/dashboard/social_worker_dashbaord').then(
+            (module) => module.SocialWorkerDashbaord,
+          ),
+      },
       { path: 'system-admin/dashboard', component: SystemAdminDashboard },
       { path: 'system-admin/users-roles', component: SystemAdminUsersRoles },
       { path: 'system-admin/organization', component: SystemAdminOrganization },
