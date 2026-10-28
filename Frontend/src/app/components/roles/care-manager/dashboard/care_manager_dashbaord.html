@@ -1,26 +1,107 @@
 <section class="role-page">
   <div class="page-head">
-    <h1>Care manager</h1>
-    <button type="button">Review handoff queue</button>
+    <div>
+      <p class="eyebrow">Care manager</p>
+      <h1>{{ page().title }}</h1>
+      <p>{{ page().description }}</p>
+    </div>
+    <button
+      type="button"
+      class="ui-refresh-button"
+      aria-label="Refresh analytics"
+      title="Refresh"
+      [disabled]="loading()"
+      (click)="loadAnalytics()"
+    >
+      &#8635;
+    </button>
   </div>
 
-  <div class="kpis">
-    <article>
-      <p>Open care plans</p>
-      <h2>14</h2>
-    </article>
-    <article>
-      <p>High-risk follow-ups due</p>
-      <h2>6</h2>
-    </article>
-    <article>
-      <p>Unread patient messages</p>
-      <h2>11</h2>
-    </article>
-  </div>
+  @if (loading() && !analytics()) {
+    <div class="state-panel" role="status">Loading {{ page().title.toLowerCase() }}...</div>
+  } @else if (error() && !analytics()) {
+    <div class="state-panel error" role="alert">
+      <p>{{ error() }}</p>
+      <button type="button" (click)="loadAnalytics()">Try again</button>
+    </div>
+  } @else if (section(); as currentSection) {
+    <div class="kpis">
+      @for (metric of currentSection.metrics; track metric.label) {
+        <article [attr.data-tone]="metric.tone">
+          <p>{{ metric.label }}</p>
+          <h2>{{ metric.value }}</h2>
+        </article>
+      }
+    </div>
 
-  <div class="panel">
-    <h3>Care coordination overview</h3>
-    <p>Track assigned patients, pending outreach, and escalation handoffs from this dashboard.</p>
-  </div>
+    @if (sectionKey() === 'dashboard') {
+      @for (detail of dashboardDetails(); track detail.key) {
+        <section class="panel" [attr.aria-label]="detail.title">
+          <div class="panel-head">
+            <h2>{{ detail.title }}</h2>
+            <span>{{ detail.rows.length }} records</span>
+          </div>
+
+          @if (detail.rows.length) {
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    @for (column of detail.columns; track column.key) {
+                      <th scope="col">{{ column.label }}</th>
+                    }
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of detail.rows; track $index) {
+                    <tr>
+                      @for (column of detail.columns; track column.key) {
+                        <td>{{ displayValue(row[column.key]) }}</td>
+                      }
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <p class="empty-state">{{ detail.emptyMessage }}</p>
+          }
+        </section>
+      }
+    } @else if (page().columns.length) {
+      <section class="panel" [attr.aria-label]="page().title + ' details'">
+        <div class="panel-head">
+          <h2>{{ page().title }} details</h2>
+          <span>{{ currentSection.rows.length }} records</span>
+        </div>
+
+        @if (currentSection.rows.length) {
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  @for (column of page().columns; track column.key) {
+                    <th scope="col">{{ column.label }}</th>
+                  }
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of currentSection.rows; track $index) {
+                  <tr>
+                    @for (column of page().columns; track column.key) {
+                      <td>{{ displayValue(row[column.key]) }}</td>
+                    }
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <p class="empty-state">No records are available for this section.</p>
+        }
+      </section>
+    }
+
+    <p class="last-updated">Last updated {{ analytics()?.generated_at | date: 'medium' }}</p>
+  }
 </section>
