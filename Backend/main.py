@@ -30,6 +30,7 @@ from app.api.routes.navigator import conversation_routes
 from app.api.routes.navigator import escalation_routes
 from app.api.routes.navigator import safety_rules_routes
 from app.api.routes.navigator import safety_evaluation_routes
+from app.api.routes.navigator import clinical_governance_dashboard_routes
 from app.api.routes.patientFHIR import patient_fhir_routes
 from app.core.exception_handlers import register_exception_handlers  # Import exception handlers
 from app.services.navigator.automatic_outreach_scheduler import AutomaticOutreachScheduler
@@ -114,6 +115,7 @@ app.include_router(conversation_routes.router, prefix="/api/v1")
 app.include_router(escalation_routes.router, prefix="/api/v1")
 app.include_router(safety_rules_routes.router, prefix="/api/v1")
 app.include_router(safety_evaluation_routes.router, prefix="/api/v1")
+app.include_router(clinical_governance_dashboard_routes.router, prefix="/api/v1")
 app.include_router(patient_fhir_routes.router, prefix="/api/v1")
 
 

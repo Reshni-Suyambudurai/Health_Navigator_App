@@ -1,7 +1,6 @@
 import { Routes } from '@angular/router';
 import { Login } from './components/auth/pages/login/login';
 import { RoleShell } from './shared/layout/role-shell/role-shell';
-import { ClinicalGovernanceDashbaord } from './components/roles/clinical-governance/dashboard/clinical_governance_dashbaord';
 import { PopulationHealthManagerDashbaord } from './components/roles/population-health-manager/dashboard/population_health_manager_dashbaord';
 import { OutreachTracker } from './components/roles/population-health-manager/outreach-tracker/outreach-tracker';
 import { PatientDashbaord } from './components/roles/patients/dashboard/patient_dashbaord';
@@ -39,7 +38,13 @@ export const routes: Routes = [
     canActivateChild: [roleAccessGuard],
     children: [
       { path: '', redirectTo: 'clinical-governance/dashboard', pathMatch: 'full' },
-      { path: 'clinical-governance/dashboard', component: ClinicalGovernanceDashbaord },
+      {
+        path: 'clinical-governance/dashboard',
+        loadComponent: () =>
+          import('./components/roles/clinical-governance/dashboard/clinical_governance_dashbaord').then(
+            (module) => module.ClinicalGovernanceDashbaord,
+          ),
+      },
       { path: 'clinical-governance/checkin-template-reviews', component: ClinicalCheckinTemplateReviews },
       { path: 'clinical-governance/checkin-template', component: ClinicalCheckinTemplateReviews },
       { path: 'clinical-governance/safety-rules', component: SafetyRules },
