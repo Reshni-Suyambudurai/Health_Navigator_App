@@ -33,6 +33,8 @@ from .checkin_template_review import CheckinTemplateReview
 from .checkin_question import CheckinQuestion
 from .checkin_session import CheckinSession
 from .checkin_response import CheckinResponse
+from .checkin_escalation import CheckinEscalation
+from .checkin_escalation_response import CheckinEscalationResponse
 from .appointment_action import AppointmentAction
 from .follow_up_task import FollowUpTask
 from .notification import Notification
@@ -69,6 +71,8 @@ __all__ = [
     "CheckinQuestion",
     "CheckinSession",
     "CheckinResponse",
+    "CheckinEscalation",
+    "CheckinEscalationResponse",
     "AppointmentAction",
     "FollowUpTask",
     "Notification",

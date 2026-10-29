@@ -5,11 +5,12 @@
 .eyebrow { margin: 0 0 .25rem; color: var(--primary); font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 h1 { margin: 0; font-size: 1.75rem; } h2 { font-size: 1.05rem; } h3 { margin: 1rem 0 .5rem; font-size: .9rem; }
 button { cursor: pointer; } .secondary-button, .text-button { border: 1px solid var(--border); background: transparent; color: var(--text); padding: .55rem .8rem; } .text-button { border: 0; color: var(--primary); }
-.filters { display: grid; grid-template-columns: repeat(4, minmax(130px, 1fr)); gap: .75rem; padding: 1rem 0; }
+.filters { display: grid; grid-template-columns: repeat(2, minmax(180px, 1fr)) auto; gap: .75rem; padding: 1rem 0; }
 label { display: grid; gap: .3rem; color: var(--muted); font-size: .72rem; font-weight: 700; } input, select { width: 100%; min-width: 0; }
 .filter-actions { display: flex; align-items: end; gap: .5rem; }
-.table-column { min-width: 0; } .table-shell { overflow-x: auto; background: var(--table-bg); border: 1px solid var(--border); }
-table { width: 100%; min-width: 760px; border-collapse: collapse; } th, td { padding: .7rem .75rem; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; } th { color: var(--muted); font-size: .68rem; text-transform: uppercase; } tbody tr { cursor: pointer; } tbody tr:hover, tbody tr.selected { background: var(--hover-bg); }
+.table-column { min-width: 0; }
+.table-header-filter { display: inline-flex; align-items: center; gap: .25rem; }
+.ui-table tbody tr.selected td { background: var(--hover-bg); }
 small, .muted { display: block; color: var(--muted); font-size: .72rem; } .status { display: inline-flex; border: 1px solid currentColor; border-radius: 999px; padding: .15rem .45rem; font-size: .66rem; font-weight: 700; white-space: nowrap; } .status.positive { color: var(--status-positive-text); } .status.critical { color: var(--status-critical-text); } .status.warning { color: var(--status-warning-text); } .status.neutral { color: var(--primary); }
 .pagination { padding: .8rem 0; color: var(--muted); font-size: .78rem; }
 .panel-backdrop { position: fixed; inset: 0; z-index: 20; background: rgb(15 23 42 / 28%); }

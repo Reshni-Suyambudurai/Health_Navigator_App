@@ -10,6 +10,9 @@ import {
   AdminCheckinTemplate,
   AdminCheckinTemplateRequest,
   CheckinAnswerType,
+  CheckinEscalationRole,
+  CheckinNumberCriticalResponse,
+  CheckinRiskLevel,
   CheckinTemplateType,
 } from '../../../../shared/types/navigator/admin-checkin-template';
 import { Breadcrumb, BreadcrumbItem } from '../../../../shared/ui/breadcrumb/breadcrumb';
@@ -25,6 +28,12 @@ interface QuestionDraft {
   display_order: number;
   is_required: boolean;
   is_active: boolean;
+  criticalResponses: string[];
+  risk_level: CheckinRiskLevel;
+  numberMin: number | null;
+  numberMax: number | null;
+  min_inclusive: boolean;
+  max_inclusive: boolean;
 }
 
 type PendingDeletion =
@@ -70,9 +79,16 @@ export class SystemAdminCheckinTemplate implements OnInit {
   ];
   readonly templateTypes: CheckinTemplateType[] = ['POST_DISCHARGE', 'CHRONIC_CARE', 'MEDICATION_FOLLOWUP'];
   readonly answerTypes: CheckinAnswerType[] = ['YES_NO', 'TEXT', 'NUMBER', 'SINGLE_CHOICE', 'MULTIPLE_CHOICE'];
+  readonly riskLevels: CheckinRiskLevel[] = ['NORMAL', 'ROUTINE', 'EMERGENCY'];
+  readonly escalationRoles: CheckinEscalationRole[] = [
+    'TRANSITIONAL_CARE_NURSE',
+    'PHARMACIST',
+    'SOCIAL_WORKER'
+  ];
 
   search = '';
   submissionNote = '';
+  newQuestionOption = '';
   templateDraft: AdminCheckinTemplateRequest = this.emptyTemplateDraft();
   questionDraft: QuestionDraft = this.emptyQuestionDraft();
 
@@ -108,6 +124,11 @@ export class SystemAdminCheckinTemplate implements OnInit {
       template_name: template.template_name,
       template_type: template.template_type,
       description: template.description,
+      version: template.version,
+      status: template.status,
+      escalate_to: template.escalate_to,
+      expiry_after_hours: template.expiry_after_hours,
+      appointment_required: template.appointment_required,
     };
     this.error.set(null);
     this.templateDialog.set('edit');
@@ -148,6 +169,7 @@ export class SystemAdminCheckinTemplate implements OnInit {
     if (!template?.is_editable) return;
     this.editingQuestion.set(null);
     this.questionDraft = this.emptyQuestionDraft((template.questions?.length ?? 0) + 1);
+    this.newQuestionOption = '';
     this.error.set(null);
     this.questionDialog.set('create');
   }
@@ -163,7 +185,16 @@ export class SystemAdminCheckinTemplate implements OnInit {
       display_order: question.display_order,
       is_required: question.is_required,
       is_active: question.is_active,
+      criticalResponses: question.answer_type === 'TEXT'
+        ? []
+        : Array.isArray(question.critical_response) ? [...question.critical_response] : [],
+      risk_level: question.answer_type === 'TEXT' ? 'NORMAL' : question.risk_level,
+      numberMin: this.numberRule(question.critical_response)?.min ?? null,
+      numberMax: this.numberRule(question.critical_response)?.max ?? null,
+      min_inclusive: this.numberRule(question.critical_response)?.min_inclusive ?? true,
+      max_inclusive: this.numberRule(question.critical_response)?.max_inclusive ?? true,
     };
+    this.newQuestionOption = '';
     this.error.set(null);
     this.questionDialog.set('edit');
   }
@@ -179,10 +210,26 @@ export class SystemAdminCheckinTemplate implements OnInit {
       return;
     }
     const options = this.choiceType(this.questionDraft.answer_type)
-      ? this.questionDraft.optionsText.split(/\r?\n|,/).map((value) => value.trim()).filter(Boolean)
+      ? this.questionDraft.answer_type === 'YES_NO'
+        ? ['Yes', 'No']
+        : this.questionDraft.optionsText.split(/\r?\n|,/).map((value) => value.trim()).filter(Boolean)
       : null;
     if (this.choiceType(this.questionDraft.answer_type) && (options?.length ?? 0) < 2) {
       this.showError('Choice questions require at least two options.');
+      return;
+    }
+    const riskLevel = this.questionDraft.answer_type === 'TEXT'
+      ? 'NORMAL'
+      : this.questionDraft.risk_level;
+    const criticalResponse = this.questionDraft.answer_type === 'NUMBER'
+      ? this.numericCriticalResponse()
+      : riskLevel === 'NORMAL'
+        ? null
+        : this.choiceType(this.questionDraft.answer_type)
+        ? this.questionDraft.criticalResponses.filter((value) => options?.includes(value))
+        : null;
+    if (riskLevel !== 'NORMAL' && (!criticalResponse || (Array.isArray(criticalResponse) && !criticalResponse.length))) {
+      this.showError('Configure at least one critical response for routine or emergency risk.');
       return;
     }
     const payload: AdminCheckinQuestionRequest = {
@@ -190,6 +237,8 @@ export class SystemAdminCheckinTemplate implements OnInit {
       question_text: this.questionDraft.question_text.trim(),
       answer_type: this.questionDraft.answer_type,
       options,
+      critical_response: criticalResponse,
+      risk_level: riskLevel,
       display_order: this.questionDraft.display_order,
       is_required: this.questionDraft.is_required,
       is_active: this.questionDraft.is_active,
@@ -208,6 +257,57 @@ export class SystemAdminCheckinTemplate implements OnInit {
       },
       error: (error) => this.showError(this.errorMessage(error, 'Unable to save the question.')),
     });
+  }
+
+  questionOptions(): string[] {
+    if (this.questionDraft.answer_type === 'YES_NO') return ['Yes', 'No'];
+    return this.questionDraft.optionsText.split(/\r?\n|,/).map((value) => value.trim()).filter(Boolean);
+  }
+
+  changeAnswerType(answerType: CheckinAnswerType): void {
+    this.questionDraft.answer_type = answerType;
+    if (answerType === 'TEXT') {
+      this.questionDraft.risk_level = 'NORMAL';
+      this.questionDraft.criticalResponses = [];
+    }
+  }
+
+  availableRiskLevels(): CheckinRiskLevel[] {
+    return this.questionDraft.answer_type === 'TEXT' ? ['NORMAL'] : this.riskLevels;
+  }
+
+  addQuestionOption(): void {
+    const option = this.newQuestionOption.trim();
+    if (!option) return;
+    const options = this.questionOptions();
+    if (options.some((value) => value.toLocaleLowerCase() === option.toLocaleLowerCase())) {
+      this.showError('Question options must be unique.');
+      return;
+    }
+    this.questionDraft.optionsText = [...options, option].join('\n');
+    this.newQuestionOption = '';
+  }
+
+  removeQuestionOption(option: string): void {
+    this.questionDraft.optionsText = this.questionOptions()
+      .filter((value) => value !== option)
+      .join('\n');
+    this.questionDraft.criticalResponses = this.questionDraft.criticalResponses
+      .filter((value) => value !== option);
+  }
+
+  isCriticalResponseSelected(option: string): boolean {
+    return this.questionDraft.criticalResponses.includes(option);
+  }
+
+  setCriticalResponse(option: string, selected: boolean): void {
+    if (this.questionDraft.answer_type === 'SINGLE_CHOICE' || this.questionDraft.answer_type === 'YES_NO') {
+      this.questionDraft.criticalResponses = selected ? [option] : [];
+      return;
+    }
+    this.questionDraft.criticalResponses = selected
+      ? [...this.questionDraft.criticalResponses.filter((value) => value !== option), option]
+      : this.questionDraft.criticalResponses.filter((value) => value !== option);
   }
 
   requestQuestionDeletion(question: AdminCheckinQuestion): void {
@@ -299,7 +399,11 @@ export class SystemAdminCheckinTemplate implements OnInit {
   }
 
   choiceType(type: CheckinAnswerType): boolean {
-    return type === 'SINGLE_CHOICE' || type === 'MULTIPLE_CHOICE';
+    return type === 'YES_NO' || type === 'SINGLE_CHOICE' || type === 'MULTIPLE_CHOICE';
+  }
+
+  numberType(type: CheckinAnswerType): boolean {
+    return type === 'NUMBER';
   }
 
   label(value: string): string {
@@ -323,7 +427,10 @@ export class SystemAdminCheckinTemplate implements OnInit {
   }
 
   private emptyTemplateDraft(): AdminCheckinTemplateRequest {
-    return { template_name: '', template_type: 'POST_DISCHARGE', description: null };
+    return {
+      template_name: '', template_type: 'POST_DISCHARGE', description: null,
+      version: 1, status: 'DRAFT', escalate_to: null, expiry_after_hours: null, appointment_required: false,
+    };
   }
 
   private emptyQuestionDraft(displayOrder = 1): QuestionDraft {
@@ -335,7 +442,31 @@ export class SystemAdminCheckinTemplate implements OnInit {
       display_order: displayOrder,
       is_required: true,
       is_active: true,
+      criticalResponses: [],
+      risk_level: 'NORMAL',
+      numberMin: null,
+      numberMax: null,
+      min_inclusive: true,
+      max_inclusive: true,
     };
+  }
+
+  private numericCriticalResponse(): CheckinNumberCriticalResponse | null {
+    if (this.questionDraft.risk_level === 'NORMAL') return null;
+    if (this.questionDraft.numberMin === null || this.questionDraft.numberMax === null) {
+      this.showError('Enter both minimum and maximum values for a numeric critical range.');
+      return null;
+    }
+    return {
+      min: Number(this.questionDraft.numberMin),
+      max: Number(this.questionDraft.numberMax),
+      min_inclusive: this.questionDraft.min_inclusive,
+      max_inclusive: this.questionDraft.max_inclusive,
+    };
+  }
+
+  private numberRule(value: AdminCheckinQuestion['critical_response']): CheckinNumberCriticalResponse | null {
+    return value && !Array.isArray(value) && typeof value === 'object' ? value : null;
   }
 
   private userId(): number {

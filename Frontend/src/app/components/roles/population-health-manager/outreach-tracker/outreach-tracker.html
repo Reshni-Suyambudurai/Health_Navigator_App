@@ -83,6 +83,7 @@
         <label>Template name<input name="templateName" [(ngModel)]="templateDraft.template_name" required /></label>
         <label>Type<select name="templateType" [(ngModel)]="templateDraft.template_type"><option>POST_DISCHARGE</option><option>CHRONIC_CARE</option><option>MEDICATION_FOLLOWUP</option></select></label>
         <label>Description<textarea name="templateDescription" rows="3" [(ngModel)]="templateDraft.description"></textarea></label>
+        <label class="checkbox-label"><input name="appointmentRequired" [(ngModel)]="templateDraft.appointment_required" type="checkbox" /> Appointment required</label>
         <button type="submit" [disabled]="saving()">Create template</button>
       </form></div>
       <div class="data-panel"><div class="section-heading"><h2>Templates</h2><span>{{ templates().length }} total</span></div>

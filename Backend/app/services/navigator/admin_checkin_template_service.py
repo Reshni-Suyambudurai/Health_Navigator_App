@@ -7,7 +7,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import AuthorizationException, ConflictException, NotFoundException, ValidationException
-from app.database.models.checkin_question import CheckinAnswerType, CheckinQuestion
+from app.database.models.checkin_question import CheckinAnswerType, CheckinQuestion, CheckinRiskLevel
 from app.database.models.checkin_template import CheckinTemplate, CheckinTemplateStatus, CheckinTemplateType
 from app.database.models.checkin_template_review import CheckinTemplateReview, CheckinTemplateReviewStatus
 from app.database.models.notification import NotificationPriority, NotificationType
@@ -17,7 +17,14 @@ from app.services.notification_service import NotificationService
 
 
 class AdminCheckinTemplateService:
-    CHOICE_TYPES = {CheckinAnswerType.SINGLE_CHOICE, CheckinAnswerType.MULTIPLE_CHOICE}
+    CHOICE_TYPES = {CheckinAnswerType.YES_NO, CheckinAnswerType.SINGLE_CHOICE, CheckinAnswerType.MULTIPLE_CHOICE}
+    ESCALATION_ROLES = {
+        RoleName.CARE_MANAGER,
+        RoleName.TRANSITIONAL_CARE_NURSE,
+        RoleName.PHARMACIST,
+        RoleName.SOCIAL_WORKER,
+        RoleName.POPULATION_HEALTH_MANAGER,
+    }
 
     def __init__(self, db: Session):
         self.repository = AdminCheckinTemplateRepository(db)
@@ -36,6 +43,8 @@ class AdminCheckinTemplateService:
     def create_template(self, actor_user_id: int, data: dict[str, Any]) -> dict[str, Any]:
         admin = self._require_role(actor_user_id, RoleName.SYSTEM_ADMIN)
         name = self._required_text(data["template_name"], "Template name")
+        if data.get("version", 1) != 1 or data.get("status", "DRAFT") != "DRAFT":
+            raise ValidationException("New templates must start as Draft version 1", "INVALID_TEMPLATE_VERSION")
         if self.repository.template_version_exists(admin.organization_id, name, 1):
             raise ConflictException("Template version 1 already exists", "TEMPLATE_VERSION_EXISTS")
         template = CheckinTemplate(
@@ -46,6 +55,9 @@ class AdminCheckinTemplateService:
             version=1,
             status=CheckinTemplateStatus.DRAFT,
             created_by_user_id=admin.user_id,
+            escalation_role_id=self._resolve_role_id(data.get("escalate_to")),
+            expiry_after_hours=data.get("expiry_after_hours"),
+            appointment_required=data.get("appointment_required", False),
         )
         self._save(template)
         return self._serialize_template(template, include_questions=True)
@@ -54,6 +66,10 @@ class AdminCheckinTemplateService:
         admin = self._require_role(actor_user_id, RoleName.SYSTEM_ADMIN)
         template = self._require_template(template_id, admin.organization_id)
         self._require_editable(template)
+        if "version" in data and data["version"] != template.version:
+            raise ValidationException("Version is managed by template versioning", "VERSION_MANAGED_BY_WORKFLOW")
+        if "status" in data and data["status"] != template.status.value:
+            raise ValidationException("Status is managed by clinical review", "STATUS_MANAGED_BY_WORKFLOW")
         if "template_name" in data:
             name = self._required_text(data["template_name"], "Template name")
             if self.repository.template_version_exists(
@@ -65,6 +81,12 @@ class AdminCheckinTemplateService:
             template.template_type = self._enum(CheckinTemplateType, data["template_type"], "template type")
         if "description" in data:
             template.description = self._optional_text(data["description"])
+        if "escalate_to" in data:
+            template.escalation_role_id = self._resolve_role_id(data["escalate_to"])
+        if "expiry_after_hours" in data:
+            template.expiry_after_hours = data["expiry_after_hours"]
+        if "appointment_required" in data:
+            template.appointment_required = data["appointment_required"]
         self._save(template)
         return self._serialize_template(template, include_questions=True)
 
@@ -87,12 +109,17 @@ class AdminCheckinTemplateService:
             raise ConflictException("Question display order already exists", "QUESTION_ORDER_EXISTS")
         answer_type = self._enum(CheckinAnswerType, data["answer_type"], "answer type")
         options = self._validate_options(answer_type, data.get("options"))
+        risk_level = self._enum(CheckinRiskLevel, data.get("risk_level", "NORMAL"), "risk level")
+        critical_response = self._validate_critical_response(answer_type, options, data.get("critical_response"))
+        self._validate_risk_configuration(risk_level, critical_response, template.escalation_role_id)
         question = CheckinQuestion(
             checkin_template_id=template_id,
             question_key=key,
             question_text=self._required_text(data["question_text"], "Question text"),
             answer_type=answer_type,
             options=options,
+            risk_level=risk_level,
+            critical_response=critical_response,
             display_order=data["display_order"],
             is_required=data.get("is_required", True),
             is_active=data.get("is_active", True),
@@ -123,6 +150,18 @@ class AdminCheckinTemplateService:
         options = data.get("options", question.options)
         question.answer_type = answer_type
         question.options = self._validate_options(answer_type, options)
+        critical_response = data.get("critical_response", question.critical_response)
+        question.critical_response = self._validate_critical_response(answer_type, question.options, critical_response)
+        question.risk_level = self._enum(
+            CheckinRiskLevel,
+            data.get("risk_level", question.risk_level.value if question.risk_level else "NORMAL"),
+            "risk level",
+        )
+        self._validate_risk_configuration(
+            question.risk_level,
+            question.critical_response,
+            template.escalation_role_id,
+        )
         if "question_text" in data:
             question.question_text = self._required_text(data["question_text"], "Question text")
         if "display_order" in data:
@@ -159,7 +198,7 @@ class AdminCheckinTemplateService:
         template = self._require_template(template_id, admin.organization_id)
         self._require_editable(template)
         questions = self.repository.list_questions(template_id)
-        self._validate_template_questions(questions)
+        self._validate_template_questions(template, questions)
         review = CheckinTemplateReview(
             checkin_template_id=template_id,
             submitted_by_user_id=admin.user_id,
@@ -208,6 +247,9 @@ class AdminCheckinTemplateService:
             version=version,
             status=CheckinTemplateStatus.DRAFT,
             created_by_user_id=admin.user_id,
+            escalation_role_id=source.escalation_role_id,
+            expiry_after_hours=source.expiry_after_hours,
+            appointment_required=source.appointment_required,
         )
         try:
             target = self.repository.clone_version(source, target, self.repository.list_questions(template_id))
@@ -244,7 +286,7 @@ class AdminCheckinTemplateService:
             raise ConflictException("This review has already been decided", "REVIEW_ALREADY_DECIDED")
         approved = decision == CheckinTemplateReviewStatus.APPROVED.value
         if approved:
-            self._validate_template_questions(self.repository.list_questions(template.checkin_template_id))
+            self._validate_template_questions(template, self.repository.list_questions(template.checkin_template_id))
         clean_notes = self._required_text(review_notes, "Review notes")
         decision_label = "approved" if approved else "changes requested"
         notifications = self.notifications.prepare_for_role(
@@ -290,25 +332,105 @@ class AdminCheckinTemplateService:
         if pending is not None:
             raise ConflictException("Template cannot be changed while clinical review is pending", "REVIEW_PENDING")
 
-    def _validate_template_questions(self, questions: list[CheckinQuestion]) -> None:
+    def _validate_template_questions(self, template: CheckinTemplate, questions: list[CheckinQuestion]) -> None:
         active = [question for question in questions if question.is_active]
         if not active:
             raise ValidationException("At least one active question is required", "TEMPLATE_QUESTIONS_REQUIRED")
         for question in active:
             self._required_text(question.question_text, "Question text")
-            self._validate_options(question.answer_type, question.options)
+            options = self._validate_options(question.answer_type, question.options)
+            self._validate_critical_response(question.answer_type, options, getattr(question, "critical_response", None))
+            self._validate_risk_configuration(
+                getattr(question, "risk_level", None) or CheckinRiskLevel.NORMAL,
+                getattr(question, "critical_response", None),
+                getattr(template, "escalation_role_id", None),
+                require_destination=True,
+            )
 
     def _validate_options(self, answer_type: CheckinAnswerType, options: Any) -> list[str] | None:
         if answer_type not in self.CHOICE_TYPES:
             if options not in (None, []):
                 raise ValidationException("Options are only allowed for choice questions", "OPTIONS_NOT_ALLOWED")
             return None
+        if answer_type == CheckinAnswerType.YES_NO:
+            if options not in (None, [], ["Yes", "No"]):
+                raise ValidationException("YES_NO questions use the predefined Yes and No options", "INVALID_YES_NO_OPTIONS")
+            return ["Yes", "No"]
         if not isinstance(options, list):
             raise ValidationException("Choice questions require options", "OPTIONS_REQUIRED")
         cleaned = [str(option).strip() for option in options if str(option).strip()]
         if len(cleaned) < 2 or len({option.casefold() for option in cleaned}) != len(cleaned):
             raise ValidationException("Provide at least two unique nonblank options", "INVALID_OPTIONS")
         return cleaned
+
+    def _validate_critical_response(
+        self,
+        answer_type: CheckinAnswerType,
+        options: list[str] | None,
+        critical_response: Any,
+    ) -> list[str] | dict[str, Any] | None:
+        if answer_type == CheckinAnswerType.TEXT:
+            if critical_response is not None:
+                raise ValidationException("TEXT questions do not support critical responses", "CRITICAL_RESPONSE_NOT_ALLOWED")
+            return None
+        if answer_type == CheckinAnswerType.NUMBER:
+            if critical_response is None:
+                return None
+            if not isinstance(critical_response, dict):
+                raise ValidationException("NUMBER critical response must be a range object", "INVALID_NUMBER_RANGE")
+            required = {"min", "max", "min_inclusive", "max_inclusive"}
+            if set(critical_response) != required:
+                raise ValidationException("NUMBER range requires min, max, min_inclusive, and max_inclusive", "INVALID_NUMBER_RANGE")
+            if not isinstance(critical_response["min_inclusive"], bool) or not isinstance(critical_response["max_inclusive"], bool):
+                raise ValidationException("NUMBER range boundaries must be boolean", "INVALID_NUMBER_RANGE")
+            try:
+                if float(critical_response["min"]) > float(critical_response["max"]):
+                    raise ValueError
+            except (TypeError, ValueError) as exc:
+                raise ValidationException("NUMBER range min must not exceed max", "INVALID_NUMBER_RANGE") from exc
+            return critical_response
+        if critical_response is None:
+            return None
+        if not isinstance(critical_response, list) or not all(isinstance(value, str) and value.strip() for value in critical_response):
+            raise ValidationException("Choice critical responses must be an array of strings", "INVALID_CRITICAL_RESPONSE")
+        cleaned = [value.strip() for value in critical_response]
+        if not cleaned:
+            return None
+        if len(set(value.casefold() for value in cleaned)) != len(cleaned) or any(
+            value.casefold() not in {option.casefold() for option in options or []} for value in cleaned
+        ):
+            raise ValidationException("Every critical choice must exist in the question options", "CRITICAL_RESPONSE_NOT_IN_OPTIONS")
+        return cleaned
+
+    def _validate_risk_configuration(
+        self,
+        risk_level: CheckinRiskLevel,
+        critical_response: Any,
+        template_role_id: int | None,
+        require_destination: bool = False,
+    ) -> None:
+        if risk_level == CheckinRiskLevel.NORMAL:
+            if critical_response is not None:
+                raise ValidationException("NORMAL questions cannot define critical responses", "INVALID_NORMAL_RISK_CONFIG")
+            return
+        if critical_response is None:
+            raise ValidationException("A critical response is required for routine or emergency risk", "CRITICAL_RESPONSE_REQUIRED")
+        if require_destination and not template_role_id:
+            raise ValidationException("A valid escalation destination is required", "ESCALATION_DESTINATION_REQUIRED")
+
+    def _resolve_role_id(self, value: str | None) -> int | None:
+        if value is None or not str(value).strip():
+            return None
+        try:
+            role_name = RoleName(str(value).upper())
+        except ValueError as exc:
+            raise ValidationException("Unsupported escalation destination", "INVALID_ESCALATION_DESTINATION") from exc
+        if role_name not in self.ESCALATION_ROLES:
+            raise ValidationException("Unsupported escalation destination", "INVALID_ESCALATION_DESTINATION")
+        role = self.repository.find_role(role_name)
+        if role is None:
+            raise ValidationException("Escalation destination is not configured", "ESCALATION_DESTINATION_NOT_CONFIGURED")
+        return role.role_id
 
     def _save(self, entity) -> None:
         try:
@@ -348,6 +470,9 @@ class AdminCheckinTemplateService:
             "review_status": latest_review.status.value if latest_review else None,
             "review_id": latest_review.review_id if latest_review else None,
             "review_notes": latest_review.review_notes if latest_review else None,
+            "escalate_to": self.repository.find_role_name(getattr(template, "escalation_role_id", None)).value if getattr(template, "escalation_role_id", None) and self.repository.find_role_name(getattr(template, "escalation_role_id", None)) else None,
+            "expiry_after_hours": getattr(template, "expiry_after_hours", None),
+            "appointment_required": template.appointment_required,
             "is_editable": template.status == CheckinTemplateStatus.DRAFT and (
                 latest_review is None or latest_review.status != CheckinTemplateReviewStatus.PENDING
             ),
@@ -360,14 +485,15 @@ class AdminCheckinTemplateService:
             ]
         return result
 
-    @staticmethod
-    def _serialize_question(question: CheckinQuestion) -> dict[str, Any]:
+    def _serialize_question(self, question: CheckinQuestion) -> dict[str, Any]:
         return {
             "question_id": question.question_id,
             "question_key": question.question_key,
             "question_text": question.question_text,
             "answer_type": question.answer_type.value,
             "options": question.options,
+            "critical_response": getattr(question, "critical_response", None),
+            "risk_level": getattr(question, "risk_level", None).value if getattr(question, "risk_level", None) else "NORMAL",
             "display_order": question.display_order,
             "is_required": question.is_required,
             "is_active": question.is_active,

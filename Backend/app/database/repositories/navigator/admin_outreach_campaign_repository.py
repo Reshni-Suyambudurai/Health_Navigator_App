@@ -299,23 +299,16 @@ class AdminOutreachCampaignRepository:
         )
 
     def _eligible_patient_query(self, organization_id: int, criteria: dict):
-        latest_outreach_consent = (
-            self.db.query(
-                PatientConsentRecord.patient_id.label("patient_id"),
-                PatientConsentRecord.consent_status.label("consent_status"),
-                PatientConsentRecord.revoked_at.label("revoked_at"),
-                func.row_number().over(
-                    partition_by=PatientConsentRecord.patient_id,
-                    order_by=(
-                        PatientConsentRecord.effective_at.desc(),
-                        PatientConsentRecord.consent_id.desc(),
-                    ),
-                ).label("consent_rank"),
-            )
+        accepted_patient_consents = (
+            self.db.query(PatientConsentRecord.patient_id.label("patient_id"))
             .filter(
-                PatientConsentRecord.consent_type == "OUTREACH",
-                PatientConsentRecord.effective_at <= datetime.utcnow(),
+                PatientConsentRecord.consent_type.in_(
+                    ("AI_DISCLOSURE", "AI_INTERACTION")
+                ),
+                PatientConsentRecord.consent_status == "ACCEPTED",
             )
+            .group_by(PatientConsentRecord.patient_id)
+            .having(func.count(func.distinct(PatientConsentRecord.consent_type)) == 2)
             .subquery()
         )
         query = (
@@ -328,17 +321,14 @@ class AdminOutreachCampaignRepository:
             .join(User, User.user_id == PatientProfile.user_id)
             .join(Role, Role.role_id == User.role_id)
             .join(
-                latest_outreach_consent,
-                latest_outreach_consent.c.patient_id == PatientProfile.patient_id,
+                accepted_patient_consents,
+                accepted_patient_consents.c.patient_id == PatientProfile.patient_id,
             )
             .filter(
                 PatientEnrollment.organization_id == organization_id,
                 User.organization_id == organization_id,
                 User.status == UserStatus.ACTIVE,
                 Role.role_name == RoleName.PATIENT,
-                latest_outreach_consent.c.consent_rank == 1,
-                latest_outreach_consent.c.consent_status == "ACCEPTED",
-                latest_outreach_consent.c.revoked_at.is_(None),
             )
         )
         enrollment_statuses = criteria.get("enrollment_statuses") or []

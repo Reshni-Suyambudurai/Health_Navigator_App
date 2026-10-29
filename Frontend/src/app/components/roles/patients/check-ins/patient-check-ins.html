@@ -1,0 +1,192 @@
+<main class="check-ins-page">
+
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Care team check-ins</p>
+      <h1>How are you feeling today?</h1>
+      <p class="intro">Your answers help your care team understand what support you need.</p>
+    </div>
+    <label class="status-filter">
+      <span>Status</span>
+      <select [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)" name="check-in-status-filter">
+        <option *ngFor="let status of statusOptions" [value]="status">{{ status.replace('_', ' ') }}</option>
+      </select>
+    </label>
+  </header>
+
+  <p class="status-message" *ngIf="loading()">Loading your check-ins...</p>
+  <p class="status-message error" *ngIf="!loading() && error()">{{ error() }}</p>
+  <p class="status-message" *ngIf="!loading() && !error() && sessions().length === 0">You have no check-ins waiting right now.</p>
+  <p class="status-message" *ngIf="!loading() && !error() && sessions().length > 0 && filteredSessions().length === 0">No check-ins match this status.</p>
+
+  <section class="session-list" *ngIf="!loading() && !selectedSession() && filteredSessions().length">
+    <article class="session-card" *ngFor="let session of filteredSessions()">
+      <div class="session-card__body">
+        <div class="session-card__header">
+          <div class="session-card__intro">
+            <span class="status-pill" [class.pending]="session.session_status === 'PENDING'" [class.complete]="session.session_status === 'COMPLETED'" [class.alert]="session.session_status === 'ESCALATED'" [class.expired]="isExpired(session)">
+              {{ session.session_status.replace('_', ' ') }}
+            </span>
+            <h2>{{ session.template?.template_name || 'Care check-in' }}</h2>
+            <p>{{ session.template?.description || 'A short set of questions from your care team.' }}</p>
+          </div>
+          <div class="appointment-state" *ngIf="session.appointment_id; else bookingAction">
+            <img src="/assets/icons/checkin-appointment.svg" alt="" aria-hidden="true">
+            <span>Appointment booked</span>
+            <strong>{{ session.appointment_datetime ? formatDateTime(session.appointment_datetime) : 'Date available in appointments' }}</strong>
+          </div>
+          <ng-template #bookingAction>
+            <button type="button" class="book-appointment-button" *ngIf="canBookAppointment(session)" (click)="openAppointmentBooking(session)">
+              Book appointment
+            </button>
+          </ng-template>
+        </div>
+        <div class="session-meta">
+          <div class="session-meta__item">
+            <img src="/assets/icons/checkin-calendar.svg" alt="" aria-hidden="true">
+            <span><strong>Scheduled</strong>{{ formatDateTime(session.scheduled_at) }}</span>
+          </div>
+          <div class="session-meta__item">
+            <img src="/assets/icons/checkin-updated.svg" alt="" aria-hidden="true">
+            <span><strong>Updated</strong>{{ formatDateTime(session.updated_at) }}</span>
+          </div>
+          <div class="session-meta__item">
+            <img src="/assets/icons/checkin-expiry.svg" alt="" aria-hidden="true">
+            <span><strong>Expires</strong>{{ session.expires_at ? formatDate(session.expires_at) : 'No expiry configured' }}</span>
+          </div>
+        </div>
+        <footer class="session-card__footer">
+          <span class="session-progress">
+            <img src="/assets/icons/checkin-progress.svg" alt="" aria-hidden="true">
+            {{ progress(session) }}
+          </span>
+          <button type="button" (click)="selectSession(session)">
+            {{ isOpen(session) ? 'Open check-in →' : 'View summary' }}
+          </button>
+        </footer>
+      </div>
+    </article>
+  </section>
+
+  <section class="form-panel" *ngIf="selectedSession() as session">
+    <button type="button" (click)="closeSession()">← All check-ins</button>
+    <div class="form-heading">
+      <div>
+        <span class="status-pill" [class.pending]="session.session_status === 'PENDING'" [class.complete]="session.session_status === 'COMPLETED'" [class.alert]="session.session_status === 'ESCALATED'" [class.expired]="isExpired(session)">
+          {{ session.session_status.replace('_', ' ') }}
+        </span>
+        <h2>{{ session.template?.template_name || 'Care check-in' }}</h2>
+        <p>{{ session.template?.description }}</p>
+        <small class="session-meta">
+          <span class="session-meta__item"><strong>Scheduled</strong> {{ formatDateTime(session.scheduled_at) }}</span>
+          <span class="session-meta__item"><strong>Updated</strong> {{ formatDateTime(session.updated_at) }}</span>
+          <span class="session-meta__item"><strong>Expires</strong> {{ session.expires_at ? formatDate(session.expires_at) : 'No expiry configured' }}</span>
+        </small>
+      </div>
+      <div class="progress-note">{{ progress(session) }}</div>
+    </div>
+
+    <section class="appointment-callout" *ngIf="session.appointment_required">
+      <div class="appointment-callout__copy">
+        <span class="callout-label">Appointment</span>
+        <strong>{{ session.appointment_id ? 'Your check-in appointment is booked' : 'An appointment is needed for this check-in' }}</strong>
+        <small *ngIf="session.appointment_status">Status: {{ session.appointment_status.replace('_', ' ') }}</small>
+      </div>
+      <div class="appointment-actions">
+        <button type="button" *ngIf="canBookAppointment(session)" (click)="openAppointmentBooking()">Book appointment</button>
+        <a class="secondary-action" *ngIf="session.appointment_id" routerLink="/patient/appointments">View appointment</a>
+      </div>
+    </section>
+
+    <div class="readonly-banner" *ngIf="!isOpen(session)">
+      <strong>{{ isExpired(session) ? 'This check-in is no longer available.' : 'This check-in is complete.' }}</strong>
+      <span>{{ isExpired(session) ? 'Please contact your care team if you still need help.' : 'Your responses have been shared with your care team.' }}</span>
+    </div>
+
+    <section class="assignment-summary" *ngIf="session.escalation" [class.resolved]="session.escalation.escalation_status === 'RESOLVED'">
+      <header class="assignment-summary__header">
+        <div>
+          <span class="callout-label">Care team follow-up</span>
+          <strong class="assignment-summary__title" *ngIf="session.assignee; else awaitingAssignment">
+            {{ session.assignee.name }}
+          </strong>
+          <small class="assignment-summary__role" *ngIf="session.assignee">{{ formatLabel(session.assignee.role) }}</small>
+        </div>
+        <ng-template #awaitingAssignment>
+          <strong class="assignment-summary__title">Awaiting care-team assignment</strong>
+        </ng-template>
+        <span class="follow-up-status" *ngIf="session.assignment">
+          {{ formatLabel(session.assignment.assignment_status) }}
+        </span>
+      </header>
+
+      <p class="assignment-summary__pending" *ngIf="!session.assignment">Your care team will review your answers.</p>
+
+      <section class="resolution-details" *ngIf="session.escalation.escalation_status === 'RESOLVED' || session.assignment?.assignment_status === 'COMPLETED'">
+        <div class="resolution-details__heading">
+          <span aria-hidden="true">✓</span>
+          <strong>Follow-up completed</strong>
+        </div>
+        <div class="resolution-detail" *ngIf="session.assignment?.action_taken || session.escalation.action_taken">
+          <small>Action taken</small>
+          <strong>{{ session.assignment?.action_taken || session.escalation.action_taken }}</strong>
+        </div>
+        <div class="resolution-detail" *ngIf="session.assignment?.resolution_notes || session.escalation.resolution_notes">
+          <small>Care team note</small>
+          <p>{{ session.assignment?.resolution_notes || session.escalation.resolution_notes }}</p>
+        </div>
+      </section>
+    </section>
+
+    <form (ngSubmit)="submit()" #checkinForm="ngForm">
+      <fieldset *ngFor="let question of session.questions; let index = index" [disabled]="!isOpen(session)">
+        <legend><span>{{ index + 1 }}</span>{{ question.question_text }} <em *ngIf="question.is_required">Required</em></legend>
+
+        <label class="choice" *ngIf="question.answer_type === 'YES_NO'">
+          <input type="radio" [name]="'question-' + question.question_id" [value]="'YES'" [(ngModel)]="answers[question.question_id]">
+          <span>Yes</span>
+        </label>
+        <label class="choice" *ngIf="question.answer_type === 'YES_NO'">
+          <input type="radio" [name]="'question-' + question.question_id" [value]="'NO'" [(ngModel)]="answers[question.question_id]">
+          <span>No</span>
+        </label>
+
+        <ng-container *ngFor="let option of question.options">
+          <label class="choice" *ngIf="question.answer_type === 'SINGLE_CHOICE'">
+            <input type="radio" [name]="'question-' + question.question_id" [value]="option" [(ngModel)]="answers[question.question_id]">
+            <span>{{ option }}</span>
+          </label>
+        </ng-container>
+
+        <ng-container *ngFor="let option of question.options">
+          <label class="choice" *ngIf="isMultipleChoice(question.answer_type)">
+            <input type="checkbox" [name]="'question-' + question.question_id + '-' + option" [checked]="isOptionSelected(question.question_id, option)" (change)="toggleOption(question.question_id, option)">
+            <span>{{ option }}</span>
+          </label>
+        </ng-container>
+
+        <input *ngIf="question.answer_type === 'NUMBER'" class="text-input" type="number" [name]="'question-' + question.question_id" [(ngModel)]="answers[question.question_id]">
+        <textarea *ngIf="question.answer_type === 'TEXT'" class="text-input" rows="4" [name]="'question-' + question.question_id" [(ngModel)]="answers[question.question_id]" placeholder="Share anything that feels important"></textarea>
+      </fieldset>
+
+      <div class="form-actions">
+        <button type="button" (click)="saveDraft()" [disabled]="saving() || submitting() || !isOpen(session)">
+          {{ saving() ? 'Saving...' : 'Save draft' }}
+        </button>
+        <button type="submit" [disabled]="saving() || submitting() || !isOpen(session)">
+          {{ submitting() ? 'Submitting...' : 'Submit check-in' }}
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <app-book-appointment
+    *ngIf="bookingModalOpen() && selectedSession() as session"
+    [patientId]="session.patient_id"
+    appointmentType="CHECK-IN"
+    [checkinSessionId]="session.checkin_session_id"
+    [checkinTemplateName]="session.template?.template_name || 'Care check-in'"
+    (closed)="closeAppointmentBooking()"
+    (booked)="appointmentBooked()"
+  ></app-book-appointment>
+</main>

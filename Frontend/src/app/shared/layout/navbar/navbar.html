@@ -72,6 +72,9 @@
         <h3>{{ selected.title || 'Notification' }}</h3>
         <p class="sender">From {{ selected.sender_name }}</p>
         <p class="full-message">{{ selected.message }}</p>
+        @if (notifications.isPatient() && selected.notification_type === 'OUTREACH_UPDATE') {
+          <a class="notification-action" routerLink="/patient/check-ins" (click)="notifications.closePanel()">Open check-in</a>
+        }
         <dl>
           <div><dt>Received</dt><dd>{{ selected.created_at ? (selected.created_at | date:'medium') : 'Not available' }}</dd></div>
           <div><dt>Status</dt><dd>{{ label(selected.status) }}</dd></div>

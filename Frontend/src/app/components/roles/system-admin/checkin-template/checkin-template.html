@@ -78,6 +78,9 @@
           <div><dt>Lifecycle</dt><dd>{{ label(template.status) }}</dd></div>
           <div><dt>Clinical review</dt><dd>{{ template.review_status ? label(template.review_status) : 'Not submitted' }}</dd></div>
           <div><dt>Questions</dt><dd>{{ template.questions?.length ?? 0 }}</dd></div>
+          <div><dt>Escalation</dt><dd>{{ template.escalate_to ? label(template.escalate_to) : 'Not configured' }}</dd></div>
+          <div><dt>Expiry</dt><dd>{{ template.expiry_after_hours ? template.expiry_after_hours + ' hours' : 'No expiry' }}</dd></div>
+          <div><dt>Appointment</dt><dd>{{ template.appointment_required ? 'Required' : 'Not required' }}</dd></div>
         </dl>
 
         @if (template.review_status === 'PENDING') {
@@ -112,7 +115,7 @@
                     <span class="order">{{ index + 1 }}</span>
                     <div class="question-copy">
                       <strong>{{ question.question_text }}</strong>
-                      <span>{{ question.question_key }} · {{ label(question.answer_type) }} @if (question.is_required) { · Required }</span>
+                      <span>{{ question.question_key }} · {{ label(question.answer_type) }} · {{ label(question.risk_level) }} @if (question.is_required) { · Required }</span>
                       @if (question.options?.length) { <small>{{ question.options?.join(' · ') }}</small> }
                     </div>
                     @if (template.is_editable) {
@@ -155,6 +158,9 @@
         <label>Template name<input name="templateName" [(ngModel)]="templateDraft.template_name" maxlength="255" required /></label>
         <label>Template type<select name="templateType" [(ngModel)]="templateDraft.template_type"><option *ngFor="let type of templateTypes" [ngValue]="type">{{ label(type) }}</option></select></label>
         <label>Description<textarea name="description" [(ngModel)]="templateDraft.description" rows="4" maxlength="2000"></textarea></label>
+        <label>Default escalation destination<select name="templateEscalateTo" [(ngModel)]="templateDraft.escalate_to"><option [ngValue]="null">No destination</option><option *ngFor="let role of escalationRoles" [ngValue]="role">{{ label(role) }}</option></select></label>
+        <label>Expiry<select name="expiry" [(ngModel)]="templateDraft.expiry_after_hours"><option [ngValue]="null">No expiry</option><option [ngValue]="24">24 hours</option><option [ngValue]="48">48 hours</option><option [ngValue]="72">72 hours</option><option [ngValue]="168">7 days</option><option [ngValue]="288">12 days</option><option [ngValue]="432">18 days</option><option [ngValue]="480">20 days</option><option [ngValue]="600">25 days</option><option [ngValue]="720">30 days</option></select></label>
+        <label class="checkbox-label"><input name="appointmentRequired" [(ngModel)]="templateDraft.appointment_required" type="checkbox" /> Appointment required</label>
         <footer><button type="button" class="secondary-button" (click)="closeTemplateDialog()">Cancel</button><button type="submit" class="primary-button" [disabled]="saving()">{{ saving() ? 'Saving...' : 'Save Draft' }}</button></footer>
       </form>
     </section>
@@ -165,15 +171,78 @@
   <div class="modal-backdrop" (click)="closeQuestionDialog()">
     <section class="modal question-modal" role="dialog" aria-modal="true" aria-labelledby="question-dialog-title" (click)="$event.stopPropagation()">
       <header><h2 id="question-dialog-title">{{ questionDialog() === 'create' ? 'Add question' : 'Edit question' }}</h2><button type="button" class="close-button" aria-label="Close" (click)="closeQuestionDialog()">×</button></header>
-      <form (ngSubmit)="saveQuestion()">
-        <div class="form-grid">
-          <label>Question key<input name="questionKey" [(ngModel)]="questionDraft.question_key" maxlength="100" placeholder="medication_pickup" required /></label>
-          <label>Answer type<select name="answerType" [(ngModel)]="questionDraft.answer_type"><option *ngFor="let type of answerTypes" [ngValue]="type">{{ label(type) }}</option></select></label>
-          <label class="wide">Question text<textarea name="questionText" [(ngModel)]="questionDraft.question_text" rows="3" maxlength="2000" required></textarea></label>
+      <form class="question-editor-form" (ngSubmit)="saveQuestion()">
+        <div class="form-grid question-form-grid">
+          <label>Question key<input name="questionKey" [(ngModel)]="questionDraft.question_key" maxlength="100" placeholder="medication_pickup" [disabled]="questionDialog() === 'edit'" required /></label>
+          <label>Answer type<select name="answerType" [ngModel]="questionDraft.answer_type" (ngModelChange)="changeAnswerType($event)"><option *ngFor="let type of answerTypes" [ngValue]="type">{{ label(type) }}</option></select></label>
+          <label class="wide question-text-field">Question text<textarea name="questionText" [(ngModel)]="questionDraft.question_text" rows="3" maxlength="2000" required></textarea><small>Patient-facing prompt shown in the check-in.</small></label>
           @if (choiceType(questionDraft.answer_type)) {
-            <label class="wide">Options<textarea name="options" [(ngModel)]="questionDraft.optionsText" rows="4" placeholder="One option per line"></textarea><small>Enter at least two unique options.</small></label>
+            @if (questionDraft.answer_type === 'YES_NO') {
+              <div class="wide option-editor">
+                <span class="field-label">Options</span>
+                <div class="option-editor__row">
+                  <div class="option-chips">
+                    <span class="option-chip" *ngFor="let option of questionOptions()">{{ option }}</span>
+                  </div>
+                </div>
+                <small>Yes and No are predefined options for this question.</small>
+              </div>
+            } @else {
+              <div class="wide option-editor">
+                <span class="field-label">Options</span>
+                <div class="option-editor__row">
+                  <div class="option-chips">
+                    <span class="option-chip" *ngFor="let option of questionOptions()">
+                      {{ option }}
+                      <button type="button" [attr.aria-label]="'Remove ' + option" (click)="removeQuestionOption(option)">×</button>
+                    </span>
+                    <input name="newQuestionOption" [(ngModel)]="newQuestionOption" placeholder="New option" (keydown.enter)="$event.preventDefault(); addQuestionOption()" />
+                  </div>
+                  <button type="button" class="add-option-button" (click)="addQuestionOption()">+ Add option</button>
+                </div>
+                <small>Enter at least two unique options.</small>
+              </div>
+            }
           }
-          <label>Display order<input name="displayOrder" [(ngModel)]="questionDraft.display_order" type="number" min="1" required /></label>
+          <label class="risk-field">Risk level<select name="riskLevel" [(ngModel)]="questionDraft.risk_level" [disabled]="questionDraft.answer_type === 'TEXT'"><option *ngFor="let risk of availableRiskLevels()" [ngValue]="risk">{{ label(risk) }}</option></select></label>
+          @if (numberType(questionDraft.answer_type)) {
+            <div class="range-fields wide">
+              <label>Minimum<input name="numberMin" [(ngModel)]="questionDraft.numberMin" type="number" /></label>
+              <label>Maximum<input name="numberMax" [(ngModel)]="questionDraft.numberMax" type="number" /></label>
+              <label class="checkbox-label"><input name="minInclusive" [(ngModel)]="questionDraft.min_inclusive" type="checkbox" /> Minimum inclusive</label>
+              <label class="checkbox-label"><input name="maxInclusive" [(ngModel)]="questionDraft.max_inclusive" type="checkbox" /> Maximum inclusive</label>
+            </div>
+          } @else if (questionDraft.answer_type !== 'TEXT' && questionDraft.risk_level !== 'NORMAL') {
+            <fieldset class="critical-response-fields">
+              <legend>Critical response</legend>
+              <small>Select the answer that triggers the selected risk level.</small>
+              @if (questionDraft.answer_type === 'YES_NO') {
+                <label class="checkbox-label" *ngFor="let option of questionOptions()">
+                  <input
+                    type="radio"
+                    name="criticalResponse"
+                    [checked]="isCriticalResponseSelected(option)"
+                    (change)="setCriticalResponse(option, $any($event.target).checked)"
+                  />
+                  {{ option }}
+                </label>
+              } @else {
+                <label class="checkbox-label" *ngFor="let option of questionOptions()">
+                  <input
+                    type="checkbox"
+                    [name]="'criticalResponse-' + option"
+                    [checked]="isCriticalResponseSelected(option)"
+                    (change)="setCriticalResponse(option, $any($event.target).checked)"
+                  />
+                  {{ option }}
+                </label>
+              }
+              @if (!questionOptions().length) { <small>Add the answer options first.</small> }
+            </fieldset>
+          } @else if (questionDraft.answer_type === 'TEXT') {
+            <p class="form-note wide">Text questions do not use structured critical responses in this version.</p>
+          }
+          <label class="display-order-field">Display order<input name="displayOrder" [(ngModel)]="questionDraft.display_order" type="number" min="1" required /></label>
           <div class="toggle-fields">
             <label><input name="required" [(ngModel)]="questionDraft.is_required" type="checkbox" /> Required</label>
             <label><input name="active" [(ngModel)]="questionDraft.is_active" type="checkbox" /> Active</label>

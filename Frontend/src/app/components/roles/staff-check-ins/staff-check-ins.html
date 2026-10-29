@@ -1,0 +1,85 @@
+<main class="staff-checkins">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Assigned care work</p>
+      <h1>Check-ins</h1>
+      <p>Review patient responses, document your action, and close the follow-up.</p>
+    </div>
+    <div class="checkin-filters" aria-label="Filter assigned check-ins">
+      <label><input type="checkbox" [ngModel]="showEmergency()" (ngModelChange)="showEmergency.set($event)"><span>Emergency</span></label>
+      <label><input type="checkbox" [ngModel]="showRoutine()" (ngModelChange)="showRoutine.set($event)"><span>Routine</span></label>
+      <label><input type="checkbox" [ngModel]="showCompleted()" (ngModelChange)="showCompleted.set($event)"><span>Completed</span></label>
+    </div>
+  </header>
+
+  <p class="state" *ngIf="loading()">Loading assigned check-ins...</p>
+  <p class="state" *ngIf="!loading() && visibleCheckins().length === 0">No assigned check-ins match this view.</p>
+
+  <div class="workspace" *ngIf="!loading() && visibleCheckins().length">
+    <section class="work-list" aria-label="Assigned check-ins">
+      <button
+        type="button"
+        *ngFor="let item of visibleCheckins()"
+        [class.selected]="selected()?.assignment?.assignment_id === item.assignment.assignment_id"
+        (click)="select(item)"
+      >
+        <span class="risk" [class.emergency]="item.escalation.escalation_type === 'EMERGENCY'">{{ item.escalation.escalation_type }}</span>
+        <strong>{{ item.patient.name }}</strong>
+        <span>{{ item.template_name }}</span>
+        <small class="work-state">
+          <span class="work-status" [class.assigned]="item.assignment.assignment_status === 'ASSIGNED'" [class.in-progress]="item.assignment.assignment_status === 'IN_PROGRESS'" [class.completed]="item.assignment.assignment_status === 'COMPLETED'">{{ formatLabel(item.assignment.assignment_status) }}</span>
+          <span>{{ formatDate(item.assignment.completed_at || item.session.completed_at) }}</span>
+        </small>
+      </button>
+    </section>
+
+    <section class="work-detail" *ngIf="selected() as item; else selectPrompt">
+      <header class="detail-header">
+        <div class="detail-heading">
+          <span class="risk" [class.emergency]="item.escalation.escalation_type === 'EMERGENCY'">{{ item.escalation.escalation_type }} priority</span>
+          <h2>{{ item.patient.name }}</h2>
+          <div class="detail-meta">
+            <span>{{ item.template_name }}</span>
+            <span>Submitted {{ formatDate(item.session.completed_at) }}</span>
+            <span class="contact-item" *ngIf="item.patient.contact_number"><span aria-hidden="true">📱</span><a [href]="'tel:' + item.patient.contact_number">{{ item.patient.contact_number }}</a></span>
+            <span *ngIf="!item.patient.contact_number">Contact number not available</span>
+          </div>
+        </div>
+        <button type="button" *ngIf="item.assignment.assignment_status === 'ASSIGNED'" (click)="startReview()" [disabled]="working()">
+          Start review
+        </button>
+      </header>
+
+      <section class="responses" aria-labelledby="response-heading">
+        <h3 id="response-heading">Patient responses</h3>
+        <dl>
+          <div *ngFor="let response of item.responses" [class.triggering]="response.is_triggering">
+            <dt>
+              <span class="question-text">{{ response.question_text }}</span>
+              <span class="trigger-label" *ngIf="response.is_triggering">Triggered follow-up</span>
+            </dt>
+            <dd>{{ answer(response) }}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <form *ngIf="item.assignment.assignment_status !== 'COMPLETED'; else resolutionSummary" (ngSubmit)="resolve()">
+        <h3>Document resolution</h3>
+        <label>Action taken<textarea name="actionTaken" [(ngModel)]="actionTaken" rows="3" required maxlength="500" placeholder="Describe the actions and interventions taken..."></textarea></label>
+        <label>Resolution notes<textarea name="resolutionNotes" [(ngModel)]="resolutionNotes" rows="5" required maxlength="4000" placeholder="Provide further resolution notes, details, or next steps..."></textarea></label>
+        <button type="submit" [disabled]="working() || !actionTaken.trim() || !resolutionNotes.trim()">{{ working() ? 'Saving...' : 'Resolve check-in' }}</button>
+      </form>
+
+      <ng-template #resolutionSummary>
+        <section class="resolution-summary">
+          <h3>Resolution</h3>
+          <strong>{{ item.assignment.action_taken }}</strong>
+          <p>{{ item.assignment.resolution_notes }}</p>
+          <small>Completed {{ formatDate(item.assignment.completed_at) }}</small>
+        </section>
+      </ng-template>
+    </section>
+
+    <ng-template #selectPrompt><section class="select-prompt">Select a check-in to review its responses.</section></ng-template>
+  </div>
+</main>

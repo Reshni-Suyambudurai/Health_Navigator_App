@@ -121,6 +121,21 @@
   color-scheme: light;
 }
 
+.type-lockup {
+  display: grid;
+  gap: .2rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: .68rem .75rem;
+  color: var(--text);
+  background: var(--surface);
+}
+
+.type-lockup small {
+  color: var(--muted);
+  font-weight: 500;
+}
+
 :host-context([data-theme='dark']) .booking-field input[type='date'] {
   color-scheme: dark;
 }

@@ -1,6 +1,6 @@
 import { ApiSuccessResponse } from './user';
 
-export type AppointmentType = 'POST_DISCHARGE' | 'NURSE_FOLLOWUP' | 'CARE_MANAGER_CALL';
+export type AppointmentType = 'ROUTINE' | 'CHECK-IN';
 export type AppointmentStatus =
 	| 'REQUESTED'
 	| 'SCHEDULED'
@@ -92,6 +92,7 @@ export interface AvailabilityRequest {
 export interface RoutineAppointmentRequest {
 	patient_id: number;
 	appointment_type: AppointmentType;
+	checkin_session_id?: number;
 	appointment_datetime: string;
 	end_datetime: string;
 	reason?: string | null;
@@ -122,6 +123,18 @@ export interface NurseAppointmentUpdateData {
 export interface AvailableAppointmentSlot {
 	start: string;
 	end: string;
+}
+
+export interface BookingPermissions {
+	allowed_booking_types: AppointmentType[];
+	checkin_session_ids: number[];
+	checkin_sessions: CheckinBookingSession[];
+}
+
+export interface CheckinBookingSession {
+	checkin_session_id: number;
+	checkin_template_id: number;
+	template_name: string;
 }
 
 export interface AvailableSlotsData {

@@ -16,6 +16,12 @@
 
         <div class="patient-home__layout">
           <main class="patient-chat-column">
+            <section class="patient-checkin-card" *ngIf="pendingCheckins().length">
+              <div>
+               
+              </div>
+        
+            </section>
             <app-ai-chat></app-ai-chat>
           </main>
 

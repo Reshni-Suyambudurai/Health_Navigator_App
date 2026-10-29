@@ -3,9 +3,12 @@ from typing import Any
 
 from app.core.exceptions import AuthorizationException, ConflictException, NotFoundException, ValidationException
 from app.database.models.appointment import Appointment, AppointmentStatus, AppointmentType, BookingMethod
+from app.database.models.checkin_session import CheckinSessionStatus
 from app.database.repositories.navigator.appointment_repository import AppointmentRepository
+from app.database.repositories.navigator.outreach_repository import OutreachRepository
 from app.database.repositories.navigator.patient_profile_repository import PatientProfileRepository
 from app.database.repositories.navigator.staff_availability_repository import StaffAvailabilityRepository
+from app.utils.datetime_utils import local_now
 from sqlalchemy.orm import Session
 
 
@@ -15,6 +18,7 @@ class AppointmentService:
     def __init__(self, db: Session):
         self.db = db
         self.appointments = AppointmentRepository(db)
+        self.outreach = OutreachRepository(db)
         self.patients = PatientProfileRepository(db)
         self.availability = StaffAvailabilityRepository(db)
 
@@ -39,6 +43,41 @@ class AppointmentService:
         if not patient:
             raise NotFoundException("Patient profile not found", "PATIENT_NOT_FOUND")
         return self.appointments.find_for_patient(patient.patient_id, upcoming=upcoming)
+
+    def get_booking_permissions(self, user_id: int) -> dict[str, Any]:
+        patient = self.patients.find_by_user_id(user_id)
+        if not patient:
+            raise NotFoundException("Patient profile not found", "PATIENT_NOT_FOUND")
+
+        eligible_sessions = []
+        eligible_session_details = []
+        for session in self.outreach.list_sessions(patient.patient_id):
+            template = self.outreach.get_template(session.checkin_template_id)
+            if (
+                session.session_status in (CheckinSessionStatus.PENDING, CheckinSessionStatus.IN_PROGRESS)
+                and template
+                and template.appointment_required
+                and session.appointment_id is None
+                and not (session.expires_at and session.expires_at <= datetime.utcnow())
+            ):
+                eligible_sessions.append(session.checkin_session_id)
+                eligible_session_details.append({
+                    "checkin_session_id": session.checkin_session_id,
+                    "checkin_template_id": template.checkin_template_id,
+                    "template_name": template.template_name,
+                })
+
+        allowed = {
+            AppointmentType.CHECK_IN.value
+            if eligible_sessions
+            else AppointmentType.ROUTINE.value
+        }
+
+        return {
+            "allowed_booking_types": sorted(allowed),
+            "checkin_session_ids": eligible_sessions,
+            "checkin_sessions": eligible_session_details,
+        }
 
     def get_reassignment_options(self, user_id: int, appointment_id: int) -> list[dict[str, Any]]:
         current_staff = self._get_nurse_staff(user_id)
@@ -107,7 +146,8 @@ class AppointmentService:
         duration_minutes: int,
     ) -> list[dict[str, str]]:
         self._validate_duration(duration_minutes)
-        if requested_date < datetime.utcnow().date():
+        now = local_now()
+        if requested_date < now.date():
             raise ValidationException("Appointment date cannot be in the past.", "APPOINTMENT_DATE_IN_PAST")
         if not self.patients.find_by_user_id(user_id):
             raise NotFoundException("Patient profile not found", "PATIENT_NOT_FOUND")
@@ -122,7 +162,6 @@ class AppointmentService:
         for staff_id, busy_start, busy_end in busy_ranges:
             busy_by_staff.setdefault(staff_id, []).append((busy_start, busy_end))
 
-        now = datetime.utcnow()
         slots: set[tuple[datetime, datetime]] = set()
         for window in windows:
             candidate = datetime.combine(requested_date, window.start_time)
@@ -168,11 +207,20 @@ class AppointmentService:
         end_datetime: datetime,
         reason: str | None,
         location_or_channel: str | None,
+        checkin_session_id: int | None = None,
     ) -> dict[str, Any]:
         if end_datetime <= appointment_datetime:
             raise ValidationException("Appointment end time must be after its start time.", "INVALID_APPOINTMENT_RANGE")
-        if appointment_datetime <= datetime.utcnow():
+
+        now = local_now()
+        if appointment_datetime <= now:
+            if appointment_datetime.date() == now.date():
+                raise ValidationException(
+                    "You cannot book an appointment for a time that has already passed today.",
+                    "APPOINTMENT_TIME_IN_PAST",
+                )
             raise ValidationException("Appointments must be scheduled in the future.", "APPOINTMENT_IN_PAST")
+
         duration_minutes = int((end_datetime - appointment_datetime).total_seconds() // 60)
         self._validate_duration(duration_minutes)
 
@@ -184,12 +232,47 @@ class AppointmentService:
                     "PATIENT_BOOKING_ACCESS_REQUIRED",
                 )
 
+            session = None
+            if appointment_type == AppointmentType.CHECK_IN:
+                if checkin_session_id is None:
+                    raise ValidationException(
+                        "A check-in session is required for this appointment type.",
+                        "CHECKIN_SESSION_REQUIRED",
+                    )
+                session = self.outreach.lock_session(checkin_session_id)
+                if not session or session.patient_id != patient.patient_id:
+                    raise AuthorizationException(
+                        "The check-in session does not belong to this patient.",
+                        "CHECKIN_SESSION_ACCESS_REQUIRED",
+                    )
+                template = self.outreach.get_template(session.checkin_template_id)
+                if session.session_status not in (CheckinSessionStatus.PENDING, CheckinSessionStatus.IN_PROGRESS):
+                    raise ValidationException(
+                        "The check-in must be pending or in progress before booking an appointment.",
+                        "CHECKIN_NOT_BOOKABLE",
+                    )
+                if not template or not template.appointment_required:
+                    raise ValidationException(
+                        "This check-in does not require an appointment.",
+                        "CHECKIN_APPOINTMENT_NOT_REQUIRED",
+                    )
+                if session.appointment_id is not None:
+                    raise ConflictException(
+                        "An appointment is already linked to this check-in.",
+                        "CHECKIN_APPOINTMENT_ALREADY_BOOKED",
+                    )
+                if session.expires_at and session.expires_at <= datetime.utcnow():
+                    raise ValidationException(
+                        "This check-in has expired.",
+                        "CHECKIN_SESSION_EXPIRED",
+                    )
+
             candidates = self.availability.find_matching_staff(
                 appointment_datetime.date(),
                 appointment_datetime.time(),
                 end_datetime.time(),
             )
-            now = datetime.utcnow()
+            now = local_now()
             ordered_candidates = sorted(
                 candidates,
                 key=lambda staff: (
@@ -218,6 +301,8 @@ class AppointmentService:
             saved = self.appointments.save(Appointment(
                 patient_id=patient_id,
                 staff_id=selected.staff_id,
+                episode_id=session.episode_id if session else None,
+                source_outreach_event_id=session.outreach_event_id if session else None,
                 appointment_type=appointment_type,
                 appointment_datetime=appointment_datetime,
                 end_datetime=end_datetime,
@@ -227,6 +312,8 @@ class AppointmentService:
                 reason=reason,
                 created_by_user_id=created_by_user_id,
             ))
+            if session:
+                session.appointment_id = saved.appointment_id
             result = {
                 "appointment_id": saved.appointment_id,
                 "patient_id": saved.patient_id,

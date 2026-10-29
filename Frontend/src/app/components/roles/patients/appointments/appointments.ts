@@ -4,7 +4,7 @@ import { finalize, forkJoin } from 'rxjs';
 import { AppointmentApi } from '../../../../api/navigator/appointment.api';
 import { UserApi } from '../../../../api/navigator/user.api';
 import { getSessionUser } from '../../../../api/tokenstore';
-import { PatientAppointmentRecord } from '../../../../shared/types/navigator/appointment';
+import { AppointmentType, CheckinBookingSession, PatientAppointmentRecord } from '../../../../shared/types/navigator/appointment';
 import { ToastState } from '../../../../shared/ui/toast/toast-state';
 import { BookAppointment } from '../book-appointment/book-appointment';
 
@@ -27,6 +27,9 @@ export class PatientAppointments implements OnInit {
   readonly history = signal<PatientAppointmentRecord[]>([]);
   readonly pageError = signal<string | null>(null);
   readonly bookingModalOpen = signal(false);
+  readonly allowedBookingTypes = signal<AppointmentType[]>(['ROUTINE']);
+  readonly checkinSessionIds = signal<number[]>([]);
+  readonly checkinSessions = signal<CheckinBookingSession[]>([]);
 
   ngOnInit(): void {
     const userId = this.sessionUser?.userId;
@@ -45,6 +48,7 @@ export class PatientAppointments implements OnInit {
           }
           this.patientId.set(response.data.profile.patient_id);
           this.loadAppointments();
+          this.loadBookingPermissions();
         },
         error: (error: unknown) => {
           this.pageError.set(this.extractErrorMessage(error));
@@ -64,6 +68,7 @@ export class PatientAppointments implements OnInit {
   bookingCompleted(): void {
     this.bookingModalOpen.set(false);
     this.loadAppointments();
+    this.loadBookingPermissions();
   }
 
   formatDateTime(value: string): string {
@@ -108,6 +113,23 @@ export class PatientAppointments implements OnInit {
         this.history.set(response.history.data.appointments);
       },
       error: (error: unknown) => this.toast.error(this.extractErrorMessage(error)),
+    });
+  }
+
+  private loadBookingPermissions(): void {
+    const userId = this.sessionUser?.userId;
+    if (!userId) return;
+    this.appointmentApi.getBookingPermissions(userId).subscribe({
+      next: (response) => {
+        this.allowedBookingTypes.set(response.data.allowed_booking_types);
+        this.checkinSessionIds.set(response.data.checkin_session_ids);
+        this.checkinSessions.set(response.data.checkin_sessions ?? []);
+      },
+      error: () => {
+        this.allowedBookingTypes.set(['ROUTINE']);
+        this.checkinSessionIds.set([]);
+        this.checkinSessions.set([]);
+      },
     });
   }
 

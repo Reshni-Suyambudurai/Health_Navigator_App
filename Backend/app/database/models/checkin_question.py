@@ -16,6 +16,12 @@ class CheckinAnswerType(enum.Enum):
     MULTIPLE_CHOICE = "MULTIPLE_CHOICE"
 
 
+class CheckinRiskLevel(enum.Enum):
+    NORMAL = "NORMAL"
+    ROUTINE = "ROUTINE"
+    EMERGENCY = "EMERGENCY"
+
+
 class CheckinQuestion(Base):
     __tablename__ = "checkin_questions"
     __table_args__ = (
@@ -30,6 +36,8 @@ class CheckinQuestion(Base):
     question_text = Column(Text, nullable=False)
     answer_type = Column(SQLEnum(CheckinAnswerType, name="checkin_answer_type"), nullable=False)
     options = Column(JSON)
+    risk_level = Column(SQLEnum(CheckinRiskLevel, name="checkin_risk_level"), nullable=False, server_default="NORMAL")
+    critical_response = Column(JSON)
     display_order = Column(Integer, nullable=False)
     is_required = Column(Boolean, nullable=False, server_default="true")
     is_active = Column(Boolean, nullable=False, server_default="true")

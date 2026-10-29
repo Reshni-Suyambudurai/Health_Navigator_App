@@ -100,6 +100,9 @@
     <app-book-appointment
       *ngIf="bookingModalOpen()"
       [patientId]="activePatientId"
+      [allowedAppointmentTypes]="allowedBookingTypes()"
+      [checkinSessionIds]="checkinSessionIds()"
+      [checkinSessions]="checkinSessions()"
       (closed)="closeBookingModal()"
       (booked)="bookingCompleted()" />
   </ng-container>

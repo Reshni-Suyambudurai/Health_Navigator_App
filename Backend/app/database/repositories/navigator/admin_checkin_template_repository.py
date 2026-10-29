@@ -26,6 +26,15 @@ class AdminCheckinTemplateRepository:
             .one_or_none()
         )
 
+    def find_role(self, role_name: RoleName) -> Role | None:
+        return self.db.query(Role).filter(Role.role_name == role_name).one_or_none()
+
+    def find_role_name(self, role_id: int | None) -> RoleName | None:
+        if role_id is None:
+            return None
+        role = self.db.query(Role).filter(Role.role_id == role_id).one_or_none()
+        return role.role_name if role else None
+
     def list_templates(self, organization_id: int) -> list[CheckinTemplate]:
         return (
             self.db.query(CheckinTemplate)
@@ -217,6 +226,8 @@ class AdminCheckinTemplateRepository:
                     question_text=question.question_text,
                     answer_type=question.answer_type,
                     options=question.options,
+                    risk_level=question.risk_level,
+                    critical_response=question.critical_response,
                     display_order=question.display_order,
                     is_required=question.is_required,
                     is_active=question.is_active,

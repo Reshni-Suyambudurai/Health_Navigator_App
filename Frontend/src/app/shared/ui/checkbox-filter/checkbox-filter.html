@@ -1,0 +1,52 @@
+<div class="checkbox-filter">
+  <button
+    type="button"
+    class="checkbox-filter__trigger"
+    [class.active]="selectedValues.length > 0"
+    [attr.aria-label]="'Filter ' + label"
+    [attr.aria-expanded]="open"
+    aria-haspopup="dialog"
+    (click)="togglePopup()"
+  >
+    <img src="/assets/icons/filter.svg" alt="" aria-hidden="true">
+    <span *ngIf="selectedValues.length" class="checkbox-filter__count">{{ selectedValues.length }}</span>
+  </button>
+
+  <section *ngIf="open" class="checkbox-filter__panel" role="dialog" [attr.aria-label]="label + ' filters'" [style.left.px]="panelLeft" [style.top.px]="panelTop">
+    <header>
+      <strong>Filter {{ label }}</strong>
+      <button type="button" class="checkbox-filter__close" aria-label="Close filter" (click)="cancel()">×</button>
+    </header>
+
+    <label *ngIf="searchable" class="checkbox-filter__search">
+      <span class="visually-hidden">Search {{ label }}</span>
+      <input type="search" [(ngModel)]="search" placeholder="Search values" autocomplete="off">
+    </label>
+
+    <div class="checkbox-filter__select-all" *ngIf="visibleOptions.length">
+      <label>
+        <input type="checkbox" [checked]="allVisibleSelected" (change)="toggleAllVisible()">
+        <span>Select all shown</span>
+      </label>
+    </div>
+
+    <div class="checkbox-filter__options">
+      <section *ngFor="let group of filteredGroups">
+        <h3 *ngIf="group.label">{{ group.label }}</h3>
+        <label class="checkbox-filter__option" *ngFor="let option of group.options">
+          <input type="checkbox" [checked]="draft.has(option.value)" (change)="toggle(option.value)">
+          <span><strong>{{ option.label }}</strong><small *ngIf="option.description">{{ option.description }}</small></span>
+        </label>
+      </section>
+      <p class="checkbox-filter__empty" *ngIf="!visibleOptions.length">No matching values.</p>
+    </div>
+
+    <footer>
+      <button type="button" class="text-button" (click)="clear()">Clear</button>
+      <div>
+        <button type="button" class="secondary-button" (click)="cancel()">Cancel</button>
+        <button type="button" (click)="apply()">Apply</button>
+      </div>
+    </footer>
+  </section>
+</div>

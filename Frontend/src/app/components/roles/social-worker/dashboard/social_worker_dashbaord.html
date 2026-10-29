@@ -1,4 +1,46 @@
 <section class="role-page">
-  <h1>Social Worker</h1>
-  <p>Support social determinants of health and coordinate non-clinical resources.</p>
+  <header class="page-head">
+    <div>
+      <p class="eyebrow">Care coordination</p>
+      <h1>Social Worker dashboard</h1>
+      <p class="intro">Coordinate practical support, resource referrals, and follow-up for patients who need help beyond clinical care.</p>
+    </div>
+    <a class="primary-action" routerLink="/social-worker/dashboard">Open workspace</a>
+  </header>
+
+  <div class="workspace-grid">
+    <a class="workspace-card" routerLink="/social-worker/dashboard">
+      <span class="card-label">Queue</span>
+      <h2>Support queue</h2>
+      <p>Review patients waiting for social support and follow-up.</p>
+      <span class="card-link">View queue</span>
+    </a>
+    <a class="workspace-card" routerLink="/social-worker/dashboard">
+      <span class="card-label">Coordination</span>
+      <h2>Resource referrals</h2>
+      <p>Connect patients with community programs and local services.</p>
+      <span class="card-link">Manage referrals</span>
+    </a>
+    <a class="workspace-card" routerLink="/social-worker/dashboard">
+      <span class="card-label">Access needs</span>
+      <h2>Housing &amp; transport</h2>
+      <p>Track practical barriers that may affect a patient’s care plan.</p>
+      <span class="card-link">Review needs</span>
+    </a>
+    <a class="workspace-card" routerLink="/social-worker/dashboard">
+      <span class="card-label">Communication</span>
+      <h2>Messages</h2>
+      <p>Follow up with patients and care-team members on open support needs.</p>
+      <span class="card-link">Open messages</span>
+    </a>
+  </div>
+
+  <section class="empty-state" aria-labelledby="social-work-queue-title">
+    <div>
+      <p class="eyebrow">Today’s focus</p>
+      <h2 id="social-work-queue-title">Your support workspace is ready</h2>
+      <p>Assigned cases, referral updates, and messages will appear here as they become available.</p>
+    </div>
+    <a class="secondary-action" routerLink="/social-worker/dashboard">Refresh workspace</a>
+  </section>
 </section>

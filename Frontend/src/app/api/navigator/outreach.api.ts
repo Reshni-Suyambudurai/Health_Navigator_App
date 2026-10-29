@@ -10,6 +10,10 @@ import {
   CampaignRequest,
   CheckinQuestion,
   CheckinQuestionRequest,
+  CheckinResponse,
+  CheckinResponseRequest,
+  CheckinSession,
+  CheckinSubmitRequest,
   CheckinTemplate,
   CheckinTemplateRequest,
   EventListResponse,
@@ -22,6 +26,8 @@ import {
   OutreachWorkflow,
   QuestionListResponse,
   SessionListResponse,
+  StaffCheckinListResponse,
+  StaffCheckinWork,
   TemplateListResponse,
   WorkflowListResponse,
   WorkflowRequest,
@@ -85,8 +91,63 @@ export class OutreachApi {
     });
   }
 
-  listSessions(): Observable<SessionListResponse> {
-    return this.http.get<SessionListResponse>(`${this.baseUrl}/checkin-sessions`);
+  listSessions(userId?: number): Observable<SessionListResponse> {
+    let params = new HttpParams();
+    if (userId) {
+      params = params.set('user_id', userId);
+    }
+    return this.http.get<SessionListResponse>(`${this.baseUrl}/checkin-sessions`, { params });
+  }
+
+  recordCheckinResponse(
+    sessionId: number,
+    payload: CheckinResponseRequest,
+    userId: number,
+  ): Observable<ApiSuccessResponse<CheckinResponse>> {
+    return this.http.post<ApiSuccessResponse<CheckinResponse>>(
+      `${this.baseUrl}/checkin-sessions/${sessionId}/responses`,
+      payload,
+      { params: this.userParams(userId) },
+    );
+  }
+
+  submitCheckin(
+    sessionId: number,
+    payload: CheckinSubmitRequest,
+    userId: number,
+  ): Observable<ApiSuccessResponse<CheckinSession>> {
+    return this.http.post<ApiSuccessResponse<CheckinSession>>(
+      `${this.baseUrl}/checkin-sessions/${sessionId}/submit`,
+      payload,
+      { params: this.userParams(userId) },
+    );
+  }
+
+  listAssignedCheckins(userId: number): Observable<StaffCheckinListResponse> {
+    return this.http.get<StaffCheckinListResponse>(`${this.baseUrl}/checkin-escalation-assignments`, {
+      params: this.userParams(userId),
+    });
+  }
+
+  startCheckinReview(userId: number, assignmentId: number): Observable<ApiSuccessResponse<StaffCheckinWork>> {
+    return this.http.put<ApiSuccessResponse<StaffCheckinWork>>(
+      `${this.baseUrl}/checkin-escalation-assignments/${assignmentId}/start`,
+      {},
+      { params: this.userParams(userId) },
+    );
+  }
+
+  resolveCheckin(
+    userId: number,
+    assignmentId: number,
+    actionTaken: string,
+    resolutionNotes: string,
+  ): Observable<ApiSuccessResponse<StaffCheckinWork>> {
+    return this.http.put<ApiSuccessResponse<StaffCheckinWork>>(
+      `${this.baseUrl}/checkin-escalation-assignments/${assignmentId}/resolve`,
+      { action_taken: actionTaken, resolution_notes: resolutionNotes },
+      { params: this.userParams(userId) },
+    );
   }
 
   listAppointmentActions(appointmentId: number): Observable<AppointmentActionListResponse> {

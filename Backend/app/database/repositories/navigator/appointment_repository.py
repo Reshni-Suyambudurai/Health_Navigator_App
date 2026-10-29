@@ -9,6 +9,7 @@ from app.database.models.patient_profile import PatientProfile
 from app.database.models.role import Role, RoleName
 from app.database.models.staff_profile import StaffProfile
 from app.database.models.user import User, UserStatus
+from app.utils.datetime_utils import local_now
 
 
 class AppointmentRepository:
@@ -120,7 +121,7 @@ class AppointmentRepository:
         ]
 
     def find_for_staff(self, staff_id: int, upcoming: bool) -> list[dict[str, Any]]:
-        now = datetime.utcnow()
+        now = local_now()
         query = (
             self.db.query(Appointment, PatientProfile, User)
             .join(PatientProfile, Appointment.patient_id == PatientProfile.patient_id)
@@ -154,7 +155,7 @@ class AppointmentRepository:
         return [self._serialize_row(appointment, patient, user) for appointment, patient, user in rows]
 
     def find_for_patient(self, patient_id: int, upcoming: bool) -> list[dict[str, Any]]:
-        now = datetime.utcnow()
+        now = local_now()
         query = (
             self.db.query(Appointment, StaffProfile, User)
             .outerjoin(StaffProfile, Appointment.staff_id == StaffProfile.staff_id)

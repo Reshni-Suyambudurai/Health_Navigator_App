@@ -90,6 +90,10 @@ export class NotificationState {
     });
   }
 
+  isPatient(): boolean {
+    return this.sessionUser?.roleName === 'PATIENT';
+  }
+
   private userId(): number {
     return Number(this.sessionUser?.user_id ?? this.sessionUser?.userId ?? 0);
   }

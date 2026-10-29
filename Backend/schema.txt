@@ -1,12 +1,13 @@
-// Patient AI Health Navigator — MVP database schema (DBML)
+// Patient AI Health Navigator — Updated complete MVP database schema (DBML)
+// Includes updated outreach and appointment tables plus check-in, appointment-action, and follow-up tables.
 // Review notes:
 // - Enum-like varchar fields list the currently proposed allowed values in comments; enforce with DB ENUM/CHECK/lookup tables in implementation.
 // - Clinical guardrails must be deterministically enforced in application logic; Markdown is supporting guidance, not executable policy by itself.
 // - FHIR remains the clinical source of truth; store external FHIR identifiers rather than duplicating all clinical records here.
 // - This MVP uses one primary role per user. If staff can hold multiple roles, add a user_roles junction table.
 // - Use UTC timestamps consistently and apply organization/patient-level authorization to all clinical records.
- 
- 
+
+
 Table organizations {
   organization_id bigint [primary key]
   organization_name varchar
@@ -18,14 +19,14 @@ Table organizations {
   created_at timestamp
   updated_at timestamp
 }
- 
+
 Table roles {
   role_id bigint [primary key]
   role_name varchar // PATIENT, CARE_MANAGER, TRANSITIONAL_CARE_NURSE, PHARMACIST, SOCIAL_WORKER, POPULATION_HEALTH_MANAGER, CLINICAL_GOVERNANCE, SYSTEM_ADMIN
   description varchar
   created_at timestamp
 }
- 
+
 Table users {
   user_id bigint [primary key]
   organization_id bigint
@@ -41,7 +42,7 @@ Table users {
   created_at timestamp
   updated_at timestamp
 }
- 
+
 Table patient_profiles {
   patient_id bigint [primary key]
   user_id bigint
@@ -56,7 +57,7 @@ Table patient_profiles {
   created_at timestamp
   updated_at timestamp
 }
- 
+
 Table staff_profiles {
   staff_id bigint [primary key]
   user_id bigint
@@ -68,13 +69,13 @@ Table staff_profiles {
   created_at timestamp
   updated_at timestamp
 }
- 
+
 Ref: users.organization_id > organizations.organization_id
 Ref: users.role_id > roles.role_id
 Ref: patient_profiles.user_id > users.user_id
 Ref: staff_profiles.user_id > users.user_id
- 
- 
+
+
 Table patient_consent_records {
   consent_id bigint [primary key]
   patient_id bigint
@@ -87,7 +88,7 @@ Table patient_consent_records {
   captured_by_user_id bigint
   created_at timestamp
 }
- 
+
 Table patient_enrollments {
   enrollment_id bigint [primary key]
   patient_id bigint
@@ -101,7 +102,7 @@ Table patient_enrollments {
   created_at timestamp
   updated_at timestamp
 }
- 
+
 Table care_navigation_episodes {
   episode_id bigint [primary key]
   patient_id bigint
@@ -116,7 +117,7 @@ Table care_navigation_episodes {
   created_at timestamp
   updated_at timestamp
 }
- 
+
 Ref: patient_consent_records.patient_id > patient_profiles.patient_id
 Ref: patient_consent_records.captured_by_user_id > users.user_id
 Ref: patient_enrollments.patient_id > patient_profiles.patient_id
@@ -125,8 +126,8 @@ Ref: patient_enrollments.created_by_user_id > users.user_id
 Ref: care_navigation_episodes.patient_id > patient_profiles.patient_id
 Ref: care_navigation_episodes.enrollment_id > patient_enrollments.enrollment_id
 Ref: care_navigation_episodes.owner_staff_id > staff_profiles.staff_id
- 
- 
+
+
 Table conversation_threads {
   thread_id bigint [primary key]
   patient_id bigint
@@ -138,7 +139,7 @@ Table conversation_threads {
   status varchar // ACTIVE, COMPLETED, ABANDONED
   created_at timestamp
 }
- 
+
 Table conversation_messages {
   message_id bigint [primary key]
   thread_id bigint
@@ -153,7 +154,7 @@ Table conversation_messages {
   message_metadata json
   sent_at timestamp
 }
- 
+
 Table clinical_guardrail {
   guardrail_id bigint [primary key]
   guardrail_name varchar
@@ -161,7 +162,7 @@ Table clinical_guardrail {
   created_at timestamp
   updated_at timestamp
 }
- 
+
 Table clinical_guardrail_rules {
   rule_id bigint [primary key]
   guardrail_id bigint
@@ -171,30 +172,13 @@ Table clinical_guardrail_rules {
   handler_role_id bigint // Default handling role; nullable if not applicable
   action_type varchar // SAFE_RESPOND, BLOCK_RESPONSE, ESCALATE, EMERGENCY_PROTOCOL
   status varchar // DRAFT, ACTIVE, INACTIVE, RETIRED
-  patient_response_template text // Approved patient-safe response; used instead of the LLM when matched
-  target_queue_type varchar // MEDICATION, CLINICAL, EMERGENCY, APPOINTMENT, SOCIAL_SUPPORT
-  escalation_type varchar // MEDICATION, CLINICAL_REVIEW, EMERGENCY, APPOINTMENT, SOCIAL_SUPPORT
-  escalation_priority varchar // LOW, MEDIUM, HIGH, CRITICAL
   created_at timestamp
   updated_at timestamp
 }
- 
+
 Ref: clinical_guardrail_rules.guardrail_id > clinical_guardrail.guardrail_id
 Ref: clinical_guardrail_rules.handler_role_id > roles.role_id
 
-Table clinical_guardrail_matchers {
-  matcher_id bigint [primary key]
-  rule_id bigint
-  pattern varchar // Normalized deterministic phrase or | separated ALL_TERMS condition
-  match_type varchar // PHRASE, ALL_TERMS
-  priority integer // Lower number evaluates first within the same urgency/category
-  is_active boolean
-  created_at timestamp
-  updated_at timestamp
-}
-
-Ref: clinical_guardrail_matchers.rule_id > clinical_guardrail_rules.rule_id
- 
 Table conversation_guardrail_hits {
   guardrail_hit_id bigint [primary key]
   thread_id bigint
@@ -206,12 +190,12 @@ Table conversation_guardrail_hits {
   hit_reason text
   created_at timestamp
 }
- 
+
 Ref: conversation_guardrail_hits.thread_id > conversation_threads.thread_id
 Ref: conversation_guardrail_hits.message_id > conversation_messages.message_id
 Ref: conversation_guardrail_hits.patient_id > patient_profiles.patient_id
 Ref: conversation_guardrail_hits.rule_id > clinical_guardrail_rules.rule_id
- 
+
 Table emergency_events {
   emergency_event_id bigint [primary key]
   patient_id bigint
@@ -225,13 +209,13 @@ Table emergency_events {
   resolved_at timestamp
   created_at timestamp
 }
- 
+
 Ref: conversation_threads.patient_id > patient_profiles.patient_id
 Ref: conversation_threads.episode_id > care_navigation_episodes.episode_id
 Ref: conversation_messages.thread_id > conversation_threads.thread_id
 Ref: conversation_messages.sender_user_id > users.user_id
- 
- 
+
+
 Table care_team_queues {
   queue_id bigint [primary key]
   organization_id bigint
@@ -241,7 +225,7 @@ Table care_team_queues {
   status varchar // ACTIVE, INACTIVE
   created_at timestamp
 }
- 
+
 Table queue_memberships {
   queue_membership_id bigint [primary key]
   queue_id bigint
@@ -250,7 +234,7 @@ Table queue_memberships {
   is_active boolean
   created_at timestamp
 }
- 
+
 Table escalations {
   escalation_id bigint [primary key]
   patient_id bigint
@@ -266,7 +250,7 @@ Table escalations {
   created_at timestamp
   resolved_at timestamp
 }
- 
+
 Table escalation_assignments {
   assignment_id bigint [primary key]
   escalation_id bigint
@@ -276,7 +260,7 @@ Table escalation_assignments {
   unassigned_at timestamp
   is_active boolean
 }
- 
+
 Table escalation_actions {
   escalation_action_id bigint [primary key]
   escalation_id bigint
@@ -285,7 +269,7 @@ Table escalation_actions {
   action_notes text
   action_at timestamp
 }
- 
+
 Ref: care_team_queues.organization_id > organizations.organization_id
 Ref: queue_memberships.queue_id > care_team_queues.queue_id
 Ref: queue_memberships.staff_id > staff_profiles.staff_id
@@ -299,61 +283,380 @@ Ref: escalation_assignments.assigned_to_staff_id > staff_profiles.staff_id
 Ref: escalation_assignments.assigned_by_user_id > users.user_id
 Ref: escalation_actions.escalation_id > escalations.escalation_id
 Ref: escalation_actions.action_by_user_id > users.user_id
- 
- 
+
+
+
 Table outreach_campaigns {
-  campaign_id bigint [primary key]
-  organization_id bigint
-  campaign_name varchar
-  campaign_type varchar // POST_DISCHARGE, CHRONIC_CARE, MEDICATION_FOLLOWUP, APPOINTMENT_REMINDER
+  campaign_id bigint [primary key, increment]
+  organization_id bigint [not null]
+  campaign_name varchar(255) [not null]
+  campaign_type varchar(50) [not null] // POST_DISCHARGE, CHRONIC_CARE, MEDICATION_FOLLOWUP, APPOINTMENT_REMINDER
   target_cohort_definition json
-  status varchar // DRAFT, ACTIVE, PAUSED, COMPLETED, ARCHIVED
-  created_by_user_id bigint
-  created_at timestamp
+  timezone varchar(100) [not null, default: 'UTC']
+  start_at timestamp
+  end_at timestamp
+  status varchar(20) [not null, default: 'DRAFT'] // DRAFT, ACTIVE, PAUSED, COMPLETED, ARCHIVED
+  created_by_user_id bigint [not null]
+  updated_by_user_id bigint
+  created_at timestamp [not null]
   updated_at timestamp
 }
- 
+
 Table outreach_workflows {
-  workflow_id bigint [primary key]
-  campaign_id bigint
-  step_order integer
-  step_name varchar
-  trigger_offset_hours integer
-  channel varchar // SMS, EMAIL, PHONE, PORTAL
+  workflow_id bigint [primary key, increment]
+  campaign_id bigint [not null]
+  step_order integer [not null]
+  step_name varchar(255) [not null]
+  trigger_type varchar(50) [not null] // AFTER_DISCHARGE, BEFORE_APPOINTMENT, AFTER_EVENT
+  trigger_anchor varchar(50) [not null] // DISCHARGE_DATETIME, APPOINTMENT_DATETIME, EVENT_DATETIME
+  trigger_offset_hours integer [not null, default: 0]
+  channel varchar(20) [not null] // SMS, EMAIL, PHONE, PORTAL
   template_text text
-  escalation_on_no_response boolean
-  created_at timestamp
+  checkin_template_id bigint
+  escalation_on_no_response boolean [not null, default: false]
+  max_attempts integer [not null, default: 3]
+  retry_interval_minutes integer [not null, default: 30]
+  is_active boolean [not null, default: true]
+  created_at timestamp [not null]
+  updated_at timestamp
+
+  indexes {
+    (campaign_id, step_order) [unique]
+  }
+
+  checks {
+    `step_order > 0` [name: 'chk_workflow_step_order']
+    `trigger_offset_hours >= 0` [name: 'chk_trigger_offset']
+    `max_attempts > 0` [name: 'chk_max_attempts']
+    `retry_interval_minutes >= 0` [name: 'chk_retry_interval']
+  }
 }
- 
+
 Table outreach_events {
-  outreach_event_id bigint [primary key]
-  patient_id bigint
+  outreach_event_id bigint [primary key, increment]
+  patient_id bigint [not null]
   episode_id bigint
-  campaign_id bigint
-  workflow_id bigint
-  channel varchar // SMS, EMAIL, PHONE, PORTAL
-  event_type varchar // CHECKIN_SENT, REMINDER_SENT, DELIVERY_FAILED, RESPONSE_RECEIVED, CALL_ATTEMPT
-  delivery_status varchar // PENDING, SENT, DELIVERED, FAILED, RESPONDED
-  scheduled_at timestamp
+  campaign_id bigint [not null]
+  workflow_id bigint [not null]
+  appointment_id bigint
+  channel varchar(20) [not null] // SMS, EMAIL, PHONE, PORTAL
+  event_type varchar(40) [not null] // CHECK_IN, APPOINTMENT_REMINDER, REFILL_REMINDER, FOLLOW_UP
+  event_status varchar(20) [not null, default: 'PENDING'] // PENDING, PROCESSING, COMPLETED, FAILED, CANCELLED
+  delivery_status varchar(20) [not null, default: 'PENDING'] // PENDING, SENT, DELIVERED, FAILED, RESPONDED
+  scheduled_at timestamp [not null]
   sent_at timestamp
   responded_at timestamp
-  created_at timestamp
+  completed_at timestamp
+  attempt_count integer [not null, default: 0]
+  last_error text
+  idempotency_key varchar(255) [not null, unique]
+  created_at timestamp [not null]
+  updated_at timestamp
+
+  indexes {
+    (event_status, scheduled_at)
+    (patient_id, episode_id)
+    (campaign_id, workflow_id)
+  }
+
+  checks {
+    `attempt_count >= 0` [name: 'chk_outreach_attempt_count']
+  }
 }
- 
+
 Ref: outreach_campaigns.organization_id > organizations.organization_id
 Ref: outreach_campaigns.created_by_user_id > users.user_id
+Ref: outreach_campaigns.updated_by_user_id > users.user_id
 Ref: outreach_workflows.campaign_id > outreach_campaigns.campaign_id
+Ref: outreach_workflows.checkin_template_id > checkin_templates.checkin_template_id
 Ref: outreach_events.patient_id > patient_profiles.patient_id
 Ref: outreach_events.episode_id > care_navigation_episodes.episode_id
 Ref: outreach_events.campaign_id > outreach_campaigns.campaign_id
 Ref: outreach_events.workflow_id > outreach_workflows.workflow_id
- 
- 
+Ref: outreach_events.appointment_id > appointments.appointment_id
+
+
 // Additional foreign-key relationships for MVP integrity
 Ref: emergency_events.patient_id > patient_profiles.patient_id
 Ref: emergency_events.thread_id > conversation_threads.thread_id
 Ref: emergency_events.guardrail_hit_id > conversation_guardrail_hits.guardrail_hit_id
- 
+
+Table staff_availability {
+  availability_id bigint [primary key, increment]
+  staff_id bigint [not null]
+
+  day_of_week varchar(10) [not null]
+  start_time time [not null]
+  end_time time [not null]
+
+  lunch_start_time time
+  lunch_end_time time
+
+  effective_from date [not null]
+  effective_until date
+  is_active boolean [not null, default: true]
+
+  created_at timestamp [not null]
+  updated_at timestamp
+
+  checks {
+    `start_time < end_time` [name: 'chk_availability_time']
+    `(lunch_start_time IS NULL AND lunch_end_time IS NULL) OR (lunch_start_time IS NOT NULL AND lunch_end_time IS NOT NULL AND lunch_start_time < lunch_end_time AND lunch_start_time >= start_time AND lunch_end_time <= end_time)` [name: 'chk_lunch_time']
+  }
+}
+
+Table appointments {
+  appointment_id bigint [primary key, increment]
+  patient_id bigint [not null]
+  staff_id bigint
+  episode_id bigint
+  source_outreach_event_id bigint
+  appointment_type varchar(50) [not null] // ROUTINE, CHECK-IN
+  appointment_datetime timestamp [not null]
+  end_datetime timestamp [not null]
+  status varchar(20) [not null, default: 'REQUESTED'] // REQUESTED, SCHEDULED, CONFIRMED, COMPLETED, CANCELLED, NO_SHOW, RESCHEDULED
+  booking_method varchar(30) [not null] // STAFF, PATIENT_PORTAL, EHR_INTEGRATION
+  location_or_channel varchar(255)
+  reason text
+  cancellation_reason text
+  rescheduled_from_appointment_id bigint
+  created_by_user_id bigint [not null]
+  external_fhir_appointment_id varchar(255)
+  created_at timestamp [not null]
+  updated_at timestamp
+
+  indexes {
+    (staff_id, appointment_datetime, end_datetime)
+    (patient_id, appointment_datetime)
+    (episode_id)
+  }
+
+  checks {
+    `appointment_datetime < end_datetime` [name: 'chk_appointment_time']
+  }
+}
+
+// Relationships to existing tables
+Ref: staff_availability.staff_id > staff_profiles.staff_id
+Ref: appointments.patient_id > patient_profiles.patient_id
+Ref: appointments.staff_id > staff_profiles.staff_id
+Ref: appointments.episode_id > care_navigation_episodes.episode_id
+Ref: appointments.created_by_user_id > users.user_id
+Ref: appointments.source_outreach_event_id > outreach_events.outreach_event_id
+Ref: appointments.rescheduled_from_appointment_id > appointments.appointment_id
+
+
+
+//////////////////////////////////////////////////////
+// CHECK-IN CONFIGURATION AND PATIENT RESPONSES
+//////////////////////////////////////////////////////
+
+Table checkin_templates {
+  checkin_template_id bigint [primary key, increment]
+  organization_id bigint [not null]
+  template_name varchar(255) [not null]
+  template_type varchar(50) [not null] // POST_DISCHARGE, CHRONIC_CARE, MEDICATION_FOLLOWUP
+  description text
+  version integer [not null, default: 1]
+  status varchar(20) [not null, default: 'DRAFT'] // DRAFT, ACTIVE, INACTIVE
+  created_by_user_id bigint [not null]
+  created_at timestamp [not null]
+  updated_at timestamp
+
+  expiry_after_hours integer
+  // NULL means no expiry configured
+  indexes {
+    (organization_id, template_name, version) [unique]
+  }
+}
+
+Table checkin_questions {
+  question_id bigint [primary key, increment]
+  checkin_template_id bigint [not null]
+  question_key varchar(100) [not null]
+  question_text text [not null]
+  answer_type varchar(30) [not null]
+  // YES_NO, TEXT, NUMBER, SINGLE_CHOICE, MULTIPLE_CHOICE
+
+  options json
+  risk_level varchar(20) [not null, default: 'NORMAL']
+  // NORMAL, ROUTINE, EMERGENCY
+
+  critical_response json
+  escalate_to varchar(50)
+
+  display_order integer [not null]
+  is_required boolean [not null, default: true]
+  is_active boolean [not null, default: true]
+  created_at timestamp [not null]
+  updated_at timestamp
+
+  indexes {
+    (checkin_template_id, question_key) [unique]
+    (checkin_template_id, display_order) [unique]
+  }
+}
+
+Table checkin_sessions {
+  checkin_session_id bigint [primary key, increment]
+  patient_id bigint [not null]
+  episode_id bigint
+  outreach_event_id bigint [not null, unique]
+  checkin_template_id bigint [not null]
+  thread_id bigint
+
+  session_status varchar(20) [not null, default: 'PENDING']
+  // PENDING, IN_PROGRESS, COMPLETED, ABANDONED,
+  // ESCALATED, OVERDUE, EXPIRED
+
+  is_escalated boolean [not null, default: false]
+  escalated_id bigint
+  response text
+
+  scheduled_at timestamp [not null]
+  expires_at timestamp
+
+  started_at timestamp
+  completed_at timestamp
+  created_at timestamp [not null]
+  updated_at timestamp
+
+  indexes {
+    (patient_id, episode_id)
+    (session_status, created_at)
+    (scheduled_at, session_status)
+    expires_at
+    escalated_id
+  }
+}
+
+Table checkin_responses {
+  response_id bigint [primary key, increment]
+  checkin_session_id bigint [not null]
+  question_id bigint [not null]
+  message_id bigint
+  answer_text text
+  answer_value json
+  response_type varchar(20) [not null, default: 'NORMAL']//'NORMAL', 'ROUTINE', 'EMERGENCY'
+  response_source varchar(30) [not null, default: 'PATIENT_REPORTED'] // PATIENT_REPORTED, STAFF_ENTERED
+  recorded_by_user_id bigint
+  answered_at timestamp [not null]
+  created_at timestamp [not null]
+
+  indexes {
+    (checkin_session_id, question_id) [unique]
+  }
+}
+
+//////////////////////////////////////////////////////
+// APPOINTMENT ACTIONS AND FOLLOW-UP TASKS
+//////////////////////////////////////////////////////
+
+Table appointment_actions {
+  appointment_action_id bigint [primary key, increment]
+  appointment_id bigint [not null]
+  patient_id bigint [not null]
+  episode_id bigint
+  action_by_user_id bigint [not null]
+  contact_datetime timestamp
+  contact_method varchar(30) // PHONE, PORTAL, SMS, VIDEO, IN_PERSON, INTERNAL_REVIEW
+  action_taken varchar(50) [not null] // REVIEWED, CALL_ATTEMPT, PATIENT_CONTACTED, GUIDANCE_PROVIDED, REFERRED, OTHER
+  outcome varchar(50) // REACHED, NO_ANSWER, ISSUE_ADDRESSED, ISSUE_UNRESOLVED, REFERRED, OTHER
+  action_notes text
+  resolution_status varchar(30) [not null, default: 'PENDING'] // PENDING, RESOLVED, FOLLOW_UP_REQUIRED, UNABLE_TO_REACH
+  follow_up_required boolean [not null, default: false]
+  follow_up_notes text
+  follow_up_due_at timestamp
+  created_at timestamp [not null]
+  updated_at timestamp
+
+  indexes {
+    (appointment_id, created_at)
+    (patient_id, episode_id)
+    (resolution_status, follow_up_due_at)
+  }
+}
+
+Table follow_up_tasks {
+  follow_up_task_id bigint [primary key, increment]
+  patient_id bigint [not null]
+  episode_id bigint
+  appointment_id bigint
+  escalation_id bigint
+  task_type varchar(50) [not null] // PATIENT_CONTACT, MEDICATION_FOLLOWUP, APPOINTMENT_BOOKING, CLINICAL_REVIEW, OTHER
+  title varchar(255) [not null]
+  description text
+  assigned_to_staff_id bigint
+  created_by_user_id bigint
+  due_at timestamp
+  priority varchar(20) [not null, default: 'MEDIUM'] // LOW, MEDIUM, HIGH, CRITICAL
+  status varchar(20) [not null, default: 'OPEN'] // OPEN, IN_PROGRESS, COMPLETED, CANCELLED
+  completed_by_user_id bigint
+  completed_at timestamp
+  completion_notes text
+  created_at timestamp [not null]
+  updated_at timestamp
+
+  indexes {
+    (status, due_at)
+    (assigned_to_staff_id, status, due_at)
+    (patient_id, episode_id)
+  }
+}
+
+// New table relationships
+Ref: checkin_templates.organization_id > organizations.organization_id
+Ref: checkin_templates.created_by_user_id > users.user_id
+Ref: checkin_questions.checkin_template_id > checkin_templates.checkin_template_id
+Ref: checkin_sessions.patient_id > patient_profiles.patient_id
+Ref: checkin_sessions.episode_id > care_navigation_episodes.episode_id
+Ref: checkin_sessions.outreach_event_id > outreach_events.outreach_event_id
+Ref: checkin_sessions.checkin_template_id > checkin_templates.checkin_template_id
+Ref: checkin_sessions.thread_id > conversation_threads.thread_id
+Ref: checkin_responses.checkin_session_id > checkin_sessions.checkin_session_id
+Ref: checkin_responses.question_id > checkin_questions.question_id
+Ref: checkin_responses.message_id > conversation_messages.message_id
+Ref: checkin_responses.recorded_by_user_id > users.user_id
+Ref: appointment_actions.appointment_id > appointments.appointment_id
+Ref: appointment_actions.patient_id > patient_profiles.patient_id
+Ref: appointment_actions.episode_id > care_navigation_episodes.episode_id
+Ref: appointment_actions.action_by_user_id > users.user_id
+Ref: follow_up_tasks.patient_id > patient_profiles.patient_id
+Ref: follow_up_tasks.episode_id > care_navigation_episodes.episode_id
+Ref: follow_up_tasks.appointment_id > appointments.appointment_id
+Ref: follow_up_tasks.escalation_id > escalations.escalation_id
+Ref: follow_up_tasks.assigned_to_staff_id > staff_profiles.staff_id
+Ref: follow_up_tasks.created_by_user_id > users.user_id
+Ref: follow_up_tasks.completed_by_user_id > users.user_id
+
+Table notifications {
+  notification_id bigint [primary key, increment]
+  organization_id bigint
+  sender_user_id bigint [not null]
+  recipient_user_id bigint [not null]
+
+  title varchar(255)
+  message text [not null]
+
+  notification_type varchar(50) [not null, default: 'GENERAL']
+  // GENERAL, ESCALATION, APPOINTMENT_REMINDER,
+  // OUTREACH_UPDATE, FOLLOW_UP, SYSTEM_ALERT
+
+  priority varchar(20) [not null, default: 'NORMAL']
+  // LOW, NORMAL, HIGH, URGENT
+
+  status varchar(20) [not null, default: 'UNREAD']
+  // UNREAD, READ, ARCHIVED
+
+  created_at timestamp [not null]
+  read_at timestamp
+}
+
+Ref: notifications.organization_id > organizations.organization_id
+Ref: notifications.sender_user_id > users.user_id
+Ref: notifications.recipient_user_id > users.user_id
+
+
 Table audit_logs {
   audit_id bigint [primary key]
   user_id bigint
@@ -366,6 +669,6 @@ Table audit_logs {
   correlation_id varchar
   created_at timestamp
 }
- 
+
 Ref: audit_logs.user_id > users.user_id
 Ref: audit_logs.patient_id > patient_profiles.patient_id

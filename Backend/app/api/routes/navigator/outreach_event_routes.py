@@ -20,15 +20,16 @@ def _list(
     actor_user_id: int,
     role: RoleName,
     organization_id: int,
-    campaign_id: int | None,
-    workflow_id: int | None,
+    campaign_id: list[int] | None,
+    workflow_id: list[int] | None,
     campaign_name: str | None,
     workflow_name: str | None,
-    event_status: str | None,
-    delivery_status: str | None,
+    event_status: list[str] | None,
+    delivery_status: list[str] | None,
     scheduled_from: datetime | None,
     scheduled_to: datetime | None,
     patient_search: str | None,
+    patient_id: list[int] | None,
     skip: int,
     limit: int,
     db: Session,
@@ -46,6 +47,7 @@ def _list(
         scheduled_from=scheduled_from,
         scheduled_to=scheduled_to,
         patient_search=patient_search,
+        patient_id=patient_id,
         skip=skip,
         limit=limit,
     )
@@ -92,20 +94,21 @@ def _detail(event_id: int, actor_user_id: int, role: RoleName, db: Session, requ
 def list_admin_events(
     actor_user_id: int = Query(..., alias="user_id", gt=0),
     organization_id: int = Query(..., gt=0),
-    campaign_id: int | None = Query(default=None, gt=0),
-    workflow_id: int | None = Query(default=None, gt=0),
+    campaign_id: list[int] | None = Query(default=None),
+    workflow_id: list[int] | None = Query(default=None),
     campaign_name: str | None = None,
     workflow_name: str | None = None,
-    event_status: str | None = None,
-    delivery_status: str | None = None,
+    event_status: list[str] | None = Query(default=None),
+    delivery_status: list[str] | None = Query(default=None),
     scheduled_from: datetime | None = None,
     scheduled_to: datetime | None = None,
     patient_search: str | None = None,
+    patient_id: list[int] | None = Query(default=None),
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=25, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
-    return _list(actor_user_id, RoleName.SYSTEM_ADMIN, organization_id, campaign_id, workflow_id, campaign_name, workflow_name, event_status, delivery_status, scheduled_from, scheduled_to, patient_search, skip, limit, db)
+    return _list(actor_user_id, RoleName.SYSTEM_ADMIN, organization_id, campaign_id, workflow_id, campaign_name, workflow_name, event_status, delivery_status, scheduled_from, scheduled_to, patient_search, patient_id, skip, limit, db)
 
 
 @router.get("/admin/outreach-events/options", response_model=SuccessResponse)
@@ -132,20 +135,21 @@ def get_admin_event(
 def list_care_manager_events(
     actor_user_id: int = Query(..., alias="user_id", gt=0),
     organization_id: int = Query(..., gt=0),
-    campaign_id: int | None = Query(default=None, gt=0),
-    workflow_id: int | None = Query(default=None, gt=0),
+    campaign_id: list[int] | None = Query(default=None),
+    workflow_id: list[int] | None = Query(default=None),
     campaign_name: str | None = None,
     workflow_name: str | None = None,
-    event_status: str | None = None,
-    delivery_status: str | None = None,
+    event_status: list[str] | None = Query(default=None),
+    delivery_status: list[str] | None = Query(default=None),
     scheduled_from: datetime | None = None,
     scheduled_to: datetime | None = None,
     patient_search: str | None = None,
+    patient_id: list[int] | None = Query(default=None),
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=25, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
-    return _list(actor_user_id, RoleName.CARE_MANAGER, organization_id, campaign_id, workflow_id, campaign_name, workflow_name, event_status, delivery_status, scheduled_from, scheduled_to, patient_search, skip, limit, db)
+    return _list(actor_user_id, RoleName.CARE_MANAGER, organization_id, campaign_id, workflow_id, campaign_name, workflow_name, event_status, delivery_status, scheduled_from, scheduled_to, patient_search, patient_id, skip, limit, db)
 
 
 @router.get("/care-manager/outreach-events/options", response_model=SuccessResponse)

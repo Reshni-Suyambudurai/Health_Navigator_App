@@ -61,6 +61,10 @@ from app.database.models.appointment import Appointment
 from app.database.models.checkin_template import CheckinTemplate
 from app.database.models.checkin_template_review import CheckinTemplateReview
 from app.database.models.checkin_question import CheckinQuestion
+from app.database.models.checkin_session import CheckinSession
+from app.database.models.checkin_response import CheckinResponse
+from app.database.models.checkin_escalation import CheckinEscalation
+from app.database.models.checkin_escalation_response import CheckinEscalationResponse
 from app.database.models.notification import Notification
 
 target_metadata = Base.metadata

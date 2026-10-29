@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     # Server Configuration
     HOST: str = "0.0.0.0"
     PORT: int = 8000
+    APP_TIMEZONE: str = "Asia/Kolkata"
 
     # Automatic outreach scheduler
     AUTO_OUTREACH_SCHEDULER_ENABLED: bool = True

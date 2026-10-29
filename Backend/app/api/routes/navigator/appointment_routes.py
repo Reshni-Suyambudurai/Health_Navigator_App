@@ -18,6 +18,7 @@ router = APIRouter(prefix="/appointments", tags=["Appointments"])
 class RoutineAppointmentRequest(BaseModel):
     patient_id: int
     appointment_type: AppointmentType
+    checkin_session_id: int | None = None
     appointment_datetime: datetime
     end_datetime: datetime
     reason: str | None = None
@@ -61,6 +62,18 @@ def get_available_appointment_slots(
             "slots": slots,
             "count": len(slots),
         },
+    )
+
+
+@router.get("/booking-permissions", response_model=SuccessResponse)
+def get_booking_permissions(
+    user_id: int = Query(..., gt=0),
+    db: Session = Depends(get_db),
+):
+    permissions = AppointmentService(db).get_booking_permissions(user_id)
+    return SuccessResponse(
+        message="Appointment booking permissions retrieved successfully",
+        data=permissions,
     )
 
 
@@ -232,6 +245,7 @@ def book_routine_appointment(
         patient_id=request.patient_id,
         created_by_user_id=user_id,
         appointment_type=request.appointment_type,
+        checkin_session_id=request.checkin_session_id,
         appointment_datetime=request.appointment_datetime,
         end_datetime=request.end_datetime,
         reason=request.reason,

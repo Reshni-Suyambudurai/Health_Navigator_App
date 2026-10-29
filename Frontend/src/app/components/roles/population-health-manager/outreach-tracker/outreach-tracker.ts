@@ -87,6 +87,7 @@ export class OutreachTracker implements OnInit {
     description: null,
     version: 1,
     status: 'DRAFT',
+    appointment_required: false,
   };
   questionDraft: CheckinQuestionRequest = {
     question_key: '',

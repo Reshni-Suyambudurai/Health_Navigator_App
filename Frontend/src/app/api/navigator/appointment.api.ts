@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
 	AppointmentListResponse,
+	BookingPermissions,
 	AvailableSlotsResponse,
 	AvailabilityRecord,
 	AvailabilityListResponse,
@@ -123,6 +124,12 @@ export class AppointmentApi {
 		payload: RoutineAppointmentRequest,
 	): Observable<ApiSuccessResponse<unknown>> {
 		return this.http.post<ApiSuccessResponse<unknown>>(`${this.baseUrl}/routine`, payload, {
+			params: this.userParams(userId),
+		});
+	}
+
+	getBookingPermissions(userId: number): Observable<ApiSuccessResponse<BookingPermissions>> {
+		return this.http.get<ApiSuccessResponse<BookingPermissions>>(`${this.baseUrl}/booking-permissions`, {
 			params: this.userParams(userId),
 		});
 	}

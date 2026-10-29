@@ -29,12 +29,14 @@ from app.api.routes.navigator import escalation_routes
 from app.api.routes.patientFHIR import patient_fhir_routes
 from app.core.exception_handlers import register_exception_handlers  # Import exception handlers
 from app.services.navigator.automatic_outreach_scheduler import AutomaticOutreachScheduler
+from app.services.navigator.outreach_delivery_scheduler import OutreachDeliveryScheduler
 import logging
 
 # Setup logging
 setup_logging()
 logger = logging.getLogger(__name__)
 automatic_outreach_scheduler = AutomaticOutreachScheduler()
+outreach_delivery_scheduler = OutreachDeliveryScheduler()
 
 
 @asynccontextmanager
@@ -55,10 +57,12 @@ async def lifespan(app: FastAPI):
         logger.warning("Monster database connection unavailable - PatientFHIR endpoints may not function")
 
     automatic_outreach_scheduler.start()
+    outreach_delivery_scheduler.start()
 
     yield
 
     automatic_outreach_scheduler.shutdown()
+    outreach_delivery_scheduler.shutdown()
     logger.info(f"Shutting down {settings.APP_NAME}")
 
 

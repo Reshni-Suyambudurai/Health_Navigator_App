@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { getThemeMode } from '../../../api/tokenstore';
 import { initializeThemeMode, toggleThemeMode } from '../../utils/theme';
 import { NotificationState } from '../../state/notification-state';
@@ -7,7 +8,7 @@ import { NotificationState } from '../../state/notification-state';
 @Component({
   selector: 'app-role-navbar',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './navbar.html',
   styleUrl: './navbar.scss',
 })

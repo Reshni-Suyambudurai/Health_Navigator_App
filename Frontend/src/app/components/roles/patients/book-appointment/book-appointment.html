@@ -2,8 +2,9 @@
   <section class="booking-modal" role="dialog" aria-modal="true" aria-labelledby="booking-modal-title">
     <header class="booking-modal__head">
       <div>
-        <p class="eyebrow">Routine care</p>
-        <h2 id="booking-modal-title">Book an appointment</h2>
+        <p class="eyebrow">{{ appointmentType === 'CHECK-IN' ? 'Care check-in' : 'Routine care' }}</p>
+        <h2 id="booking-modal-title">{{ appointmentType === 'CHECK-IN' ? (checkinTemplateName || 'Book your check-in appointment') : 'Book an appointment' }}</h2>
+        <small class="booking-modal__context" *ngIf="appointmentType === 'CHECK-IN'">Book an appointment for this check-in</small>
       </div>
       <button type="button" class="close-button" (click)="close()" aria-label="Close booking form">&#10005;</button>
     </header>
@@ -11,10 +12,23 @@
     <form class="booking-form">
       <label class="booking-field">
         <span>Appointment type</span>
-        <select [(ngModel)]="bookingForm.appointment_type" name="appointment_type" required>
-          <option value="NURSE_FOLLOWUP">Nurse follow-up</option>
-          <option value="POST_DISCHARGE">Post-discharge follow-up</option>
-          <option value="CARE_MANAGER_CALL">Care manager call</option>
+        <select *ngIf="appointmentType === 'ROUTINE'" [ngModel]="bookingForm.appointment_type" (ngModelChange)="changeAppointmentType($event)" name="appointment_type" required>
+          <option value="ROUTINE" [disabled]="!allowedAppointmentTypes.includes('ROUTINE')">Routine</option>
+          <option value="CHECK-IN" [disabled]="!allowedAppointmentTypes.includes('CHECK-IN')">Check-in</option>
+        </select>
+        <span *ngIf="appointmentType === 'CHECK-IN'" class="type-lockup">
+          <strong>Check-in appointment</strong>
+          <small>Linked to this care team check-in</small>
+        </span>
+      </label>
+
+      <label class="booking-field" *ngIf="appointmentType === 'ROUTINE' && bookingForm.appointment_type === 'CHECK-IN'">
+        <span>Check-in</span>
+        <select [(ngModel)]="checkinSessionId" name="checkin_session_id" required>
+          <option [ngValue]="null" disabled>Select a check-in</option>
+          <option *ngFor="let checkin of checkinSessions" [ngValue]="checkin.checkin_session_id">
+            {{ checkin.template_name }} (Check-in #{{ checkin.checkin_session_id }})
+          </option>
         </select>
       </label>
 

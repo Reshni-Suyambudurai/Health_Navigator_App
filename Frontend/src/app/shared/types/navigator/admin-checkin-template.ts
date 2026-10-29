@@ -4,6 +4,20 @@ export type CheckinTemplateType = 'POST_DISCHARGE' | 'CHRONIC_CARE' | 'MEDICATIO
 export type CheckinTemplateStatus = 'DRAFT' | 'ACTIVE' | 'INACTIVE';
 export type TemplateReviewStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 export type CheckinAnswerType = 'YES_NO' | 'TEXT' | 'NUMBER' | 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE';
+export type CheckinRiskLevel = 'NORMAL' | 'ROUTINE' | 'EMERGENCY';
+export type CheckinEscalationRole =
+  | 'CARE_MANAGER'
+  | 'TRANSITIONAL_CARE_NURSE'
+  | 'PHARMACIST'
+  | 'SOCIAL_WORKER'
+  | 'POPULATION_HEALTH_MANAGER';
+
+export interface CheckinNumberCriticalResponse {
+  min: number;
+  max: number;
+  min_inclusive: boolean;
+  max_inclusive: boolean;
+}
 
 export interface AdminCheckinQuestion {
   question_id: number;
@@ -11,6 +25,8 @@ export interface AdminCheckinQuestion {
   question_text: string;
   answer_type: CheckinAnswerType;
   options: string[] | null;
+  critical_response: string[] | CheckinNumberCriticalResponse | null;
+  risk_level: CheckinRiskLevel;
   display_order: number;
   is_required: boolean;
   is_active: boolean;
@@ -29,6 +45,9 @@ export interface AdminCheckinTemplate {
   is_editable: boolean;
   created_at: string | null;
   updated_at: string | null;
+  escalate_to: CheckinEscalationRole | null;
+  expiry_after_hours: number | null;
+  appointment_required: boolean;
   questions?: AdminCheckinQuestion[];
 }
 
@@ -36,6 +55,11 @@ export interface AdminCheckinTemplateRequest {
   template_name: string;
   template_type: CheckinTemplateType;
   description: string | null;
+  version?: number;
+  status?: CheckinTemplateStatus;
+  escalate_to: CheckinEscalationRole | null;
+  expiry_after_hours: number | null;
+  appointment_required: boolean;
 }
 
 export interface AdminCheckinQuestionRequest {
@@ -43,6 +67,8 @@ export interface AdminCheckinQuestionRequest {
   question_text: string;
   answer_type: CheckinAnswerType;
   options: string[] | null;
+  critical_response: string[] | CheckinNumberCriticalResponse | null;
+  risk_level: CheckinRiskLevel;
   display_order: number;
   is_required: boolean;
   is_active: boolean;

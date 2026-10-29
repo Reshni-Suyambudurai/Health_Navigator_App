@@ -1,0 +1,529 @@
+:host {
+  display: block;
+}
+
+.check-ins-page {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 2rem clamp(1rem, 3vw, 3rem) 4rem;
+  color: var(--text-primary, #1d2b2a);
+}
+
+.page-header,
+.form-heading,
+.session-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.page-header {
+  margin-bottom: 2rem;
+  border-bottom: 1px solid var(--border-color, #d8e2de);
+  padding-bottom: 1.5rem;
+}
+
+.eyebrow {
+  margin: 0 0 .45rem;
+  color: var(--accent-strong, #26756d);
+  font-size: .75rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: .5rem;
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  line-height: 1.1;
+}
+
+h2 {
+  margin-bottom: .5rem;
+  font-size: 1.35rem;
+}
+
+.intro,
+.session-card p,
+.form-heading p {
+  color: var(--text-secondary, #63716e);
+}
+
+.status-filter {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: .6rem;
+  color: var(--text-secondary, #63716e);
+  font-size: .85rem;
+  font-weight: 700;
+}
+
+.status-filter select {
+  min-width: 9.5rem;
+}
+
+.session-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.session-card,
+.form-panel {
+  border: 1px solid var(--border-color, #d8e2de);
+  border-radius: 8px;
+  background: var(--table-bg);
+  box-shadow: 0 8px 26px rgb(22 57 51 / 6%);
+}
+
+.session-card {
+  align-items: center;
+  padding: 1rem 1.25rem .9rem;
+}
+
+.session-card__body {
+  width: 100%;
+}
+
+.session-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.session-card__intro {
+  min-width: 0;
+}
+
+.session-card__header h2 {
+  margin-bottom: .25rem;
+}
+
+.book-appointment-button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.appointment-state {
+  display: grid;
+  grid-template-columns: 1.25rem auto;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: .1rem .45rem;
+  max-width: 15rem;
+  border-left: 1px solid var(--border-color, #d8e2de);
+  padding-left: 1rem;
+  color: var(--text-secondary, #63716e);
+  font-size: .75rem;
+}
+
+.appointment-state img {
+  grid-row: 1 / 3;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.appointment-state strong {
+  color: var(--text-primary, #1d2b2a);
+  font-size: .8rem;
+}
+
+.session-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: .8rem;
+}
+
+.session-card p {
+  margin-bottom: .7rem;
+}
+
+.session-card small,
+.session-meta,
+.progress-note {
+  color: var(--text-secondary, #63716e);
+  font-weight: 600;
+}
+
+.session-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: .8rem;
+}
+
+.session-meta__item {
+  display: flex;
+  align-items: flex-start;
+  gap: .5rem;
+  min-width: 0;
+}
+
+.session-meta__item img,
+.session-progress img {
+  width: 1rem;
+  height: 1rem;
+  margin-top: .1rem;
+}
+
+.session-meta__item span {
+  display: grid;
+  gap: .05rem;
+}
+
+.session-meta__item strong {
+  color: var(--text-primary, #1d2b2a);
+  font-weight: 700;
+}
+
+.session-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  color: var(--text-secondary, #63716e);
+  font-size: .78rem;
+  font-weight: 600;
+}
+
+.status-pill {
+  display: inline-block;
+  margin-bottom: .75rem;
+  border-radius: 999px;
+  background: #e8f2ef;
+  color: #26756d;
+  padding: .3rem .6rem;
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.status-pill.pending {
+  background: #e8f0ff;
+  color: #2f5fa7;
+}
+
+.status-pill.complete {
+  background: #edf0ef;
+  color: #5e6b68;
+}
+
+.status-pill.alert {
+  background: #fff0e7;
+  color: #b3542d;
+}
+
+.status-pill.expired {
+  background: #fde9e7;
+  color: #a63d35;
+}
+
+.form-panel {
+  padding: clamp(1rem, 3vw, 2rem);
+}
+
+.booking-modal__context {
+  display: block;
+  margin-top: .35rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.appointment-callout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0 0 1.75rem;
+  border: 1px solid #cfe2dc;
+  border-radius: 8px;
+  background: #f3faf7;
+  padding: 1rem 1.1rem;
+}
+
+.appointment-callout__copy {
+  display: grid;
+  gap: .25rem;
+}
+
+.callout-label {
+  color: var(--accent-strong, #26756d);
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.appointment-callout small {
+  color: var(--text-secondary, #63716e);
+}
+
+.appointment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .65rem;
+}
+
+.secondary-action {
+  color: var(--accent-strong, #26756d);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.form-heading {
+  margin: 1.5rem 0 2rem;
+  border-bottom: 1px solid var(--border-color, #d8e2de);
+  padding-bottom: 1.25rem;
+}
+
+fieldset {
+  margin: 0 0 1.5rem;
+  border: 0;
+  border-bottom: 1px solid var(--border-color, #d8e2de);
+  padding: 0 0 1.5rem;
+}
+
+legend {
+  display: flex;
+  align-items: flex-start;
+  gap: .75rem;
+  width: 100%;
+  margin-bottom: 1rem;
+  font-size: 1.05rem;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+legend span {
+  display: grid;
+  flex: 0 0 1.8rem;
+  place-items: center;
+  height: 1.8rem;
+  border-radius: 50%;
+  background: #e8f2ef;
+  color: #26756d;
+  font-size: .8rem;
+}
+
+legend em {
+  color: #b3542d;
+  font-size: .75rem;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.choice {
+  display: flex;
+  align-items: center;
+  gap: .7rem;
+  margin: .65rem 0;
+  cursor: pointer;
+}
+
+.choice input {
+  accent-color: var(--accent-strong, #26756d);
+}
+
+.text-input {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 640px;
+  border: 1px solid #b9c9c4;
+  border-radius: 5px;
+  background: #fbfdfc;
+  padding: .8rem;
+  color: inherit;
+  font: inherit;
+}
+
+.readonly-banner {
+  display: grid;
+  gap: .25rem;
+  margin-bottom: 1.5rem;
+  border-left: 4px solid #b3542d;
+  background: #fff7f2;
+  padding: .85rem 1rem;
+}
+
+.assignment-summary {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+  border: 1px solid var(--primary);
+  border-left-width: 4px;
+  border-radius: 8px;
+  background: var(--hover-bg);
+  padding: 1.1rem 1.2rem;
+}
+
+.assignment-summary__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.assignment-summary__header > div {
+  display: grid;
+  gap: .2rem;
+}
+
+.assignment-summary .callout-label,
+.assignment-summary__title,
+.resolution-details__heading,
+.resolution-detail small {
+  color: var(--primary);
+}
+
+.assignment-summary__title {
+  margin-top: .15rem;
+  font-size: 1.05rem;
+}
+
+.assignment-summary__role,
+.assignment-summary__pending,
+.resolution-detail p {
+  margin: 0;
+  color: var(--text-secondary, #63716e);
+}
+
+.follow-up-status {
+  flex: 0 0 auto;
+  border: 1px solid var(--primary);
+  border-radius: 999px;
+  background: var(--table-bg);
+  color: var(--primary);
+  padding: .3rem .65rem;
+  font-size: .72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.resolution-details {
+  display: grid;
+  gap: 1rem;
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+}
+
+.resolution-details__heading {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+
+.resolution-details__heading span {
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background: var(--primary);
+  color: var(--table-bg);
+  font-size: .8rem;
+  font-weight: 900;
+}
+
+.resolution-detail {
+  display: grid;
+  gap: .3rem;
+}
+
+.resolution-detail small {
+  font-size: .72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.status-message {
+  padding: 1rem 0;
+  color: var(--text-secondary, #63716e);
+}
+
+.status-message.error {
+  color: #b3542d;
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@media (max-width: 640px) {
+  .page-header,
+  .session-card,
+  .form-heading {
+    display: block;
+  }
+
+  .status-filter {
+    margin-top: 1.25rem;
+  }
+
+  .progress-note,
+  .session-card__footer button {
+    display: inline-block;
+    margin-top: 1rem;
+  }
+
+  .session-card__header {
+    display: block;
+  }
+
+  .book-appointment-button,
+  .appointment-state {
+    margin-top: .75rem;
+  }
+
+  .appointment-state {
+    border-left: 0;
+    padding-left: 0;
+  }
+
+  .session-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .session-card__footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .session-card__footer button {
+    width: 100%;
+  }
+
+  .form-actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+    justify-content: initial;
+  }
+
+  .form-actions button {
+    width: 100%;
+  }
+
+  .appointment-callout {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .assignment-summary__header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

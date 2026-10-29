@@ -7,9 +7,8 @@ from app.database.connection import Base
 
 
 class AppointmentType(enum.Enum):
-    POST_DISCHARGE = "POST_DISCHARGE"
-    NURSE_FOLLOWUP = "NURSE_FOLLOWUP"
-    CARE_MANAGER_CALL = "CARE_MANAGER_CALL"
+    ROUTINE = "ROUTINE"
+    CHECK_IN = "CHECK-IN"
 
 
 class AppointmentStatus(enum.Enum):
@@ -41,7 +40,15 @@ class Appointment(Base):
     staff_id = Column(BigInteger, ForeignKey("staff_profiles.staff_id", ondelete="SET NULL"), index=True)
     episode_id = Column(BigInteger, ForeignKey("care_navigation_episodes.episode_id", ondelete="SET NULL"), index=True)
     source_outreach_event_id = Column(BigInteger, ForeignKey("outreach_events.outreach_event_id", ondelete="SET NULL"), index=True)
-    appointment_type = Column(SQLEnum(AppointmentType, name="appointment_type"), nullable=False, index=True)
+    appointment_type = Column(
+        SQLEnum(
+            AppointmentType,
+            name="appointment_type",
+            values_callable=lambda enum_type: [item.value for item in enum_type],
+        ),
+        nullable=False,
+        index=True,
+    )
     appointment_datetime = Column(TIMESTAMP, nullable=False, index=True)
     end_datetime = Column(TIMESTAMP, nullable=False)
     status = Column(SQLEnum(AppointmentStatus, name="appointment_status"), nullable=False, server_default="REQUESTED", index=True)

@@ -8,6 +8,7 @@ import {
   AppointmentType,
   AvailableAppointmentSlot,
   RoutineAppointmentRequest,
+  CheckinBookingSession,
 } from '../../../../shared/types/navigator/appointment';
 import { ToastState } from '../../../../shared/ui/toast/toast-state';
 
@@ -28,6 +29,12 @@ interface RoutineBookingForm {
 })
 export class BookAppointment implements OnInit, OnDestroy {
   @Input({ required: true }) patientId!: number;
+  @Input() appointmentType: AppointmentType = 'ROUTINE';
+  @Input() checkinSessionId: number | null = null;
+  @Input() checkinTemplateName: string | null = null;
+  @Input() allowedAppointmentTypes: AppointmentType[] = ['ROUTINE', 'CHECK-IN'];
+  @Input() checkinSessionIds: number[] = [];
+  @Input() checkinSessions: CheckinBookingSession[] = [];
   @Output() readonly closed = new EventEmitter<void>();
   @Output() readonly booked = new EventEmitter<void>();
 
@@ -42,10 +49,10 @@ export class BookAppointment implements OnInit, OnDestroy {
   readonly selectedSlot = signal<AvailableAppointmentSlot | null>(null);
   readonly bookingError = signal<string | null>(null);
   readonly slotsError = signal<string | null>(null);
-  readonly today = new Date().toISOString().slice(0, 10);
+  readonly today = this.currentDateInAppTimezone();
 
   bookingForm: RoutineBookingForm = {
-    appointment_type: 'NURSE_FOLLOWUP',
+    appointment_type: 'ROUTINE',
     appointment_date: this.today,
     duration_minutes: 30,
     reason: '',
@@ -53,6 +60,13 @@ export class BookAppointment implements OnInit, OnDestroy {
   };
 
   ngOnInit(): void {
+    if (!this.allowedAppointmentTypes.includes(this.appointmentType)) {
+      this.appointmentType = this.allowedAppointmentTypes[0] ?? 'ROUTINE';
+    }
+    this.bookingForm.appointment_type = this.appointmentType;
+    if (this.bookingForm.appointment_type === 'CHECK-IN' && !this.checkinSessionId) {
+      this.checkinSessionId = this.checkinSessionIds[0] ?? null;
+    }
     this.loadAvailableSlots();
   }
 
@@ -84,6 +98,16 @@ export class BookAppointment implements OnInit, OnDestroy {
     this.loadAvailableSlots();
   }
 
+  changeAppointmentType(value: AppointmentType): void {
+    this.bookingForm.appointment_type = value;
+    if (value === 'CHECK-IN' && !this.checkinSessionId) {
+      this.checkinSessionId = this.checkinSessionIds[0] ?? null;
+    }
+    if (value === 'ROUTINE') {
+      this.checkinSessionId = null;
+    }
+  }
+
   selectSlot(slot: AvailableAppointmentSlot): void {
     this.selectedSlot.set(slot);
     this.bookingError.set(null);
@@ -96,10 +120,15 @@ export class BookAppointment implements OnInit, OnDestroy {
       this.bookingError.set('Select an available appointment time.');
       return;
     }
+    if (this.bookingForm.appointment_type === 'CHECK-IN' && !this.checkinSessionId) {
+      this.bookingError.set('Select the check-in this appointment belongs to.');
+      return;
+    }
 
     const payload: RoutineAppointmentRequest = {
       patient_id: this.patientId,
       appointment_type: this.bookingForm.appointment_type,
+      ...(this.checkinSessionId ? { checkin_session_id: this.checkinSessionId } : {}),
       appointment_datetime: slot.start,
       end_datetime: slot.end,
       reason: this.bookingForm.reason.trim() || null,
@@ -116,7 +145,9 @@ export class BookAppointment implements OnInit, OnDestroy {
           this.booked.emit();
         },
         error: (error: unknown) => {
-          this.bookingError.set(this.extractErrorMessage(error));
+          const message = this.extractErrorMessage(error);
+          this.toast.error(message);
+          this.bookingError.set(message);
           this.loadAvailableSlots();
         },
       });
@@ -124,6 +155,18 @@ export class BookAppointment implements OnInit, OnDestroy {
 
   formatSlotTime(value: string): string {
     return new Date(value).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  }
+
+  private currentDateInAppTimezone(): string {
+    const parts = new Intl.DateTimeFormat('en', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(new Date());
+    const value = (type: Intl.DateTimeFormatPartTypes) =>
+      parts.find((part) => part.type === type)?.value ?? '';
+    return `${value('year')}-${value('month')}-${value('day')}`;
   }
 
   private loadAvailableSlots(): void {

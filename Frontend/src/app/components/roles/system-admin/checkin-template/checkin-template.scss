@@ -75,8 +75,10 @@ dd { margin: 0.24rem 0 0; font-size: 0.8rem; font-weight: 700; }
 
 .modal-backdrop { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 1rem; background: rgba(15, 25, 35, 0.55); }
 .modal { width: min(32rem, 100%); max-height: calc(100vh - 2rem); overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--table-bg); box-shadow: var(--shadow-md); color: var(--text); }
-.question-modal { width: min(42rem, 100%); }
+.question-modal { width: min(46rem, 100%); }
 .modal > header { display: flex; align-items: center; justify-content: space-between; padding: 0.9rem 1rem; border-bottom: 1px solid var(--border); }
+.question-modal > header { padding: 1.1rem 1.25rem; }
+.question-modal > header h2 { font-size: 1.45rem; }
 .close-button { width: 2rem; height: 2rem; border: 0; background: transparent; color: var(--muted); font-size: 1.4rem; }
 .modal form { display: grid; gap: 0.9rem; padding: 1rem; }
 .modal footer { display: flex; justify-content: flex-end; gap: 0.5rem; padding-top: 0.35rem; }
@@ -87,6 +89,29 @@ dd { margin: 0.24rem 0 0; font-size: 0.8rem; font-weight: 700; }
 .toggle-fields label { display: flex; align-items: center; gap: 0.4rem; }
 .toggle-fields input { width: auto; }
 .modal-copy { color: var(--muted); font-size: 0.8rem; }
+.form-note { margin: 0; color: var(--muted); font-size: 0.75rem; }
+.range-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+.checkbox-label { display: flex !important; align-items: center; gap: 0.4rem; }
+.checkbox-label input { width: auto; }
+
+.question-editor-form { gap: 1rem !important; padding: 1.1rem 1.25rem 1rem !important; }
+.question-form-grid { gap: 0.85rem 1rem; }
+.question-text-field small, .option-editor > small { color: var(--muted); font-size: 0.7rem; font-weight: 500; }
+.field-label { color: var(--muted); font-size: 0.73rem; font-weight: 700; }
+.option-editor { display: grid; gap: 0.35rem; }
+.option-editor__row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 0.65rem; }
+.option-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; min-height: 2.55rem; border: 1px solid var(--border); border-radius: 5px; background: var(--surface-strong); padding: 0.35rem; }
+.option-chips > input { flex: 1 1 7rem; min-width: 7rem; border: 0; background: transparent; padding: 0.3rem; outline: 0; }
+.option-chip { display: inline-flex; align-items: center; gap: 0.25rem; min-height: 1.8rem; border: 1px solid var(--border); border-radius: 5px; background: var(--surface); padding: 0.22rem 0.45rem; color: var(--text); font-size: 0.76rem; white-space: nowrap; }
+.option-chip button { min-height: 0; border: 0; background: transparent; padding: 0; color: var(--muted); font-size: 1rem; line-height: 1; }
+.add-option-button { min-height: 2.35rem; border: 1px solid var(--border); background: var(--table-bg); color: var(--primary); padding: 0.45rem 0.7rem; white-space: nowrap; }
+.critical-response-fields { margin: 0; border: 1px solid var(--border); border-radius: 7px; background: var(--surface-strong); padding: 0.75rem; }
+.critical-response-fields legend { padding: 0 .2rem; color: var(--text); font-size: 0.76rem; font-weight: 800; }
+.critical-response-fields > small { display: block; margin-bottom: 0.45rem; color: var(--muted); font-size: 0.68rem; }
+.critical-response-fields .checkbox-label { margin-top: 0.32rem; color: var(--text); font-weight: 500; }
+.risk-field { align-self: start; }
+.display-order-field { align-self: end; }
+.question-editor-form > footer { margin-inline: -1.25rem; border-top: 1px solid var(--border); padding: 0.9rem 1.25rem 0; }
 
 @media (max-width: 900px) {
   .workspace { grid-template-columns: 1fr; }
@@ -108,4 +133,7 @@ dd { margin: 0.24rem 0 0; font-size: 0.8rem; font-weight: 700; }
   .row-actions { grid-column: 2; flex-wrap: wrap; }
   .form-grid { grid-template-columns: 1fr; }
   .form-grid .wide { grid-column: auto; }
+  .option-editor__row { grid-template-columns: 1fr; }
+  .add-option-button { width: 100%; }
+  .critical-response-fields { grid-column: auto; }
 }

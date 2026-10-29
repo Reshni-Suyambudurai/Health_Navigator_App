@@ -4,6 +4,7 @@ import { catchError, finalize, forkJoin, of, switchMap } from 'rxjs';
 import { UserApi } from '../../../../api/navigator/user.api';
 import { FhirDataApi } from '../../../../api/patientfhir/fhir.data.api';
 import { ConversationApi } from '../../../../api/navigator/conversation.api';
+import { OutreachApi } from '../../../../api/navigator/outreach.api';
 import { getSessionUser } from '../../../../api/tokenstore';
 import {
   CareTeamMember,
@@ -15,6 +16,7 @@ import { FhirRecord } from '../../../../shared/types/patientfhir/fhir';
 import { AiChat } from '../ai-chat/ai-chat';
 import { PatientOnboarding } from '../onboarding/patient-onboarding';
 import { ToastState } from '../../../../shared/ui/toast/toast-state';
+import { CheckinSession } from '../../../../shared/types/navigator/outreach';
 
 interface CarePlanTask {
   title: string;
@@ -33,6 +35,7 @@ export class PatientDashbaord implements OnInit {
   private readonly userApi = inject(UserApi);
   private readonly fhirApi = inject(FhirDataApi);
   private readonly conversationApi = inject(ConversationApi);
+  private readonly outreachApi = inject(OutreachApi);
   private readonly toast = inject(ToastState);
 
   readonly loading = signal(true);
@@ -44,6 +47,7 @@ export class PatientDashbaord implements OnInit {
   readonly activeCarePlan = signal<FhirRecord | null>(null);
   readonly carePlanLoading = signal(false);
   readonly visibleCareTeamPhoneId = signal<number | null>(null);
+  readonly pendingCheckins = signal<CheckinSession[]>([]);
 
   get patientName(): string {
     const sessionUser = getSessionUser();
@@ -144,6 +148,11 @@ export class PatientDashbaord implements OnInit {
         next: (response) => this.applyOnboardingState(response.data),
         error: (error: unknown) => this.toast.error(this.extractErrorMessage(error)),
       });
+
+    this.outreachApi.listSessions(sessionUser.userId).subscribe({
+      next: (response) => this.pendingCheckins.set(response.data.sessions.filter((session) => ['PENDING', 'IN_PROGRESS', 'OVERDUE'].includes(session.session_status))),
+      error: () => this.pendingCheckins.set([]),
+    });
   }
 
   onboardingCompleted(onboardingState: PatientOnboardingState): void {

@@ -1,7 +1,7 @@
 import unittest
 from datetime import date, datetime, time, timedelta
 from types import SimpleNamespace
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from app.core.exceptions import AuthorizationException
 from app.database.models.appointment import AppointmentStatus, AppointmentType
@@ -39,6 +39,48 @@ class AppointmentServiceTests(unittest.TestCase):
             ["09:00:00", "09:30:00", "10:30:00", "11:30:00"],
         )
 
+    def test_booking_rejects_same_day_past_time(self):
+        self.service.patients.find_by_user_id.return_value = SimpleNamespace(patient_id=5)
+        now = datetime(2026, 10, 28, 17, 30)
+        past_time = datetime(2026, 10, 28, 17, 0)
+
+        with patch("app.services.navigator.appointment_service.local_now", return_value=now):
+            with self.assertRaisesRegex(Exception, "passed"):
+                self.service.book_routine_appointment(
+                    patient_id=5,
+                    created_by_user_id=7,
+                    appointment_type=AppointmentType.ROUTINE,
+                    appointment_datetime=past_time,
+                    end_datetime=past_time + timedelta(minutes=30),
+                    reason=None,
+                    location_or_channel="Phone call",
+                )
+
+        self.service.appointments.save.assert_not_called()
+
+    def test_available_slots_exclude_all_same_day_past_times(self):
+        requested_date = date(2026, 10, 28)
+        self.service.patients.find_by_user_id.return_value = SimpleNamespace(patient_id=5)
+        self.service.availability.find_active_for_date.return_value = [SimpleNamespace(
+            staff_id=12,
+            start_time=time(16, 0),
+            end_time=time(19, 0),
+            lunch_start_time=None,
+            lunch_end_time=None,
+        )]
+        self.service.appointments.find_busy_ranges.return_value = []
+
+        with patch(
+            "app.services.navigator.appointment_service.local_now",
+            return_value=datetime(2026, 10, 28, 17, 0),
+        ):
+            slots = self.service.get_available_slots(7, requested_date, 30)
+
+        self.assertEqual(
+            [slot["start"][-8:] for slot in slots],
+            ["17:30:00", "18:00:00", "18:30:00"],
+        )
+
     def test_booking_locks_least_loaded_nurse_and_saves_in_transaction(self):
         patient = SimpleNamespace(patient_id=5)
         nurse_one = SimpleNamespace(staff_id=21)
@@ -59,7 +101,7 @@ class AppointmentServiceTests(unittest.TestCase):
         result = self.service.book_routine_appointment(
             patient_id=5,
             created_by_user_id=7,
-            appointment_type=AppointmentType.NURSE_FOLLOWUP,
+            appointment_type=AppointmentType.ROUTINE,
             appointment_datetime=start,
             end_datetime=start + timedelta(minutes=30),
             reason=None,
@@ -85,7 +127,7 @@ class AppointmentServiceTests(unittest.TestCase):
             self.service.book_routine_appointment(
                 patient_id=5,
                 created_by_user_id=7,
-                appointment_type=AppointmentType.NURSE_FOLLOWUP,
+                appointment_type=AppointmentType.ROUTINE,
                 appointment_datetime=start,
                 end_datetime=start + timedelta(minutes=30),
                 reason=None,

@@ -66,6 +66,7 @@ export interface CheckinTemplate {
   description: string | null;
   version: number;
   status: 'DRAFT' | 'ACTIVE' | 'INACTIVE';
+  appointment_required: boolean;
   created_at: string;
 }
 
@@ -76,6 +77,7 @@ export interface CheckinTemplateRequest {
   description: string | null;
   version: number;
   status: 'DRAFT' | 'ACTIVE' | 'INACTIVE';
+  appointment_required: boolean;
 }
 
 export interface CheckinQuestion {
@@ -162,15 +164,16 @@ export interface OutreachEventDetail extends OutreachEventSummary {
 }
 
 export interface OutreachEventFilters {
-  campaign_id?: number;
-  workflow_id?: number;
+  campaign_id?: number[];
+  workflow_id?: number[];
   campaign_name?: string;
   workflow_name?: string;
-  event_status?: EventStatus;
-  delivery_status?: DeliveryStatus;
+  event_status?: EventStatus[];
+  delivery_status?: DeliveryStatus[];
   scheduled_from?: string;
   scheduled_to?: string;
   patient_search?: string;
+  patient_id?: number[];
   skip?: number;
   limit?: number;
 }
@@ -178,6 +181,7 @@ export interface OutreachEventFilters {
 export interface OutreachEventFilterOptions {
   campaigns: { campaign_id: number; campaign_name: string }[];
   workflows: { workflow_id: number; campaign_id: number; workflow_name: string }[];
+  patients: { patient_id: number; patient_name: string }[];
 }
 
 export interface OutreachEventListData {
@@ -192,7 +196,75 @@ export interface CheckinResponse {
   answer_text: string | null;
   answer_value: unknown;
   response_source: string;
+  evaluated_risk_level: 'NORMAL' | 'ROUTINE' | 'EMERGENCY';
   answered_at: string;
+}
+
+export interface CheckinResponseRequest {
+  question_id: number;
+  answer_text: string | null;
+  answer_value: unknown;
+  response_source: 'PATIENT_REPORTED';
+}
+
+export interface CheckinSubmitRequest {
+  responses: CheckinResponseRequest[];
+}
+
+export interface CheckinEscalationSummary {
+  checkin_escalation_id: number;
+  escalation_type: 'ROUTINE' | 'SAME_DAY' | 'EMERGENCY';
+  escalation_status: 'OPEN' | 'ASSIGNED' | 'IN_PROGRESS' | 'RESOLVED' | 'CANCELLED';
+  action_taken: string | null;
+  resolution_notes: string | null;
+  resolved_at: string | null;
+}
+
+export interface CheckinAssignmentSummary {
+  assignment_id: number;
+  assignment_status: 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+  action_taken: string | null;
+  resolution_notes: string | null;
+  completed_at: string | null;
+}
+
+export interface CheckinAssigneeSummary {
+  staff_id: number;
+  name: string;
+  role: string;
+}
+
+export interface StaffCheckinResponse extends CheckinResponse {
+  question_text: string;
+  is_triggering: boolean;
+}
+
+export interface StaffCheckinWork {
+  assignment: CheckinAssignmentSummary;
+  escalation: CheckinEscalationSummary;
+  session: Pick<CheckinSession, 'checkin_session_id' | 'session_status' | 'scheduled_at' | 'completed_at'>;
+  patient: { patient_id: number; name: string; contact_number: string | null };
+  template_name: string;
+  staff_role: string;
+  responses: StaffCheckinResponse[];
+}
+
+export interface PatientCheckinTemplateSummary {
+  checkin_template_id: number;
+  template_name: string;
+  description: string | null;
+  expiry_after_hours: number | null;
+}
+
+export interface PatientCheckinQuestion {
+  question_id: number;
+  question_key: string;
+  question_text: string;
+  answer_type: 'YES_NO' | 'TEXT' | 'NUMBER' | 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE' | 'MULTI_CHOICE';
+  options: string[] | null;
+  display_order: number;
+  is_required: boolean;
+  is_active: boolean;
 }
 
 export interface CheckinSession {
@@ -200,11 +272,23 @@ export interface CheckinSession {
   patient_id: number;
   outreach_event_id: number;
   checkin_template_id: number;
+  appointment_required: boolean;
+  appointment_id: number | null;
+  appointment_status: string | null;
+  appointment_datetime: string | null;
   session_status: string;
   started_at: string | null;
   completed_at: string | null;
   created_at: string;
+  updated_at: string | null;
   responses: CheckinResponse[];
+  scheduled_at: string;
+  expires_at: string | null;
+  template: PatientCheckinTemplateSummary | null;
+  questions: PatientCheckinQuestion[];
+  escalation: CheckinEscalationSummary | null;
+  assignment: CheckinAssignmentSummary | null;
+  assignee: CheckinAssigneeSummary | null;
 }
 
 export interface AppointmentAction {
@@ -252,5 +336,6 @@ export type EventListResponse = ApiSuccessResponse<{ events: OutreachEvent[]; co
 export type ProtectedOutreachEventListResponse = ApiSuccessResponse<OutreachEventListData>;
 export type ProtectedOutreachEventDetailResponse = ApiSuccessResponse<OutreachEventDetail>;
 export type SessionListResponse = ApiSuccessResponse<{ sessions: CheckinSession[]; count: number }>;
+export type StaffCheckinListResponse = ApiSuccessResponse<{ checkins: StaffCheckinWork[]; count: number }>;
 export type AppointmentActionListResponse = ApiSuccessResponse<{ actions: AppointmentAction[]; count: number }>;
 export type FollowUpTaskListResponse = ApiSuccessResponse<{ tasks: FollowUpTask[]; count: number }>;

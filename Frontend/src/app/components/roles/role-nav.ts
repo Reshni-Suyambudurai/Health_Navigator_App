@@ -42,6 +42,7 @@ export const ROLE_SIDEBAR_CONFIG: RoleSidebarConfig[] = [
     route: '/patient/dashboard',
     topics: [
      { label: 'Dashboard', route: '/patient/dashboard' },
+    { label: 'Check-ins', route: '/patient/check-ins' },
       { label: 'My medicine', route: '/patient/medicines' },
       { label: 'Care plan' },
       { label: 'Appointments', route: '/patient/appointments' },
@@ -56,6 +57,7 @@ export const ROLE_SIDEBAR_CONFIG: RoleSidebarConfig[] = [
     topics: [
       { label: 'Dashboard' },
       { label: 'Escalation queue', route: '/transitional-care-nurse/escalation-queue' },
+      { label: 'Check-ins', route: '/transitional-care-nurse/check-ins' },
       { label: 'My patients', route: '/transitional-care-nurse/my-patient' },
       { label: 'Appointments', route: '/transitional-care-nurse/appointments' },
       { label: 'TCM tracker' },
@@ -70,6 +72,7 @@ export const ROLE_SIDEBAR_CONFIG: RoleSidebarConfig[] = [
     topics: [
       { label: 'Dashboard' },
       { label: 'Medication queue' },
+      { label: 'Check-ins', route: '/pharmacist/check-ins' },
       { label: 'Refill follow-up' },
       { label: 'Adherence alerts' },
       { label: 'Patients' },
@@ -81,8 +84,9 @@ export const ROLE_SIDEBAR_CONFIG: RoleSidebarConfig[] = [
     label: 'Social Worker',
     route: '/social-worker/dashboard',
     topics: [
-      { label: 'Dashboard' },
+      { label: 'Dashboard', route: '/social-worker/dashboard' },
       { label: 'Support queue' },
+      { label: 'Check-ins', route: '/social-worker/check-ins' },
       { label: 'Resource referrals' },
       { label: 'Housing & transport' },
       { label: 'Messages' },

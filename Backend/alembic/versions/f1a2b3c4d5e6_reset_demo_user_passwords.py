@@ -1,6 +1,6 @@
 """Reset documented demo user passwords.
 
-Revision ID: f1a2b3c4d5e6
+Revision ID: f2a3b4c5d6e7
 Revises: e8a6c1f4b2d3
 Create Date: 2026-10-21 11:15:00
 """
@@ -11,7 +11,7 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision: str = "f1a2b3c4d5e6"
+revision: str = "f2a3b4c5d6e7"
 down_revision: Union[str, None] = "e8a6c1f4b2d3"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None

@@ -68,11 +68,13 @@ class WorkflowUpdateRequest(BaseModel):
 
 class CheckinTemplateRequest(BaseModel):
     organization_id: int = Field(gt=0)
+    escalation_role_id: int | None = Field(default=None, gt=0)
     template_name: str = Field(min_length=1, max_length=255)
     template_type: str
     description: str | None = None
     version: int = Field(default=1, gt=0)
     status: Literal["DRAFT", "ACTIVE", "INACTIVE"] = "DRAFT"
+    expiry_after_hours: int | None = Field(default=None, gt=0)
 
 
 class CheckinQuestionRequest(BaseModel):
@@ -80,6 +82,8 @@ class CheckinQuestionRequest(BaseModel):
     question_text: str = Field(min_length=1)
     answer_type: Literal["YES_NO", "TEXT", "NUMBER", "SINGLE_CHOICE", "MULTIPLE_CHOICE"]
     options: list[Any] | dict[str, Any] | None = None
+    risk_level: Literal["NORMAL", "ROUTINE", "EMERGENCY"] = "NORMAL"
+    critical_response: Any | None = None
     display_order: int = Field(gt=0)
     is_required: bool = True
     is_active: bool = True
@@ -117,7 +121,8 @@ class CheckinSessionRequest(BaseModel):
     outreach_event_id: int = Field(gt=0)
     checkin_template_id: int = Field(gt=0)
     thread_id: int | None = Field(default=None, gt=0)
-    session_status: Literal["PENDING", "IN_PROGRESS", "COMPLETED", "ABANDONED", "ESCALATED"] = "PENDING"
+    session_status: Literal["PENDING", "IN_PROGRESS", "COMPLETED", "ABANDONED", "ESCALATED", "OVERDUE", "EXPIRED"] = "PENDING"
+    scheduled_at: datetime | None = None
     started_at: datetime | None = None
     completed_at: datetime | None = None
 
@@ -128,7 +133,15 @@ class CheckinResponseRequest(BaseModel):
     answer_text: str | None = None
     answer_value: Any | None = None
     response_source: Literal["PATIENT_REPORTED", "STAFF_ENTERED"] = "PATIENT_REPORTED"
-    answered_at: datetime
+
+
+class CheckinSubmitRequest(BaseModel):
+    responses: list[CheckinResponseRequest]
+
+
+class CheckinResolutionRequest(BaseModel):
+    action_taken: str = Field(min_length=1, max_length=500)
+    resolution_notes: str = Field(min_length=1, max_length=4000)
 
 
 class AppointmentActionRequest(BaseModel):
@@ -261,8 +274,8 @@ def update_event(event_id: int, request: OutreachEventUpdateRequest, db: Session
 
 
 @router.get("/checkin-sessions", response_model=SuccessResponse)
-def list_sessions(patient_id: int | None = Query(default=None, gt=0), db: Session = Depends(get_db)):
-    records = OutreachService(db).list_sessions(patient_id)
+def list_sessions(user_id: int | None = Query(default=None, gt=0), db: Session = Depends(get_db)):
+    records = OutreachService(db).list_sessions(user_id)
     return SuccessResponse(message="Check-in sessions retrieved successfully", data={"sessions": records, "count": len(records)})
 
 
@@ -276,11 +289,59 @@ def create_session(request: CheckinSessionRequest, db: Session = Depends(get_db)
 def record_response(
     session_id: int,
     request: CheckinResponseRequest,
-    user_id: int | None = Query(default=None, gt=0),
+    user_id: int = Query(..., gt=0),
     db: Session = Depends(get_db),
 ):
     record = OutreachService(db).record_response(session_id, request.model_dump(), user_id)
     return SuccessResponse(message="Check-in response recorded successfully", data=record)
+
+
+@router.post("/checkin-sessions/{session_id}/submit", response_model=SuccessResponse)
+def submit_session(
+    session_id: int,
+    request: CheckinSubmitRequest,
+    user_id: int = Query(..., gt=0),
+    db: Session = Depends(get_db),
+):
+    record = OutreachService(db).submit_session(session_id, request.model_dump(), user_id)
+    return SuccessResponse(message="Check-in submitted successfully", data=record)
+
+
+@router.get("/checkin-escalation-assignments", response_model=SuccessResponse)
+def list_staff_checkins(
+    user_id: int = Query(..., gt=0),
+    db: Session = Depends(get_db),
+):
+    records = OutreachService(db).list_staff_checkins(user_id)
+    return SuccessResponse(
+        message="Assigned check-ins retrieved successfully",
+        data={"checkins": records, "count": len(records)},
+    )
+
+
+@router.put("/checkin-escalation-assignments/{assignment_id}/start", response_model=SuccessResponse)
+def start_checkin_assignment(
+    assignment_id: int,
+    user_id: int = Query(..., gt=0),
+    db: Session = Depends(get_db),
+):
+    record = OutreachService(db).start_checkin_assignment(assignment_id, user_id)
+    return SuccessResponse(message="Check-in review started", data=record)
+
+
+@router.put("/checkin-escalation-assignments/{assignment_id}/resolve", response_model=SuccessResponse)
+def resolve_checkin_assignment(
+    assignment_id: int,
+    request: CheckinResolutionRequest,
+    user_id: int = Query(..., gt=0),
+    db: Session = Depends(get_db),
+):
+    record = OutreachService(db).resolve_checkin_assignment(
+        assignment_id,
+        request.model_dump(),
+        user_id,
+    )
+    return SuccessResponse(message="Check-in resolved successfully", data=record)
 
 
 @router.get("/appointments/{appointment_id}/actions", response_model=SuccessResponse)

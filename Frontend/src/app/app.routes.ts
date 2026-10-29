@@ -10,6 +10,7 @@ import { PatientAppointments } from './components/roles/patients/appointments/ap
 import { PatientCareTeam } from './components/roles/patients/care-team/care-team';
 import { PatientTalkToPerson } from './components/roles/patients/talk-to-person/talk-to-person';
 import { PatientMedicines } from './components/roles/patients/medicines/patient-medicines';
+import { PatientCheckIns } from './components/roles/patients/check-ins/patient-check-ins';
 import { TransitionalCareNurseDashbaord } from './components/roles/transitional-care-nurse/dashboard/transitional_care_nurse_dashbaord';
 import { EscalationQueue } from './components/roles/transitional-care-nurse/escalation-queue/escalation-queue';
 import { MyPatient } from './components/roles/transitional-care-nurse/my-patient/my-patient';
@@ -28,6 +29,7 @@ import { SystemAdminOutreachEvents } from './components/roles/system-admin/outre
 import { CareManagerOutreachEvents } from './components/roles/care-manager/outreach-events/outreach-events';
 import { SystemAdminCheckinTemplate } from './components/roles/system-admin/checkin-template/checkin-template';
 import { ClinicalCheckinTemplateReviews } from './components/roles/clinical-governance/checkin-template-reviews/checkin-template-reviews';
+import { StaffCheckIns } from './components/roles/staff-check-ins/staff-check-ins';
 import { authGuard } from './guards/guards/auth.guard';
 import { roleAccessGuard } from './guards/guards/role-access.guard';
 
@@ -52,14 +54,19 @@ export const routes: Routes = [
       { path: 'patient/care-team', component: PatientCareTeam },
       { path: 'patient/talk-to-person', component: PatientTalkToPerson },
       { path: 'patient/medicines', component: PatientMedicines },
+      { path: 'patient/check-ins', component: PatientCheckIns },
+      { path: 'patient/check-ins/:sessionId', component: PatientCheckIns },
       { path: 'transitional-care-nurse/dashboard', component: TransitionalCareNurseDashbaord },
       { path: 'transitional-care-nurse/escalation-queue', component: EscalationQueue },
+      { path: 'transitional-care-nurse/check-ins', component: StaffCheckIns },
       { path: 'transitional-care-nurse/my-patient', component: MyPatient },
       { path: 'transitional-care-nurse/my-patient/:patientId/details', component: MyPatientDetails },
       { path: 'transitional-care-nurse/appointments', component: TransitionalCareNurseAppointments },
       { path: 'transitional-care-nurse/appointments/:appointmentId/details', component: AppointmentDetails },
       { path: 'pharmacist/dashboard', component: PharmacistDashbaord },
+      { path: 'pharmacist/check-ins', component: StaffCheckIns },
       { path: 'social-worker/dashboard', component: SocialWorkerDashbaord },
+      { path: 'social-worker/check-ins', component: StaffCheckIns },
       { path: 'system-admin/dashboard', component: SystemAdminDashboard },
       { path: 'system-admin/users-roles', component: SystemAdminUsersRoles },
       { path: 'system-admin/organization', component: SystemAdminOrganization },

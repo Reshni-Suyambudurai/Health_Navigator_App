@@ -32,6 +32,7 @@ small { color: var(--status-critical-text); font-size: 0.68rem; }
 textarea, input[type='number'] { width: 100%; max-width: 34rem; background: var(--surface-strong); color: var(--text); }
 .option-list { display: grid; gap: 0.35rem; color: var(--muted); font-size: 0.82rem; }
 .answer-type { margin-top: 0.1rem; }
+.configuration-note { color: var(--muted); font-size: 0.7rem; }
 .empty { padding: 1.5rem; color: var(--muted); text-align: center; }
 
 @media (max-width: 560px) {

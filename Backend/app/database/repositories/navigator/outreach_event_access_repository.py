@@ -45,15 +45,16 @@ class OutreachEventAccessRepository:
         organization_id: int,
         staff_id: int | None,
         *,
-        campaign_id: int | None,
-        workflow_id: int | None,
+        campaign_id: list[int] | None,
+        workflow_id: list[int] | None,
         campaign_name: str | None,
         workflow_name: str | None,
-        event_status: str | None,
-        delivery_status: str | None,
+        event_status: list[str] | None,
+        delivery_status: list[str] | None,
         scheduled_from: datetime | None,
         scheduled_to: datetime | None,
         patient_search: str | None,
+        patient_id: list[int] | None,
         skip: int,
         limit: int,
     ) -> tuple[list[dict[str, Any]], int]:
@@ -69,6 +70,7 @@ class OutreachEventAccessRepository:
             scheduled_from=scheduled_from,
             scheduled_to=scheduled_to,
             patient_search=patient_search,
+            patient_id=patient_id,
         )
         total = query.with_entities(func.count(OutreachEvent.outreach_event_id)).scalar() or 0
         rows = (
@@ -98,6 +100,11 @@ class OutreachEventAccessRepository:
 
         campaigns = campaign_query.order_by(OutreachCampaign.campaign_name.asc()).all()
         workflows = workflow_query.order_by(OutreachWorkflow.step_order.asc(), OutreachWorkflow.step_name.asc()).all()
+        patient_rows = self._scoped_query(organization_id, staff_id).with_entities(
+            PatientProfile.patient_id,
+            User.first_name,
+            User.last_name,
+        ).distinct().order_by(User.first_name.asc(), User.last_name.asc()).all()
         return {
             "campaigns": [
                 {"campaign_id": campaign.campaign_id, "campaign_name": campaign.campaign_name}
@@ -110,6 +117,13 @@ class OutreachEventAccessRepository:
                     "workflow_name": workflow.step_name,
                 }
                 for workflow in workflows
+            ],
+            "patients": [
+                {
+                    "patient_id": patient_id,
+                    "patient_name": f"{first_name} {last_name}",
+                }
+                for patient_id, first_name, last_name in patient_rows
             ],
         }
 
@@ -188,18 +202,18 @@ class OutreachEventAccessRepository:
 
     @staticmethod
     def _apply_filters(query, **filters):
-        if filters["campaign_id"] is not None:
-            query = query.filter(OutreachEvent.campaign_id == filters["campaign_id"])
-        if filters["workflow_id"] is not None:
-            query = query.filter(OutreachEvent.workflow_id == filters["workflow_id"])
+        if filters["campaign_id"]:
+            query = query.filter(OutreachEvent.campaign_id.in_(filters["campaign_id"]))
+        if filters["workflow_id"]:
+            query = query.filter(OutreachEvent.workflow_id.in_(filters["workflow_id"]))
         if filters["campaign_name"]:
             query = query.filter(OutreachCampaign.campaign_name.ilike(f"%{filters['campaign_name'].strip()}%"))
         if filters["workflow_name"]:
             query = query.filter(OutreachWorkflow.step_name.ilike(f"%{filters['workflow_name'].strip()}%"))
-        if filters["event_status"] is not None:
-            query = query.filter(OutreachEvent.event_status == filters["event_status"])
-        if filters["delivery_status"] is not None:
-            query = query.filter(OutreachEvent.delivery_status == filters["delivery_status"])
+        if filters["event_status"]:
+            query = query.filter(OutreachEvent.event_status.in_(filters["event_status"]))
+        if filters["delivery_status"]:
+            query = query.filter(OutreachEvent.delivery_status.in_(filters["delivery_status"]))
         if filters["scheduled_from"] is not None:
             query = query.filter(OutreachEvent.scheduled_at >= filters["scheduled_from"])
         if filters["scheduled_to"] is not None:
@@ -214,6 +228,8 @@ class OutreachEventAccessRepository:
                     cast(PatientProfile.patient_id, String).ilike(search),
                 ),
             )
+        if filters["patient_id"]:
+            query = query.filter(OutreachEvent.patient_id.in_(filters["patient_id"]))
         return query
 
     @classmethod

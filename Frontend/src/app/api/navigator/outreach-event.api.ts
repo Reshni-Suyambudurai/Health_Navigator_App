@@ -43,12 +43,8 @@ export class OutreachEventApi {
       .set('user_id', session?.user_id ?? session?.userId ?? 0)
       .set('organization_id', session?.organization_id ?? 0);
     const entries: [keyof OutreachEventFilters, string | number | undefined][] = [
-      ['campaign_id', filters.campaign_id],
-      ['workflow_id', filters.workflow_id],
       ['campaign_name', filters.campaign_name],
       ['workflow_name', filters.workflow_name],
-      ['event_status', filters.event_status],
-      ['delivery_status', filters.delivery_status],
       ['scheduled_from', filters.scheduled_from],
       ['scheduled_to', filters.scheduled_to],
       ['patient_search', filters.patient_search?.trim()],
@@ -57,6 +53,16 @@ export class OutreachEventApi {
     ];
     for (const [key, value] of entries) {
       if (value !== undefined && value !== '') params = params.set(key, value);
+    }
+    const multiValueEntries: [string, readonly (string | number)[] | undefined][] = [
+      ['campaign_id', filters.campaign_id],
+      ['workflow_id', filters.workflow_id],
+      ['patient_id', filters.patient_id],
+      ['event_status', filters.event_status],
+      ['delivery_status', filters.delivery_status],
+    ];
+    for (const [key, values] of multiValueEntries) {
+      for (const value of values ?? []) params = params.append(key, value);
     }
     return params;
   }
