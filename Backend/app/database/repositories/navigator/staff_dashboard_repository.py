@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import String, cast
+from sqlalchemy import String, cast, select
 from sqlalchemy.orm import Session
 
 from app.database.models.appointment import Appointment
@@ -59,6 +59,14 @@ class StaffDashboardRepository:
         )
 
     def list_checkin_escalations(self, staff_id: int, organization_id: int, start: datetime, end: datetime):
+        response_text = (
+            select(CheckinResponse.answer_text)
+            .where(CheckinResponse.checkin_session_id == CheckinEscalation.checkin_session_id)
+            .order_by(CheckinResponse.answered_at.desc(), CheckinResponse.response_id.desc())
+            .limit(1)
+            .scalar_subquery()
+            .label("response_text")
+        )
         return (
             self.db.query(
                 CheckinEscalation.checkin_escalation_id.label("checkin_escalation_id"),
@@ -66,14 +74,13 @@ class StaffDashboardRepository:
                 cast(CheckinEscalation.escalation_type, String).label("escalation_type"),
                 cast(CheckinEscalation.escalation_status, String).label("status"),
                 CheckinEscalation.escalation_reason.label("reason"),
-                CheckinResponse.answer_text.label("response_text"),
+                response_text,
                 CheckinEscalation.trigger_source.label("trigger_source"),
                 CheckinEscalation.assigned_at.label("assigned_at"),
                 User.first_name.label("first_name"),
                 User.last_name.label("last_name"),
             )
             .join(CheckinSession, CheckinSession.checkin_session_id == CheckinEscalation.checkin_session_id)
-            .outerjoin(CheckinResponse, CheckinResponse.response_id == CheckinEscalation.response_id)
             .join(PatientProfile, PatientProfile.patient_id == CheckinSession.patient_id)
             .join(User, User.user_id == PatientProfile.user_id)
             .filter(

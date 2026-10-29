@@ -13,7 +13,11 @@ from app.database.repositories.navigator.staff_dashboard_repository import Staff
 
 
 class StaffDashboardService:
-    ALLOWED_ROLES = {RoleName.PHARMACIST, RoleName.SOCIAL_WORKER}
+    ALLOWED_ROLES = {
+        RoleName.PHARMACIST,
+        RoleName.SOCIAL_WORKER,
+        RoleName.TRANSITIONAL_CARE_NURSE,
+    }
     ALLOWED_PERIODS = {"TODAY", "THIS_MONTH"}
 
     def __init__(self, db: Session):
@@ -100,7 +104,7 @@ class StaffDashboardService:
         user, staff, role = result
         if user.status != UserStatus.ACTIVE or role.role_name not in self.ALLOWED_ROLES:
             raise AuthorizationException(
-                "Pharmacist or social worker access is required.",
+                "Supported clinical staff access is required.",
                 "STAFF_DASHBOARD_ACCESS_REQUIRED",
             )
         return user, staff, role
