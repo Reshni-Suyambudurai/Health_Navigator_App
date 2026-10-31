@@ -22,6 +22,7 @@ export const ROLE_SIDEBAR_CONFIG: RoleSidebarConfig[] = [
       { label: 'Escalation Management', route: '/care-manager/escalation-management' },
       { label: 'Follow-up Management', route: '/care-manager/follow-up-management' },
       { label: 'Program Performance', route: '/care-manager/program-performance' },
+      { label: 'TCM Tracker', route: '/care-manager/tcm-tracker' },
     ],
   },
   {
@@ -60,7 +61,7 @@ export const ROLE_SIDEBAR_CONFIG: RoleSidebarConfig[] = [
       { label: 'Check-ins', route: '/transitional-care-nurse/check-ins' },
       { label: 'My patients', route: '/transitional-care-nurse/my-patient' },
       { label: 'Appointments', route: '/transitional-care-nurse/appointments' },
-      { label: 'TCM tracker' },
+      { label: 'TCM Tracker', route: '/transitional-care-nurse/tcm-tracker' },
       { label: 'Messages' },
       { label: 'Reports' },
       { label: 'Activity log' },

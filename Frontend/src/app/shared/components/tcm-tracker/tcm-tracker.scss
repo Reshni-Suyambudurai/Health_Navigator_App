@@ -1,0 +1,46 @@
+.tcm-tracker { display: grid; gap: 1.5rem; }
+.page-head, .section-head, .workflow-item > header, .progress-level > div:first-child { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.page-head h1 { font-size: 1.8rem; }
+.page-head > div > p:last-child, .section-head > span, .workflow-item small, .progress-level p, .not-required { color: var(--muted); }
+.eyebrow { margin-bottom: .2rem; color: var(--primary); font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.filter-band { display: grid; grid-template-columns: minmax(220px, 1.5fr) repeat(2, minmax(150px, .7fr)) auto; align-items: end; gap: .75rem; padding: 1rem; border: 1px solid var(--border); background: var(--table-bg); }
+.filter-band label { display: grid; gap: .35rem; }
+.filter-band label span { color: var(--muted); font-size: .75rem; font-weight: 700; }
+.filter-band select, .filter-band input, .patient-search input { width: 100%; min-height: 2.55rem; border: 1px solid var(--border); border-radius: 4px; background: var(--table-bg); color: var(--text); padding: .55rem .65rem; }
+.summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; }
+.summary-grid article { padding: 1rem; border: 1px solid var(--border); border-top: 3px solid var(--primary); background: var(--table-bg); }
+.summary-grid article.attention { border-top-color: var(--status-critical-text); }
+.summary-grid p { color: var(--muted); font-size: .78rem; }
+.summary-grid strong { display: block; margin-top: .35rem; font-size: 1.6rem; }
+.workflow-section, .patient-section { display: grid; gap: 1rem; }
+.section-head h2 { font-size: 1.15rem; }
+.workflow-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .85rem; }
+.workflow-item { display: grid; gap: 1rem; padding: 1rem; border: 1px solid var(--border); border-radius: 6px; background: var(--table-bg); }
+.workflow-item h3 { margin-top: .15rem; font-size: 1rem; }
+.workflow-item > header > span { padding: .2rem .5rem; border-radius: 999px; background: var(--hover-bg); color: var(--primary); font-size: .72rem; font-weight: 700; }
+.progress-level { display: grid; gap: .45rem; }
+.progress-level span { color: var(--muted); font-size: .78rem; }
+.progress-track { height: .45rem; overflow: hidden; border-radius: 999px; background: var(--table-row-alt-bg); }
+.progress-track span { display: block; height: 100%; max-width: 100%; background: var(--primary); }
+.progress-level.appointment .progress-track span { background: var(--status-positive-text); }
+.progress-level p, .not-required { font-size: .75rem; }
+.patient-search { display: flex; gap: .5rem; }
+.patient-tabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-bottom: 1px solid var(--border); }
+.patient-tabs button { display: flex; justify-content: space-between; gap: .4rem; min-height: 3.15rem; padding: .65rem .75rem; border: 0; border-bottom: 3px solid transparent; border-radius: 0; background: transparent; color: var(--muted); text-align: left; }
+.patient-tabs button.active { border-bottom-color: var(--primary); color: var(--primary); }
+.patient-tabs strong { font-size: .75rem; }
+.tracker-table { min-width: 920px; }
+.tracker-table td { vertical-align: top; }
+.tracker-table td strong, .tracker-table td small { display: block; }
+.tracker-table td small { margin-top: .2rem; color: var(--muted); font-size: .72rem; }
+.status-pill { display: inline-flex; align-items: center; border: 1px solid currentColor; border-radius: 999px; padding: .18rem .5rem; font-size: .72rem; font-weight: 700; line-height: 1.2; }
+.status-pill.status-critical { background: var(--status-critical-bg); color: var(--status-critical-text); }
+.status-pill.status-warning { background: var(--status-warning-bg); color: var(--status-warning-text); }
+.status-pill.status-positive { background: var(--status-positive-bg); color: var(--status-positive-text); }
+.status-pill.status-neutral { background: var(--hover-bg); color: var(--muted); }
+.row-action { border: 0; background: transparent; color: var(--primary); padding: .25rem; font-weight: 700; white-space: nowrap; }
+.state-panel, .empty-state { padding: 1.5rem; border: 1px dashed var(--border); color: var(--muted); text-align: center; }
+.state-panel.error { color: var(--status-critical-text); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+@media (max-width: 900px) { .filter-band { grid-template-columns: repeat(2, minmax(0, 1fr)); } .summary-grid, .workflow-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .patient-tabs { grid-template-columns: 1fr; border: 1px solid var(--border); } .patient-tabs button { border-bottom-width: 1px; } }
+@media (max-width: 600px) { .page-head, .section-head { align-items: flex-start; } .filter-band, .summary-grid, .workflow-grid { grid-template-columns: 1fr; } .patient-search { width: 100%; } .section-head { flex-direction: column; } }

@@ -3,8 +3,9 @@ from datetime import date, datetime, time, timedelta
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-from app.core.exceptions import AuthorizationException
+from app.core.exceptions import AuthorizationException, ValidationException
 from app.database.models.appointment import AppointmentStatus, AppointmentType
+from app.database.models.checkin_session import CheckinSessionStatus
 from app.services.navigator.appointment_service import AppointmentService
 
 
@@ -15,6 +16,7 @@ class AppointmentServiceTests(unittest.TestCase):
         self.service.appointments = MagicMock()
         self.service.availability = MagicMock()
         self.service.patients = MagicMock()
+        self.service.outreach = MagicMock()
 
     def test_available_slots_exclude_lunch_existing_bookings_and_past_times(self):
         requested_date = date.today() + timedelta(days=1)
@@ -135,6 +137,72 @@ class AppointmentServiceTests(unittest.TestCase):
             )
 
         self.service.appointments.save.assert_not_called()
+
+    def test_checkin_appointment_requires_completed_session(self):
+        self.service.patients.find_by_user_id.return_value = SimpleNamespace(patient_id=5)
+        self.service.outreach.lock_session.return_value = SimpleNamespace(
+            patient_id=5,
+            session_status=CheckinSessionStatus.IN_PROGRESS,
+            checkin_template_id=9,
+            appointment_id=None,
+            expires_at=None,
+        )
+        start = datetime.combine(date.today() + timedelta(days=1), time(9, 0))
+
+        with self.assertRaises(ValidationException):
+            self.service.book_routine_appointment(
+                patient_id=5,
+                created_by_user_id=7,
+                appointment_type=AppointmentType.CHECK_IN,
+                appointment_datetime=start,
+                end_datetime=start + timedelta(minutes=30),
+                reason=None,
+                location_or_channel="Phone call",
+                checkin_session_id=41,
+            )
+
+        self.service.appointments.save.assert_not_called()
+
+    def test_completed_required_checkin_can_book_appointment(self):
+        patient = SimpleNamespace(patient_id=5)
+        nurse = SimpleNamespace(staff_id=22)
+        session = SimpleNamespace(
+            patient_id=5,
+            episode_id=15,
+            outreach_event_id=30,
+            session_status=CheckinSessionStatus.COMPLETED,
+            checkin_template_id=9,
+            appointment_id=None,
+            expires_at=None,
+        )
+        self.service.patients.find_by_user_id.return_value = patient
+        self.service.outreach.lock_session.return_value = session
+        self.service.outreach.get_template.return_value = SimpleNamespace(appointment_required=True)
+        self.service.availability.find_matching_staff.return_value = [nurse]
+        self.service.appointments.count_upcoming.return_value = 0
+        self.service.appointments.lock_staff_for_booking.return_value = nurse
+        self.service.appointments.has_overlap.return_value = False
+
+        def save(appointment):
+            appointment.appointment_id = 100
+            return appointment
+
+        self.service.appointments.save.side_effect = save
+        start = datetime.combine(date.today() + timedelta(days=1), time(9, 0))
+
+        result = self.service.book_routine_appointment(
+            patient_id=5,
+            created_by_user_id=7,
+            appointment_type=AppointmentType.CHECK_IN,
+            appointment_datetime=start,
+            end_datetime=start + timedelta(minutes=30),
+            reason=None,
+            location_or_channel="Phone call",
+            checkin_session_id=41,
+        )
+
+        self.assertEqual(result["appointment_id"], 100)
+        self.assertEqual(session.appointment_id, 100)
 
     def test_assigned_nurse_can_confirm_requested_appointment(self):
         staff = SimpleNamespace(staff_id=22)

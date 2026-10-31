@@ -1,0 +1,158 @@
+<section class="tcm-tracker">
+  <header class="page-head">
+    <div>
+      <p class="eyebrow">Transitional Care Management</p>
+      <h1>TCM Tracker</h1>
+      <p>{{ scope() === 'ORGANIZATION' ? 'Organization-wide campaign analysis' : 'My assigned patient analysis' }}</p>
+    </div>
+    <button type="button" class="ui-refresh-button" title="Refresh" aria-label="Refresh TCM tracker" [disabled]="dashboardLoading() || tableLoading()" (click)="applyFilters()">&#8635;</button>
+  </header>
+
+  <section class="filter-band" aria-label="TCM tracker filters">
+    <label>
+      <span>Campaign</span>
+      <select [ngModel]="selectedCampaign()" (ngModelChange)="selectCampaign($event)">
+        <option value="ALL">All campaigns</option>
+        @for (campaign of campaigns(); track campaign.campaign_id) {
+          <option [value]="campaign.campaign_id">{{ campaign.campaign_name }}</option>
+        }
+      </select>
+    </label>
+    <label><span>From date</span><input type="date" [ngModel]="fromDate()" (ngModelChange)="updateFromDate($event)" /></label>
+    <label><span>To date</span><input type="date" [ngModel]="toDate()" (ngModelChange)="updateToDate($event)" /></label>
+    <button type="button" (click)="applyFilters()" [disabled]="dashboardLoading()">Apply</button>
+  </section>
+
+  @if (dashboardError()) {
+    <p class="state-panel error" role="alert">{{ dashboardError() }}</p>
+  } @else if (dashboardLoading() && !summary()) {
+    <p class="state-panel" role="status">Loading campaign analysis...</p>
+  } @else if (summary(); as metrics) {
+    <section class="summary-grid" aria-label="TCM summary">
+      <article><p>Eligible patients</p><strong>{{ metrics.eligible_patients }}</strong></article>
+      <article><p>Active episodes</p><strong>{{ metrics.active_episodes }}</strong></article>
+      <article><p>Workflow completion</p><strong>{{ metrics.workflow_completion_rate | number:'1.0-1' }}%</strong></article>
+      <article class="attention"><p>Overdue activities</p><strong>{{ metrics.overdue_activities }}</strong></article>
+    </section>
+  }
+
+  <section class="workflow-section" aria-labelledby="workflow-progress-title">
+    <div class="section-head">
+      <div><p class="eyebrow">Campaign execution</p><h2 id="workflow-progress-title">Workflow Progress</h2></div>
+      <span>{{ workflows().length }} workflows</span>
+    </div>
+    @if (workflows().length) {
+      <div class="workflow-grid">
+        @for (workflow of workflows(); track workflow.campaign_id + '-' + workflow.workflow_id) {
+          <article class="workflow-item">
+            <header>
+              <div><small>{{ workflow.campaign_name }}</small><h3>{{ workflow.workflow_name }}</h3></div>
+              <span>{{ workflow.eligible_count }} eligible</span>
+            </header>
+            <div class="progress-level">
+              <div><strong>Check-in</strong><span>{{ workflow.checkin.completed }} / {{ workflow.eligible_count }} · {{ workflow.checkin.completion_percentage | number:'1.0-1' }}%</span></div>
+              <div class="progress-track"><span [style.width.%]="workflow.checkin.completion_percentage"></span></div>
+              <p>{{ workflow.checkin.completed }} completed · {{ workflow.checkin.pending }} pending</p>
+            </div>
+            @if (workflow.appointment; as appointment) {
+              <div class="progress-level appointment">
+                <div><strong>Appointment booking</strong><span>{{ appointment.booked }} / {{ appointment.eligible }} · {{ appointment.booking_percentage | number:'1.0-1' }}%</span></div>
+                <div class="progress-track"><span [style.width.%]="appointment.booking_percentage"></span></div>
+                <p>{{ appointment.completed }} completed · {{ appointment.pending_booking }} awaiting booking · {{ appointment.pending_completion }} awaiting completion</p>
+              </div>
+            } @else {
+              <p class="not-required">Appointment not required</p>
+            }
+          </article>
+        }
+      </div>
+    } @else if (!dashboardLoading()) {
+      <p class="empty-state">No workflow activity matches the selected filters.</p>
+    }
+  </section>
+
+  <section class="patient-section" aria-labelledby="patient-tracker-title">
+    <div class="section-head">
+      <div><p class="eyebrow">Operational worklist</p><h2 id="patient-tracker-title">Patient Tracker</h2></div>
+      <form class="patient-search" (submit)="$event.preventDefault(); applySearch()">
+        <label><span class="sr-only">Search patients</span><input type="search" placeholder="Search patient" [ngModel]="search()" (ngModelChange)="search.set($event)" name="patientSearch" /></label>
+        <button type="submit" class="secondary-button">Search</button>
+      </form>
+    </div>
+
+    <div class="patient-tabs" role="tablist" aria-label="Patient categories">
+      @for (category of categories; track category.key) {
+        <button type="button" role="tab" [class.active]="selectedCategory() === category.key" [attr.aria-selected]="selectedCategory() === category.key" (click)="selectCategory(category.key)">
+          <span>{{ category.label }}</span><strong>{{ categoryCount(category.key) }}</strong>
+        </button>
+      }
+    </div>
+
+    @if (tableError()) {
+      <p class="state-panel error" role="alert">{{ tableError() }}</p>
+    } @else if (tableLoading()) {
+      <p class="state-panel" role="status">Loading patients...</p>
+    } @else if (patientPage(); as pageData) {
+      @if (pageData.patients.length) {
+        <div class="ui-table-shell">
+          <table class="ui-table tracker-table">
+            <thead>
+              <tr>
+                <th scope="col">Patient</th>
+                <th scope="col">Condition</th>
+                <th scope="col">Discharge</th>
+                @switch (selectedCategory()) {
+                  @case ('NEEDS_ATTENTION') { <th scope="col">Emergency</th><th scope="col">Assignment</th> }
+                  @case ('APPOINTMENT_ATTENTION') { <th scope="col">Workflow</th><th scope="col">Appointment issue</th> }
+                  @case ('REGULAR_APPOINTMENTS') { <th scope="col">Appointment</th><th scope="col">Status</th> }
+                  @case ('COMPLETE') { <th scope="col">Episode</th><th scope="col">Completed</th> }
+                  @default { <th scope="col">Current workflow</th><th scope="col">Next activity</th> }
+                }
+                <th scope="col"><span class="sr-only">Action</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (patient of pageData.patients; track patient.campaign_id + '-' + patient.episode_id) {
+                <tr>
+                  <td data-label="Patient"><strong>{{ patient.patient_name }}</strong><small>{{ patient.campaign_name }}</small></td>
+                  <td data-label="Condition">{{ patient.condition || 'Not available' }}</td>
+                  <td data-label="Discharge">{{ patient.discharge_date ? (patient.discharge_date | date:'mediumDate') : 'Not available' }}</td>
+                  @switch (selectedCategory()) {
+                    @case ('NEEDS_ATTENTION') {
+                      <td data-label="Emergency"><span class="status-pill" [ngClass]="statusClass(patient.escalation?.type)">{{ label(patient.escalation?.type) }}</span><small>{{ patient.escalation?.reason }}</small></td>
+                      <td data-label="Assignment">{{ patient.escalation?.assigned_staff || 'Awaiting assignment' }}<small><span class="status-pill" [ngClass]="statusClass(patient.escalation?.status)">{{ label(patient.escalation?.status) }}</span></small></td>
+                    }
+                    @case ('APPOINTMENT_ATTENTION') {
+                      <td data-label="Workflow">{{ patient.current_workflow || 'Not available' }}<small>Session {{ patient.checkin_session_id || 'not created' }}</small></td>
+                      <td data-label="Appointment issue"><span class="status-pill" [ngClass]="statusClass(patient.appointment_status)">{{ label(patient.appointment_status) }}</span></td>
+                    }
+                    @case ('REGULAR_APPOINTMENTS') {
+                      <td data-label="Appointment">{{ patient.appointment?.appointment_datetime | date:'medium' }}</td>
+                      <td data-label="Status"><span class="status-pill" [ngClass]="statusClass(patient.appointment?.status)">{{ label(patient.appointment?.status) }}</span></td>
+                    }
+                    @case ('COMPLETE') {
+                      <td data-label="Episode"><span class="status-pill" [ngClass]="statusClass(patient.episode_status)">{{ label(patient.episode_status) }}</span></td>
+                      <td data-label="Completed">{{ patient.completed_at ? (patient.completed_at | date:'mediumDate') : 'Not recorded' }}</td>
+                    }
+                    @default {
+                      <td data-label="Current workflow">{{ patient.current_workflow || 'Waiting for next workflow' }}<small>Check-in <span class="status-pill" [ngClass]="statusClass(patient.checkin_status)">{{ label(patient.checkin_status) }}</span></small></td>
+                      <td data-label="Next activity">{{ patient.next_due_at ? (patient.next_due_at | date:'medium') : 'No activity due' }}</td>
+                    }
+                  }
+                  <td><button type="button" class="row-action" (click)="openPatient(patient)">Open details</button></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <app-pagination [start]="paginationStart()" [end]="paginationEnd()" [total]="pageData.total" [previousDisabled]="page() === 1" [nextDisabled]="paginationEnd() >= pageData.total" [disabled]="tableLoading()" ariaLabel="TCM patients pages" (previous)="previousPage()" (next)="nextPage()" />
+      } @else {
+        <p class="empty-state">No patients are currently in {{ label(selectedCategory()) }}.</p>
+      }
+    }
+  </section>
+</section>
+
+@if (selectedPatient()) {
+  <app-tcm-patient-detail-drawer [detail]="detail()" [loading]="detailLoading()" [error]="detailError()" (closed)="closePatient()" />
+}

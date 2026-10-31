@@ -1,0 +1,81 @@
+<div class="drawer-backdrop" (click)="closed.emit()"></div>
+<aside class="detail-drawer" aria-label="TCM patient details" aria-live="polite">
+  <header>
+    <div>
+      <p>TCM episode</p>
+      <h2>{{ detail?.patient_name || 'Patient details' }}</h2>
+    </div>
+    <button type="button" class="icon-button" aria-label="Close patient details" title="Close" (click)="closed.emit()">&times;</button>
+  </header>
+
+  @if (loading) {
+    <p class="drawer-state">Loading patient details...</p>
+  } @else if (error) {
+    <p class="drawer-state error" role="alert">{{ error }}</p>
+  } @else if (detail; as patient) {
+    <section>
+      <h3>Patient overview</h3>
+      <dl class="detail-grid">
+        <div><dt>Patient ID</dt><dd>{{ patient.patient_id }}</dd></div>
+        <div><dt>Condition</dt><dd>{{ patient.condition || 'Not available' }}</dd></div>
+        <div><dt>Discharge date</dt><dd>{{ patient.discharge_date ? (patient.discharge_date | date:'mediumDate') : 'Not available' }}</dd></div>
+        <div><dt>Campaign</dt><dd>{{ patient.campaign_name }}</dd></div>
+        <div><dt>Episode</dt><dd>{{ label(patient.episode_status) }}</dd></div>
+        <div><dt>Operational status</dt><dd>{{ label(patient.category) }}</dd></div>
+      </dl>
+    </section>
+
+    <section>
+      <h3>Workflow history</h3>
+      <ol class="timeline">
+        @for (workflow of patient.workflows; track workflow.workflow_id) {
+          <li>
+            <div><strong>{{ workflow.workflow_name }}</strong><span>{{ workflow.complete ? 'Complete' : workflow.eligible ? 'In progress' : 'Upcoming' }}</span></div>
+            <p>Check-in: {{ label(workflow.checkin_status) }} · Due {{ workflow.due_at | date:'medium' }}</p>
+            @if (workflow.appointment_required) {
+              <p>Appointment: {{ label(workflow.appointment?.status || 'NOT_YET_BOOKED') }}</p>
+            }
+          </li>
+        }
+      </ol>
+    </section>
+
+    @if (patient.appointments.length) {
+      <section>
+        <h3>Appointments</h3>
+        @for (appointment of patient.appointments; track appointment.appointment_id) {
+          <div class="detail-row">
+            <strong>{{ label(appointment.appointment_type) }}</strong>
+            <span>{{ appointment.appointment_datetime | date:'medium' }} · {{ label(appointment.status) }}</span>
+          </div>
+        }
+      </section>
+    }
+
+    @if (patient.escalations.length) {
+      <section>
+        <h3>Escalations</h3>
+        @for (escalation of patient.escalations; track escalation.checkin_escalation_id) {
+          <div class="escalation-detail">
+            <div><strong>{{ label(escalation.type) }}</strong><span>{{ label(escalation.status) }}</span></div>
+            <p>{{ escalation.reason }}</p>
+            <p>Assigned staff: {{ escalation.assigned_staff || 'Awaiting assignment' }}</p>
+            @if (escalation.action_taken) { <p>Action: {{ escalation.action_taken }}</p> }
+            @if (escalation.resolution_notes) { <p>Resolution: {{ escalation.resolution_notes }}</p> }
+          </div>
+        }
+      </section>
+    }
+
+    @if (patient.recent_activity.length) {
+      <section>
+        <h3>Recent activity</h3>
+        <ul class="activity-list">
+          @for (activity of patient.recent_activity; track $index) {
+            <li><span>{{ label(activity.type) }} · {{ activity.label }}</span><time>{{ activity.timestamp | date:'short' }}</time></li>
+          }
+        </ul>
+      </section>
+    }
+  }
+</aside>

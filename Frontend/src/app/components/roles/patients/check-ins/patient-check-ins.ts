@@ -111,7 +111,7 @@ export class PatientCheckIns implements OnInit {
   canBookAppointment(session: CheckinSession): boolean {
     return session.appointment_required
       && session.appointment_id === null
-      && ['PENDING', 'IN_PROGRESS'].includes(session.session_status)
+      && session.session_status === 'COMPLETED'
       && !this.isExpired(session);
   }
 

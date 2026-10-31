@@ -36,6 +36,7 @@ class AdminCheckinTemplateServiceTests(unittest.TestCase):
             description="Initial outreach check-in",
             version=1,
             status=status,
+            appointment_required=False,
             created_by_user_id=4,
             created_at=None,
             updated_at=None,

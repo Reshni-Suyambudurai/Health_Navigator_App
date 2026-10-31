@@ -9,7 +9,6 @@ import { PatientCareTeam } from './components/roles/patients/care-team/care-team
 import { PatientTalkToPerson } from './components/roles/patients/talk-to-person/talk-to-person';
 import { PatientMedicines } from './components/roles/patients/medicines/patient-medicines';
 import { PatientCheckIns } from './components/roles/patients/check-ins/patient-check-ins';
-import { TransitionalCareNurseDashbaord } from './components/roles/transitional-care-nurse/dashboard/transitional_care_nurse_dashbaord';
 import { EscalationQueue } from './components/roles/transitional-care-nurse/escalation-queue/escalation-queue';
 import { MyPatient } from './components/roles/transitional-care-nurse/my-patient/my-patient';
 import { MyPatientDetails } from './components/roles/transitional-care-nurse/my-patient-details/my-patient-details';
@@ -109,6 +108,13 @@ export const routes: Routes = [
         data: { careManagerSection: 'program_performance' },
       },
       { path: 'care-manager/outreach-events', component: CareManagerOutreachEvents },
+      {
+        path: 'care-manager/tcm-tracker',
+        loadComponent: () =>
+          import('./shared/components/tcm-tracker/tcm-tracker').then(
+            (module) => module.TcmTracker,
+          ),
+      },
       { path: 'population-health-manager/dashboard', component: PopulationHealthManagerDashbaord },
       { path: 'population-health-manager/outreach', component: OutreachTracker },
       { path: 'patient/dashboard', component: PatientDashbaord },
@@ -118,7 +124,6 @@ export const routes: Routes = [
       { path: 'patient/medicines', component: PatientMedicines },
       { path: 'patient/check-ins', component: PatientCheckIns },
       { path: 'patient/check-ins/:sessionId', component: PatientCheckIns },
-      { path: 'transitional-care-nurse/dashboard', component: TransitionalCareNurseDashbaord },
       {
         path: 'transitional-care-nurse/dashboard',
         loadComponent: () =>
@@ -132,9 +137,14 @@ export const routes: Routes = [
       { path: 'transitional-care-nurse/my-patient/:patientId/details', component: MyPatientDetails },
       { path: 'transitional-care-nurse/appointments', component: TransitionalCareNurseAppointments },
       { path: 'transitional-care-nurse/appointments/:appointmentId/details', component: AppointmentDetails },
-      { path: 'pharmacist/dashboard', component: PharmacistDashbaord },
-      { path: 'pharmacist/check-ins', component: StaffCheckIns },
-      { path: 'social-worker/dashboard', component: SocialWorkerDashbaord },
+      {
+        path: 'transitional-care-nurse/tcm-tracker',
+        loadComponent: () =>
+          import('./shared/components/tcm-tracker/tcm-tracker').then(
+            (module) => module.TcmTracker,
+          ),
+      },
+     
       { path: 'social-worker/check-ins', component: StaffCheckIns },
       {
         path: 'pharmacist/dashboard',

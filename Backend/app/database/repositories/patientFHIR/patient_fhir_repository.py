@@ -3,7 +3,7 @@ Repository for read-only PatientFHIR access from Monster database.
 """
 
 from typing import Any, Dict, List, Optional
-from sqlalchemy import text
+from sqlalchemy import bindparam, text
 from sqlalchemy.orm import Session
 
 
@@ -153,6 +153,35 @@ class PatientFHIRRepository:
             """,
             {"patient_id": patient_id},
         )
+
+    def get_primary_active_conditions(self, fhir_patient_ids: list[str]) -> dict[str, str]:
+        """Return the newest active condition name for each requested FHIR patient."""
+        if not fhir_patient_ids:
+            return {}
+        statement = text(
+            """
+            SELECT DISTINCT ON (p.fhir_patient_id)
+                p.fhir_patient_id,
+                c.condition_name
+            FROM patients p
+            JOIN conditions c ON c.patient_id = p.id
+            WHERE p.fhir_patient_id IN :fhir_patient_ids
+              AND LOWER(COALESCE(c.clinical_status, '')) = 'active'
+            ORDER BY
+                p.fhir_patient_id,
+                c.recorded_date DESC NULLS LAST,
+                c.created_at DESC
+            """
+        ).bindparams(bindparam("fhir_patient_ids", expanding=True))
+        rows = self.db.execute(
+            statement,
+            {"fhir_patient_ids": fhir_patient_ids},
+        ).mappings().all()
+        return {
+            str(row["fhir_patient_id"]): str(row["condition_name"])
+            for row in rows
+            if row["condition_name"]
+        }
 
     def get_condition_by_id(self, condition_id: str) -> Optional[Dict[str, Any]]:
         return self._fetch_one(

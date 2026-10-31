@@ -85,6 +85,19 @@ def get_monster_db():
         db.close()
 
 
+def get_optional_monster_db():
+    """Yield a read-only Monster session when configured, otherwise None."""
+    if MonsterSessionLocal is None:
+        yield None
+        return
+
+    db = MonsterSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
 def check_database_connection() -> bool:
     """
     Check if database connection is working

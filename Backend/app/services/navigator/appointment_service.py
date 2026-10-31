@@ -246,9 +246,9 @@ class AppointmentService:
                         "CHECKIN_SESSION_ACCESS_REQUIRED",
                     )
                 template = self.outreach.get_template(session.checkin_template_id)
-                if session.session_status not in (CheckinSessionStatus.PENDING, CheckinSessionStatus.IN_PROGRESS):
+                if session.session_status != CheckinSessionStatus.COMPLETED:
                     raise ValidationException(
-                        "The check-in must be pending or in progress before booking an appointment.",
+                        "The check-in must be completed before booking an appointment.",
                         "CHECKIN_NOT_BOOKABLE",
                     )
                 if not template or not template.appointment_required:
