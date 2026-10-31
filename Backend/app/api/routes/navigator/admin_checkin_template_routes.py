@@ -124,9 +124,9 @@ def create_version(template_id: int, user_id: int, db: Session = Depends(get_db)
 
 
 @review_router.get("", response_model=SuccessResponse)
-def list_pending_reviews(user_id: int, db: Session = Depends(get_db)):
-    data = AdminCheckinTemplateService(db).list_pending_reviews(user_id)
-    return SuccessResponse(message="Pending template reviews retrieved successfully", data=data)
+def list_reviews(user_id: int, review_status: str = "PENDING", organization_id: int | None = None, db: Session = Depends(get_db)):
+    data = AdminCheckinTemplateService(db).list_reviews(user_id, review_status, organization_id)
+    return SuccessResponse(message="Template reviews retrieved successfully", data=data)
 
 
 @review_router.get("/{review_id}", response_model=SuccessResponse)

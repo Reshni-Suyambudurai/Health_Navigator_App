@@ -1,26 +1,178 @@
 <section class="role-page">
   <div class="page-head">
-    <h1>Clinical governance</h1>
-    <button type="button">Run safety suite</button>
+    <div>
+      <p class="eyebrow">Clinical governance</p>
+      <h1>Governance overview</h1>
+      <p>Monitor conversation safety signals, escalation handling, and rule performance.</p>
+    </div>
+    <button
+      type="button"
+      class="ui-refresh-button"
+      aria-label="Refresh governance analytics"
+      title="Refresh"
+      [disabled]="loading()"
+      (click)="loadAnalytics()"
+    >
+      &#8635;
+    </button>
   </div>
 
-  <div class="kpis">
-    <article>
-      <p>Red-flag escalation recall</p>
-      <h2>100%</h2>
-    </article>
-    <article>
-      <p>Missed live emergencies</p>
-      <h2>0</h2>
-    </article>
-    <article>
-      <p>Guard-grounding accuracy</p>
-      <h2>100%</h2>
-    </article>
-  </div>
+  <section class="filter-bar" aria-label="Dashboard date range">
+    <div class="period-control" role="group" aria-label="Date period">
+      <button type="button" [class.active]="period() === 'today'" (click)="selectPeriod('today')">Today</button>
+      <button type="button" [class.active]="period() === 'month'" (click)="selectPeriod('month')">This month</button>
+      <button type="button" [class.active]="period() === 'custom'" (click)="selectPeriod('custom')">Custom</button>
+    </div>
+    @if (period() === 'custom') {
+      <div class="custom-range">
+        <label>
+          <span>Start date</span>
+          <input type="date" [ngModel]="customStartDate()" (ngModelChange)="customStartDate.set($event)" />
+        </label>
+        <label>
+          <span>End date</span>
+          <input type="date" [ngModel]="customEndDate()" (ngModelChange)="customEndDate.set($event)" />
+        </label>
+        <button type="button" [disabled]="loading()" (click)="applyCustomRange()">Apply</button>
+      </div>
+    }
+    @if (periodLabel()) {
+      <span class="range-label">{{ periodLabel() }}</span>
+    }
+  </section>
 
-  <div class="panel">
-    <h3>Governance overview</h3>
-    <p>Clinical safety rules, approvals, and audit status are monitored from this view.</p>
-  </div>
+  @if (loading() && !analytics()) {
+    <div class="state-panel" role="status">Loading governance analytics...</div>
+  } @else if (error() && !analytics()) {
+    <div class="state-panel error" role="alert">
+      <p>{{ error() }}</p>
+      <button type="button" (click)="loadAnalytics()">Try again</button>
+    </div>
+  } @else if (analytics(); as data) {
+    @if (error()) {
+      <div class="inline-error" role="alert">{{ error() }}</div>
+    }
+
+    <div class="kpis" aria-label="Governance key performance indicators">
+      @for (metric of data.kpis; track metric.label) {
+        <article [attr.data-tone]="metric.tone">
+          <p>{{ metric.label }}</p>
+          <h2>{{ metric.value }}</h2>
+        </article>
+      }
+    </div>
+
+    <section class="panel summary-panel" aria-labelledby="escalation-summary-title">
+      <div class="panel-head">
+        <div>
+          <p class="section-kicker">Current period</p>
+          <h2 id="escalation-summary-title">Escalation summary</h2>
+        </div>
+      </div>
+      <div class="summary-grid">
+        @for (metric of data.escalation_summary.metrics; track metric.label) {
+          <div [attr.data-tone]="metric.tone">
+            <strong>{{ metric.value }}</strong>
+            <span>{{ metric.label }}</span>
+          </div>
+        }
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="red-flags-title">
+      <div class="panel-head">
+        <div>
+          <p class="section-kicker">Conversation safety</p>
+          <h2 id="red-flags-title">Red-flag outcomes</h2>
+        </div>
+        <span>{{ data.red_flag_outcomes.length }} hits</span>
+      </div>
+      @if (data.red_flag_outcomes.length) {
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Triggered</th><th>Rule</th><th>Patient message</th><th>Urgency</th><th>Action</th><th>Instruction sent</th><th>Care team notified</th><th>Event status</th></tr></thead>
+            <tbody>
+              @for (row of pageRows('red_flags', data.red_flag_outcomes); track row.triggered_at + row.rule) {
+                <tr>
+                  <td>{{ displayValue(row.triggered_at) }}</td><td>{{ row.rule }}</td><td class="message-cell">{{ row.patient_message }}</td>
+                  <td><span class="status" [attr.data-status]="row.urgency">{{ displayValue(row.urgency) }}</span></td>
+                  <td>{{ displayValue(row.action_taken) }}</td><td>{{ row.emergency_instruction_sent }}</td><td>{{ row.care_team_notified }}</td><td>{{ displayValue(row.event_status) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <app-pagination [start]="pageStart('red_flags', data.red_flag_outcomes.length)" [end]="pageEnd('red_flags', data.red_flag_outcomes.length)" [total]="data.red_flag_outcomes.length" [previousDisabled]="page('red_flags') === 1" [nextDisabled]="pageEnd('red_flags', data.red_flag_outcomes.length) === data.red_flag_outcomes.length" ariaLabel="Red-flag outcomes pages" (previous)="previousPage('red_flags')" (next)="nextPage('red_flags', data.red_flag_outcomes.length)" />
+      } @else {
+        <p class="empty-state">No guardrail hits were detected in this period.</p>
+      }
+    </section>
+
+    <section class="panel" aria-labelledby="documentation-title">
+      <div class="panel-head">
+        <div><p class="section-kicker">Follow-through</p><h2 id="documentation-title">Escalation documentation</h2></div>
+        <span>{{ data.documentation.length }} requiring attention</span>
+      </div>
+      @if (data.documentation.length) {
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>Patient</th><th>Type</th><th>Priority</th><th>Status</th><th>Staff actions</th><th>Documentation issues</th><th>Created</th></tr></thead>
+            <tbody>
+              @for (row of pageRows('documentation', data.documentation); track row.escalation_id) {
+                <tr><td>{{ row.escalation_id }}</td><td>{{ row.patient }}</td><td>{{ displayValue(row.type) }}</td><td>{{ displayValue(row.priority) }}</td><td>{{ displayValue(row.status) }}</td><td>{{ row.action_count }}</td><td class="issue-cell">{{ row.documentation_issues }}</td><td>{{ displayValue(row.created_at) }}</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <app-pagination [start]="pageStart('documentation', data.documentation.length)" [end]="pageEnd('documentation', data.documentation.length)" [total]="data.documentation.length" [previousDisabled]="page('documentation') === 1" [nextDisabled]="pageEnd('documentation', data.documentation.length) === data.documentation.length" ariaLabel="Documentation pages" (previous)="previousPage('documentation')" (next)="nextPage('documentation', data.documentation.length)" />
+      } @else {
+        <p class="empty-state">No escalation documentation gaps were found.</p>
+      }
+    </section>
+
+    <section class="panel" aria-labelledby="rules-title">
+      <div class="panel-head"><div><p class="section-kicker">Guardrails</p><h2 id="rules-title">Rule performance</h2></div><span>{{ data.rule_performance.length }} rules</span></div>
+      @if (data.rule_performance.length) {
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Rule</th><th>Category</th><th>Urgency</th><th>Action</th><th>Status</th><th>Triggers</th><th>Last triggered</th></tr></thead>
+            <tbody>
+              @for (row of pageRows('rules', data.rule_performance); track row.rule) {
+                <tr><td>{{ row.rule }}</td><td>{{ displayValue(row.category) }}</td><td>{{ displayValue(row.urgency) }}</td><td>{{ displayValue(row.action) }}</td><td>{{ displayValue(row.status) }}</td><td>{{ row.trigger_count }}</td><td>{{ displayValue(row.last_triggered_at) }}</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <app-pagination [start]="pageStart('rules', data.rule_performance.length)" [end]="pageEnd('rules', data.rule_performance.length)" [total]="data.rule_performance.length" [previousDisabled]="page('rules') === 1" [nextDisabled]="pageEnd('rules', data.rule_performance.length) === data.rule_performance.length" ariaLabel="Rule performance pages" (previous)="previousPage('rules')" (next)="nextPage('rules', data.rule_performance.length)" />
+      } @else {
+        <p class="empty-state">No clinical guardrail rules are configured.</p>
+      }
+    </section>
+
+    <section class="panel" aria-labelledby="audit-title">
+      <div class="panel-head"><div><p class="section-kicker">Traceability</p><h2 id="audit-title">Audit history</h2></div><span>{{ data.audit_history.length }} events</span></div>
+      @if (data.audit_history.length) {
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Time</th><th>Action</th><th>Resource</th><th>Resource ID</th><th>Actor</th><th>Details</th></tr></thead>
+            <tbody>
+              @for (row of pageRows('audit', data.audit_history); track row.created_at + row.action) {
+                <tr><td>{{ displayValue(row.created_at) }}</td><td>{{ displayValue(row.action) }}</td><td>{{ displayValue(row.resource_type) }}</td><td>{{ displayValue(row.resource_id) }}</td><td>{{ row.actor }}</td><td class="message-cell">{{ row.details }}</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <app-pagination [start]="pageStart('audit', data.audit_history.length)" [end]="pageEnd('audit', data.audit_history.length)" [total]="data.audit_history.length" [previousDisabled]="page('audit') === 1" [nextDisabled]="pageEnd('audit', data.audit_history.length) === data.audit_history.length" ariaLabel="Audit history pages" (previous)="previousPage('audit')" (next)="nextPage('audit', data.audit_history.length)" />
+      } @else {
+        <p class="empty-state">No governance-related audit events were recorded in this period.</p>
+      }
+    </section>
+
+    <aside class="accuracy-note" aria-labelledby="accuracy-title">
+      <h2 id="accuracy-title">Detection accuracy</h2>
+      <p>{{ data.detection_accuracy.message }}</p>
+    </aside>
+
+    <p class="last-updated">Last updated {{ data.generated_at | date: 'medium' }}</p>
+  }
 </section>

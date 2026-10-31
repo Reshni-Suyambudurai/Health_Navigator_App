@@ -117,8 +117,12 @@ export class ClinicalCheckinTemplateReviewApi {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiBaseUrl}/clinical-governance/checkin-template-reviews`;
 
-  list(userId: number): Observable<CheckinTemplateReviewListResponse> {
-    return this.http.get<CheckinTemplateReviewListResponse>(this.baseUrl, { params: this.actor(userId) });
+  list(userId: number, reviewStatus = 'PENDING', organizationId?: number | null): Observable<CheckinTemplateReviewListResponse> {
+    let params = this.actor(userId).set('review_status', reviewStatus);
+    if (organizationId) params = params.set('organization_id', organizationId);
+    return this.http.get<CheckinTemplateReviewListResponse>(this.baseUrl, {
+      params,
+    });
   }
 
   get(userId: number, reviewId: number): Observable<CheckinTemplateReviewResponse> {

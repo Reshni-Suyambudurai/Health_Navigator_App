@@ -1,0 +1,7 @@
+import { ApiSuccessResponse } from './user';
+export interface SafetyEvaluationOrganization { organization_id:number; organization_name:string; }
+export interface SafetyEvidence { guardrail_hit_id:number; rule_id:number; urgency:string; action_taken:string; hit_reason:string|null; created_at:string; emergency_event_id:number|null; event_status:string|null; emergency_instruction_sent:boolean|null; notified_care_team:boolean|null; escalation_id:number|null; }
+export interface SafetyDecision { audit_id:number; user_id:number; reviewer_name:string|null; created_at:string; details:{organization_id:number;result_key:string;decision:string;notes:string;evidence:{status:string;observed:string;expected:string;evidence_ids:number[]}}; }
+export interface SafetyEvaluationResult { result_key:string; category:string; title:string; status:'PASS'|'FAIL'; expected:string; observed:string; failure_count:number; issue_status:string; evidence:SafetyEvidence[]; evidence_ids:number[]; latest_decision:SafetyDecision|null; }
+export interface SafetyEvaluationOverview { organizations:SafetyEvaluationOrganization[]; selected_organization_id:number; run:{run_key:string;status:string;generated_at:string;source_window:string;total_checks:number;passed:number;failed:number}; results:SafetyEvaluationResult[]; decisions:SafetyDecision[]; }
+export type SafetyEvaluationResponse=ApiSuccessResponse<SafetyEvaluationOverview>;

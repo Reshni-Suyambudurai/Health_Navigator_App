@@ -47,6 +47,7 @@ class Settings(BaseSettings):
 
     # CORS Configuration
     CORS_ALLOWED_ORIGINS: list[str] = ["http://localhost:4200", "http://127.0.0.1:4200"]
+    CORS_ALLOWED_ORIGIN_REGEX: Optional[str] = r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$"
     CORS_ALLOW_CREDENTIALS: bool = True
     CORS_ALLOW_METHODS: list[str] = ["*"]
     CORS_ALLOW_HEADERS: list[str] = ["*"]

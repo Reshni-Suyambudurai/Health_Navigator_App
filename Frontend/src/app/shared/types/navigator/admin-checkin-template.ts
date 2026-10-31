@@ -80,10 +80,17 @@ export interface CheckinTemplateReview {
   submission_note: string | null;
   review_notes: string | null;
   submitted_by_user_id: number;
+  submitted_by_name?: string | null;
   reviewed_by_user_id: number | null;
+  reviewed_by_name?: string | null;
   submitted_at: string | null;
   reviewed_at: string | null;
   template: AdminCheckinTemplate;
+}
+
+export interface ReviewOrganizationOption {
+  organization_id: number;
+  organization_name: string;
 }
 
 export type AdminCheckinTemplateListResponse = ApiSuccessResponse<{ templates: AdminCheckinTemplate[] }>;
@@ -91,4 +98,8 @@ export type AdminCheckinTemplateResponse = ApiSuccessResponse<AdminCheckinTempla
 export type AdminCheckinQuestionResponse = ApiSuccessResponse<AdminCheckinQuestion>;
 export type AdminCheckinQuestionListResponse = ApiSuccessResponse<{ questions: AdminCheckinQuestion[] }>;
 export type CheckinTemplateReviewResponse = ApiSuccessResponse<CheckinTemplateReview>;
-export type CheckinTemplateReviewListResponse = ApiSuccessResponse<{ reviews: CheckinTemplateReview[] }>;
+export type CheckinTemplateReviewListResponse = ApiSuccessResponse<{
+  reviews: CheckinTemplateReview[];
+  organizations: ReviewOrganizationOption[];
+  selected_organization_id: number;
+}>;

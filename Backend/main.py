@@ -24,8 +24,13 @@ from app.api.routes.navigator import outreach_event_routes
 from app.api.routes.navigator import admin_checkin_template_routes
 from app.api.routes import notification_routes
 from app.api.routes.navigator import patient_dashboard_routes
+from app.api.routes.navigator import care_manager_dashboard_routes
+from app.api.routes.navigator import staff_dashboard_routes
 from app.api.routes.navigator import conversation_routes
 from app.api.routes.navigator import escalation_routes
+from app.api.routes.navigator import safety_rules_routes
+from app.api.routes.navigator import safety_evaluation_routes
+from app.api.routes.navigator import clinical_governance_dashboard_routes
 from app.api.routes.patientFHIR import patient_fhir_routes
 from app.core.exception_handlers import register_exception_handlers  # Import exception handlers
 from app.services.navigator.automatic_outreach_scheduler import AutomaticOutreachScheduler
@@ -85,6 +90,7 @@ register_exception_handlers(app)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ALLOWED_ORIGINS,
+    allow_origin_regex=settings.CORS_ALLOWED_ORIGIN_REGEX,
     allow_credentials=settings.CORS_ALLOW_CREDENTIALS,
     allow_methods=settings.CORS_ALLOW_METHODS,
     allow_headers=settings.CORS_ALLOW_HEADERS,
@@ -107,8 +113,13 @@ app.include_router(admin_checkin_template_routes.admin_router, prefix="/api/v1")
 app.include_router(admin_checkin_template_routes.review_router, prefix="/api/v1")
 app.include_router(notification_routes.router, prefix="/api/v1")
 app.include_router(patient_dashboard_routes.router, prefix="/api/v1")
+app.include_router(care_manager_dashboard_routes.router, prefix="/api/v1")
+app.include_router(staff_dashboard_routes.router, prefix="/api/v1")
 app.include_router(conversation_routes.router, prefix="/api/v1")
 app.include_router(escalation_routes.router, prefix="/api/v1")
+app.include_router(safety_rules_routes.router, prefix="/api/v1")
+app.include_router(safety_evaluation_routes.router, prefix="/api/v1")
+app.include_router(clinical_governance_dashboard_routes.router, prefix="/api/v1")
 app.include_router(patient_fhir_routes.router, prefix="/api/v1")
 
 
