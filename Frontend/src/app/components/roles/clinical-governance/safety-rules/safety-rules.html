@@ -1,11 +1,332 @@
-<section class="rules-page">
-  <header class="page-head"><div><h1>Safety Rules &amp; Guardrails</h1><p>Manage deterministic controls for unsafe or clinically inappropriate AI behavior.</p></div></header>
-  <p class="state" *ngIf="loading()">Loading safety rules...</p><p class="state error" *ngIf="!loading() && error()">{{ error() }}</p>
-  <ng-container *ngIf="overview() as data">
-    <section class="kpi-grid"><article><ng-icon name="heroShieldCheck"></ng-icon><div><span>Active rules</span><strong>{{ data.summary.active_rules }}</strong></div></article><article><ng-icon name="heroDocumentDuplicate"></ng-icon><div><span>Draft changes</span><strong>{{ data.summary.draft_rules }}</strong></div></article><article><ng-icon name="heroExclamationTriangle"></ng-icon><div><span>Emergency rules</span><strong>{{ data.summary.emergency_rules }}</strong></div></article><article><ng-icon name="heroBolt"></ng-icon><div><span>Guardrail hits</span><strong>{{ data.summary.hits_30_days }}</strong></div></article></section>
-    <section class="panel combined-rules-panel">
-      <div class="section-head"><div><h2>Guardrails and safety rules</h2><p>Combined view of the guardrail configuration and its deterministic rule.</p></div><span>{{ filteredRules.length }} rules</span></div>
-      <div class="table-scroll"><table class="combined-rules-table"><thead><tr><th>Guardrail</th><th>Rule</th><th>Category</th><th>Urgency</th><th>Action</th><th>Status</th><th>Updated</th><th><span class="sr-only">Actions</span></th></tr></thead><tbody><ng-container *ngFor="let rule of filteredRules"><tr [class.selected-row]="rule.rule_id === selectedRuleId()" (click)="selectRule(rule)"><td><strong>{{ rule.guardrail_name }}</strong><small>{{ rule.guardrail_markdown }}</small></td><td><strong>{{ rule.rule_name }}</strong><small>GR-{{ rule.rule_id }}</small></td><td>{{ label(rule.category) }}</td><td>{{ label(rule.urgency) }}</td><td>{{ label(rule.action_type) }}</td><td><span class="status-pill" [class.draft]="rule.status === 'DRAFT'">{{ label(rule.status) }}</span></td><td>{{ formatDate(rule.updated_at) }}</td><td><button type="button" class="table-action" (click)="$event.stopPropagation(); startEdit(rule)">Edit</button></td></tr><tr class="inline-edit-row" *ngIf="editingRuleId() === rule.rule_id"><td colspan="8"><div class="inline-edit-panel"><div class="section-head"><div><h2>Edit guardrail and rule</h2><p>Changes are saved to both related records.</p></div><button type="button" class="secondary" (click)="cancelEdit()">Cancel</button></div><div class="edit-grid"><label><span>Guardrail name</span><input [(ngModel)]="editForm.guardrail_name" required /></label><label><span>Rule name</span><input [(ngModel)]="editForm.rule_name" required /></label><label><span>Category</span><select [(ngModel)]="editForm.category"><option *ngFor="let value of categoryOptions" [value]="value">{{ label(value) }}</option></select></label><label><span>Urgency</span><select [(ngModel)]="editForm.urgency"><option *ngFor="let value of urgencyOptions" [value]="value">{{ label(value) }}</option></select></label><label><span>Action</span><select [(ngModel)]="editForm.action_type"><option *ngFor="let value of actionOptions" [value]="value">{{ label(value) }}</option></select></label><label><span>Status</span><select [(ngModel)]="editForm.status"><option *ngFor="let value of statusOptions" [value]="value">{{ label(value) }}</option></select></label><label><span>Target queue</span><select [(ngModel)]="editForm.target_queue_type"><option [ngValue]="null">Not configured</option><option *ngFor="let value of queueOptions" [ngValue]="value">{{ label(value) }}</option></select></label><label><span>Escalation type</span><select [(ngModel)]="editForm.escalation_type"><option [ngValue]="null">Not configured</option><option *ngFor="let value of escalationTypeOptions" [ngValue]="value">{{ label(value) }}</option></select></label><label><span>Escalation priority</span><select [(ngModel)]="editForm.escalation_priority"><option [ngValue]="null">Not configured</option><option *ngFor="let value of escalationPriorityOptions" [ngValue]="value">{{ label(value) }}</option></select></label><label class="wide"><span>Guardrail description</span><textarea rows="3" [(ngModel)]="editForm.guardrail_markdown" required></textarea></label><label class="wide"><span>Patient response template</span><textarea rows="3" [(ngModel)]="editForm.patient_response_template"></textarea></label></div><div class="edit-actions"><button type="button" class="secondary" (click)="cancelEdit()">Cancel</button><button type="button" (click)="saveEdit()" [disabled]="saving()">{{ saving() ? 'Saving...' : 'Save changes' }}</button></div></div></td></tr></ng-container></tbody></table><p class="empty-state" *ngIf="filteredRules.length === 0">No rules match these filters.</p></div>
+<section class="governance-page">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Clinical Governance</p>
+      <h1>Safety Rules &amp; Guardrails</h1>
+      <p>Review submitted rules and control the globally active clinical safety set.</p>
+    </div>
+    <app-refresh-button [disabled]="loading()" (refresh)="loadRules()" />
+  </header>
+  @if (loading() && !overview()) {
+    <p class="state">Loading clinical guardrails...</p>
+  }
+  @if (error()) {
+    <p class="state error" role="alert">{{ error() }}</p>
+  }
+
+  @if (overview(); as data) {
+    <section class="metrics">
+      <article>
+        <ng-icon name="heroShieldCheck" /><span>Active</span
+        ><strong>{{ data.summary.active_rules }}</strong>
+      </article>
+      <article>
+        <ng-icon name="heroCheckCircle" /><span>Pending review</span
+        ><strong>{{ data.summary.pending_rules }}</strong>
+      </article>
+      <article>
+        <ng-icon name="heroNoSymbol" /><span>Inactive</span
+        ><strong>{{ data.summary.inactive_rules }}</strong>
+      </article>
+      <article>
+        <ng-icon name="heroBeaker" /><span>Guardrail hits</span
+        ><strong>{{ data.summary.hits_30_days }}</strong>
+      </article>
     </section>
-  </ng-container>
+    <nav class="tabs" aria-label="Guardrail views">
+      <button
+        type="button"
+        [class.active]="activeView() === 'PENDING'"
+        (click)="switchView('PENDING')"
+      >
+        Pending Approval <span>{{ pendingRules.length }}</span></button
+      ><button
+        type="button"
+        [class.active]="activeView() === 'EXISTING'"
+        (click)="switchView('EXISTING')"
+      >
+        Existing Guardrails <span>{{ existingRules.length }}</span>
+      </button>
+    </nav>
+    <section class="toolbar">
+      <input
+        type="search"
+        aria-label="Search rules"
+        placeholder="Search guardrail, rule, category, or submitter"
+        [ngModel]="searchTerm()"
+        (ngModelChange)="searchTerm.set($event)"
+      /><select
+        aria-label="Filter status"
+        [ngModel]="statusFilter()"
+        (ngModelChange)="statusFilter.set($event)"
+      >
+        <option value="ALL">All statuses</option>
+        <option value="ACTIVE">Active</option>
+        <option value="INACTIVE">Inactive</option>
+        <option value="DRAFT">Draft</option>
+        <option value="APPROVED">Approved</option>
+        <option value="REJECTED">Rejected</option>
+      </select>
+    </section>
+
+    @if (!visibleRules.length) {
+      <section class="empty-state">
+        <h2>
+          {{
+            activeView() === 'PENDING'
+              ? 'No submissions awaiting review'
+              : 'No guardrails match these filters'
+          }}
+        </h2>
+        <p>
+          {{
+            activeView() === 'PENDING'
+              ? 'New Care Manager submissions will appear here.'
+              : 'Adjust the search or status filter.'
+          }}
+        </p>
+      </section>
+    } @else {
+      <div class="workspace">
+        <section class="rule-list" aria-label="Guardrail rules">
+          @for (rule of visibleRules; track rule.rule_id) {
+            <button
+              type="button"
+              class="rule-item"
+              [class.selected]="selectedRuleId() === rule.rule_id"
+              (click)="selectRule(rule)"
+            >
+              <div>
+                <strong>{{ rule.rule_name }}</strong
+                ><span>{{ rule.guardrail_name }}</span>
+              </div>
+              <div class="rule-item-meta">
+                <span class="badge" [attr.data-status]="rule.approval_status">{{
+                  label(rule.approval_status)
+                }}</span
+                ><span class="badge" [attr.data-status]="rule.status">{{
+                  label(rule.status)
+                }}</span>
+              </div>
+              <small>{{ label(rule.category) }} · {{ label(rule.urgency) }}</small>
+            </button>
+          }
+        </section>
+
+        @if (selectedRule; as rule) {
+          <article class="review-panel">
+            <header class="review-heading">
+              <div>
+                <p class="eyebrow">GR-{{ rule.rule_id }}</p>
+                <h2>{{ rule.rule_name }}</h2>
+                <p>{{ rule.guardrail_name }}</p>
+              </div>
+              <div class="status-stack">
+                <span class="badge" [attr.data-status]="rule.approval_status">{{
+                  label(rule.approval_status)
+                }}</span
+                ><span class="badge" [attr.data-status]="rule.status">{{
+                  label(rule.status)
+                }}</span>
+              </div>
+            </header>
+            <section class="markdown-document">
+              <div class="section-heading"><div><h3>Guardrail description</h3><p>Markdown document</p></div></div>
+              <div class="markdown-surface document-preview"><app-markdown-preview [markdown]="rule.description" /></div>
+            </section>
+            @if (rule.rejection_reason) {
+              <div class="notice rejection">
+                <strong>Rejection reason</strong>
+                <p>{{ rule.rejection_reason }}</p>
+              </div>
+            }
+            <dl class="detail-grid">
+              <div>
+                <dt>Expected action</dt>
+                <dd>{{ label(rule.action_type) }}</dd>
+              </div>
+              <div>
+                <dt>Category</dt>
+                <dd>{{ label(rule.category) }}</dd>
+              </div>
+              <div>
+                <dt>Urgency</dt>
+                <dd>{{ label(rule.urgency) }}</dd>
+              </div>
+              <div>
+                <dt>Handler role</dt>
+                <dd>{{ label(rule.handler_role) }}</dd>
+              </div>
+              <div>
+                <dt>Submitted by</dt>
+                <dd>{{ rule.created_by_name || 'Legacy system rule' }}</dd>
+              </div>
+              <div>
+                <dt>Submission date</dt>
+                <dd>{{ formatDate(rule.updated_at) }}</dd>
+              </div>
+              <div>
+                <dt>Effective from</dt>
+                <dd>{{ formatDate(rule.effective_from) }}</dd>
+              </div>
+              <div>
+                <dt>Approved by</dt>
+                <dd>{{ rule.approved_by_name || 'Not approved' }}</dd>
+              </div>
+              <div>
+                <dt>Approved at</dt>
+                <dd>{{ formatDate(rule.approved_at) }}</dd>
+              </div>
+            </dl>
+            <div class="review-actions">
+              @if (rule.approval_status === 'PENDING') {
+                <button type="button" class="reject" (click)="openDecision('REJECT')">
+                  <ng-icon name="heroNoSymbol" /> Reject</button
+                ><button type="button" (click)="openDecision('APPROVE')">
+                  <ng-icon name="heroCheckCircle" /> Approve
+                </button>
+              }
+              @if (rule.approval_status === 'APPROVED' && rule.status === 'ACTIVE') {
+                <button type="button" class="secondary" (click)="openDeactivate()">
+                  <ng-icon name="heroNoSymbol" /> Deactivate
+                </button>
+              }
+              @if (rule.approval_status === 'APPROVED' && rule.status === 'INACTIVE') {
+                <button type="button" (click)="openActivation(rule)">
+                  <ng-icon name="heroPencilSquare" /> Edit &amp; activate
+                </button>
+              }
+            </div>
+            <section class="history">
+              <h3>Activity history</h3>
+              @if (!rule.activity_history.length) {
+                <p class="muted">No workflow activity recorded.</p>
+              }
+              @for (event of rule.activity_history; track event.audit_id) {
+                <div class="history-row">
+                  <span></span>
+                  <div>
+                    <strong>{{ eventLabel(event) }}</strong>
+                    <p>{{ event.actor_name || 'System' }} · {{ formatDate(event.created_at) }}</p>
+                    @if (eventReason(event); as reason) {
+                      <blockquote>{{ reason }}</blockquote>
+                    }
+                  </div>
+                </div>
+              }
+            </section>
+          </article>
+        }
+      </div>
+    }
+  }
+
+  @if (decision(); as decisionType) {
+    <div class="dialog-backdrop" (click)="decision.set(null)">
+      <section
+        class="dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="decision-title"
+        (click)="$event.stopPropagation()"
+      >
+        <header>
+          <h2 id="decision-title">
+            {{ decisionType === 'APPROVE' ? 'Approve rule' : 'Reject rule' }}
+          </h2>
+          <button type="button" class="icon-button" title="Close" (click)="decision.set(null)">
+            <ng-icon name="heroXMark" />
+          </button>
+        </header>
+        <label
+          ><span>{{ decisionType === 'APPROVE' ? 'Approval reason' : 'Rejection reason' }}</span
+          ><textarea rows="4" [(ngModel)]="decisionReason"></textarea>
+        </label>
+        @if (decisionType === 'APPROVE') {
+          <label
+            ><span>Effective date</span><input type="date" [(ngModel)]="effectiveFrom"
+          /></label>
+        }
+        <footer>
+          <button type="button" class="secondary" (click)="decision.set(null)">Cancel</button
+          ><button
+            type="button"
+            [class.reject]="decisionType === 'REJECT'"
+            [disabled]="saving()"
+            (click)="submitDecision()"
+          >
+            {{
+              saving()
+                ? 'Saving...'
+                : decisionType === 'APPROVE'
+                  ? 'Approve & activate'
+                  : 'Reject submission'
+            }}
+          </button>
+        </footer>
+      </section>
+    </div>
+  }
+
+  @if (deactivating()) {
+    <div class="dialog-backdrop" (click)="deactivating.set(false)">
+      <section
+        class="dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="deactivate-title"
+        (click)="$event.stopPropagation()"
+      >
+        <header>
+          <h2 id="deactivate-title">Deactivate rule</h2>
+          <button type="button" class="icon-button" title="Close" (click)="deactivating.set(false)">
+            <ng-icon name="heroXMark" />
+          </button>
+        </header>
+        <label><span>Reason</span><textarea rows="4" [(ngModel)]="changeReason"></textarea></label>
+        <footer>
+          <button type="button" class="secondary" (click)="deactivating.set(false)">Cancel</button
+          ><button
+            type="button"
+            class="reject"
+            [disabled]="saving()"
+            (click)="submitDeactivation()"
+          >
+            Deactivate
+          </button>
+        </footer>
+      </section>
+    </div>
+  }
+
+  @if (activating()) {
+    <div class="drawer-backdrop" (click)="activating.set(false)"></div>
+    <aside class="guardrail-drawer" aria-label="Edit and activate clinical guardrail" (click)="$event.stopPropagation()">
+      <header><div><p class="eyebrow">Current row update</p><h2>Edit and activate inactive rule</h2></div><button type="button" class="icon-button" title="Close" aria-label="Close guardrail editor" (click)="activating.set(false)"><ng-icon name="heroXMark" /></button></header>
+      <div class="drawer-content">
+        <label class="field"><span>Guardrail name</span><input [(ngModel)]="activationForm.guardrail_name" /></label>
+        <section class="markdown-editor">
+          <header><div><h3>Description</h3><p>Markdown document</p></div><div class="mode-switch" aria-label="Description mode"><button type="button" [class.active]="descriptionMode() === 'EDIT'" (click)="descriptionMode.set('EDIT')">Edit</button><button type="button" [class.active]="descriptionMode() === 'PREVIEW'" (click)="descriptionMode.set('PREVIEW')">Preview</button></div></header>
+          @if (descriptionMode() === 'EDIT') { <textarea rows="16" [(ngModel)]="activationForm.description"></textarea> }
+          @else { <div class="markdown-surface"><app-markdown-preview [markdown]="activationForm.description" /></div> }
+        </section>
+        <section class="settings-section">
+          <h3>Rule settings</h3>
+          <div class="form-grid">
+            <label><span>Rule name</span><input [(ngModel)]="activationForm.rule_name" /></label>
+            <label><span>Category</span><select [(ngModel)]="activationForm.category">@for (value of categoryOptions; track value) { <option [value]="value">{{ label(value) }}</option> }</select></label>
+            <label><span>Urgency</span><select [(ngModel)]="activationForm.urgency">@for (value of urgencyOptions; track value) { <option [value]="value">{{ label(value) }}</option> }</select></label>
+            <label><span>Action</span><select [(ngModel)]="activationForm.action_type">@for (value of actionOptions; track value) { <option [value]="value">{{ label(value) }}</option> }</select></label>
+            <label><span>Handler role</span><select [(ngModel)]="activationForm.handler_role_id"><option [ngValue]="null">Not configured</option>@for (role of overview()?.handler_roles ?? []; track role.role_id) { <option [ngValue]="role.role_id">{{ label(role.role_name) }}</option> }</select></label>
+            <label><span>Target queue</span><select [(ngModel)]="activationForm.target_queue_type"><option [ngValue]="null">Not configured</option>@for (value of queueOptions; track value) { <option [value]="value">{{ label(value) }}</option> }</select></label>
+            <label><span>Escalation type</span><select [(ngModel)]="activationForm.escalation_type"><option [ngValue]="null">Not configured</option>@for (value of escalationTypeOptions; track value) { <option [value]="value">{{ label(value) }}</option> }</select></label>
+            <label><span>Priority</span><select [(ngModel)]="activationForm.escalation_priority"><option [ngValue]="null">Not configured</option>@for (value of priorityOptions; track value) { <option [value]="value">{{ label(value) }}</option> }</select></label>
+            <label class="wide"><span>Patient response</span><textarea rows="3" [(ngModel)]="activationForm.patient_response_template"></textarea></label>
+          </div>
+        </section>
+        <section class="settings-section"><h3>Activation</h3><div class="form-grid"><label class="wide"><span>Change reason</span><textarea rows="3" [(ngModel)]="changeReason"></textarea></label><label><span>Effective date</span><input type="date" [(ngModel)]="effectiveFrom" /></label></div></section>
+      </div>
+      <footer class="drawer-actions"><button type="button" class="secondary" (click)="activating.set(false)">Cancel</button><button type="button" [disabled]="saving()" (click)="submitActivation()">{{ saving() ? 'Saving...' : 'Activate updated rule' }}</button></footer>
+    </aside>
+  }
 </section>

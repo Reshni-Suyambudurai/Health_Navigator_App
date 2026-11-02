@@ -3,13 +3,17 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.database.models.care_navigation_episode import CareNavigationEpisode, EpisodeStatus
 from app.database.models.care_team_queue import CareTeamQueue, QueueStatus, QueueType
 from app.database.models.clinical_guardrail_matcher import ClinicalGuardrailMatcher
-from app.database.models.clinical_guardrail_rule import ClinicalGuardrailRule, RuleStatus
+from app.database.models.clinical_guardrail_rule import (
+    ClinicalGuardrailRule,
+    RuleApprovalStatus,
+    RuleStatus,
+)
 from app.database.models.conversation_guardrail_hit import ConversationGuardrailHit
 from app.database.models.conversation_message import ConversationMessage
 from app.database.models.conversation_thread import ConversationStatus, ConversationThread
@@ -130,6 +134,13 @@ class ConversationRepository:
             self.db.query(ClinicalGuardrailRule, ClinicalGuardrailMatcher)
             .join(ClinicalGuardrailMatcher, ClinicalGuardrailMatcher.rule_id == ClinicalGuardrailRule.rule_id)
             .filter(ClinicalGuardrailRule.status == RuleStatus.ACTIVE)
+            .filter(ClinicalGuardrailRule.approval_status == RuleApprovalStatus.APPROVED)
+            .filter(
+                or_(
+                    ClinicalGuardrailRule.effective_from.is_(None),
+                    ClinicalGuardrailRule.effective_from <= func.current_date(),
+                )
+            )
             .filter(ClinicalGuardrailMatcher.is_active.is_(True))
             .order_by(ClinicalGuardrailMatcher.priority.asc(), ClinicalGuardrailRule.rule_id.asc(), ClinicalGuardrailMatcher.matcher_id.asc())
             .all()

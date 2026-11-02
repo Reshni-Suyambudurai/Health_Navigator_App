@@ -25,7 +25,6 @@ import { CareManagerOutreachEvents } from './components/roles/care-manager/outre
 import { SystemAdminCheckinTemplate } from './components/roles/system-admin/checkin-template/checkin-template';
 import { ClinicalCheckinTemplateReviews } from './components/roles/clinical-governance/checkin-template-reviews/checkin-template-reviews';
 import { StaffCheckIns } from './components/roles/staff-check-ins/staff-check-ins';
-import { SafetyRules } from './components/roles/clinical-governance/safety-rules/safety-rules';
 import { SafetyEvaluations } from './components/roles/clinical-governance/safety-evaluations/safety-evaluations';
 import { authGuard } from './guards/guards/auth.guard';
 import { roleAccessGuard } from './guards/guards/role-access.guard';
@@ -49,7 +48,13 @@ export const routes: Routes = [
       },
       { path: 'clinical-governance/checkin-template-reviews', component: ClinicalCheckinTemplateReviews },
       { path: 'clinical-governance/checkin-template', component: ClinicalCheckinTemplateReviews },
-      { path: 'clinical-governance/safety-rules', component: SafetyRules },
+      {
+        path: 'clinical-governance/safety-rules',
+        loadComponent: () =>
+          import('./components/roles/clinical-governance/safety-rules/safety-rules').then(
+            (module) => module.SafetyRules,
+          ),
+      },
       { path: 'clinical-governance/safety-evaluations', component: SafetyEvaluations },
       {
         path: 'care-manager/dashboard',
@@ -113,6 +118,13 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./shared/components/tcm-tracker/tcm-tracker').then(
             (module) => module.TcmTracker,
+          ),
+      },
+      {
+        path: 'care-manager/clinical-guardrails',
+        loadComponent: () =>
+          import('./components/roles/care-manager/clinical-guardrails/clinical-guardrails').then(
+            (module) => module.CareManagerClinicalGuardrails,
           ),
       },
       { path: 'population-health-manager/dashboard', component: PopulationHealthManagerDashbaord },

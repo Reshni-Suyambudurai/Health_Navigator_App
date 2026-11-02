@@ -20,9 +20,12 @@ export const ROLE_SIDEBAR_CONFIG: RoleSidebarConfig[] = [
       { label: 'Appointment Tracking', route: '/care-manager/appointment-tracking' },
       { label: 'Outreach & Check-ins', route: '/care-manager/outreach-checkins' },
       { label: 'Escalation Management', route: '/care-manager/escalation-management' },
+      { label: 'TCM Tracker', route: '/care-manager/tcm-tracker' },
       { label: 'Follow-up Management', route: '/care-manager/follow-up-management' },
+      { label: 'Clinical Guardrails', route: '/care-manager/clinical-guardrails' },
       { label: 'Program Performance', route: '/care-manager/program-performance' },
       { label: 'TCM Tracker', route: '/care-manager/tcm-tracker' },
+      
     ],
   },
   {

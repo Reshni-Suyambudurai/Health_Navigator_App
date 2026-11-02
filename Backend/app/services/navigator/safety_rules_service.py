@@ -1,7 +1,9 @@
+from datetime import date
 from typing import Any
 
-from app.core.exceptions import AuthorizationException, NotFoundException, ValidationException
-from app.database.repositories.navigator.safety_rules_repository import SafetyRulesRepository
+from app.core.exceptions import AuthorizationException, ValidationException
+from app.database.repositories.clinical_guardrail_repository import ClinicalGuardrailRepository
+from app.services.clinical_guardrail_service import ClinicalGuardrailService
 
 
 class SafetyRulesService:
@@ -17,46 +19,29 @@ class SafetyRulesService:
     }
 
     def __init__(self, db):
-        self.repository = SafetyRulesRepository(db)
+        self.repository = ClinicalGuardrailRepository(db)
+        self.guardrails = ClinicalGuardrailService(db)
 
     def get_overview(self, user_id: int) -> dict[str, Any]:
         self._authorize(user_id)
-        rules = self.repository.list_rules()
-        return {
-            "summary": {
-                "total_rules": len(rules),
-                "active_rules": sum(1 for rule in rules if rule["status"] == "ACTIVE"),
-                "draft_rules": sum(1 for rule in rules if rule["status"] == "DRAFT"),
-                "emergency_rules": sum(1 for rule in rules if rule["category"] == "EMERGENCY"),
-                "hits_30_days": sum(int(rule["hit_count"] or 0) for rule in rules),
-            },
-            "rules": rules,
-        }
+        return self.guardrails.get_overview(user_id)
 
     def approve_rule(self, rule_id: int, user_id: int, note: str) -> None:
         self._authorize(user_id)
-        if not note.strip(): raise ValidationException("An approval note is required.", "APPROVAL_NOTE_REQUIRED")
-        if not self.repository.approve_rule(rule_id, user_id, note.strip()):
-            raise NotFoundException("Guardrail rule not found.", "GUARDRAIL_RULE_NOT_FOUND")
+        self.guardrails.approve_rule(rule_id, user_id, note, date.today())
 
     def update_rule(self, rule_id: int, user_id: int, values: dict[str, Any]) -> None:
         self._authorize(user_id)
-        for field in ("guardrail_name", "guardrail_markdown", "rule_name"):
-            if not values[field].strip():
-                raise ValidationException(f"{field.replace('_', ' ').capitalize()} is required.", "RULE_FIELD_REQUIRED")
-            values[field] = values[field].strip()
-        for field, allowed in self.VALID_VALUES.items():
-            value = values[field]
-            if value is not None and value not in allowed:
-                raise ValidationException(f"Invalid {field.replace('_', ' ')}.", "RULE_FIELD_INVALID")
-        if not self.repository.update_rule(rule_id, values):
-            raise NotFoundException("Guardrail rule not found.", "GUARDRAIL_RULE_NOT_FOUND")
+        raise ValidationException(
+            "Use the inactive-rule activation workflow to update approved rules.",
+            "GUARDRAIL_WORKFLOW_REQUIRED",
+        )
 
     def test_scenario(self, user_id: int, text: str, rule_id: int | None = None) -> dict[str, Any]:
         self._authorize(user_id)
         normalized = " ".join(text.lower().split())
         if not normalized: raise ValidationException("A patient scenario is required.", "SCENARIO_REQUIRED")
-        rules = self.repository.list_rules()
+        rules = self.repository.list_rules(include_matchers=True)
         candidates = []
         for rule in rules:
             if rule_id is not None and rule["rule_id"] != rule_id: continue
@@ -75,6 +60,6 @@ class SafetyRulesService:
         return {"matched": True, "rule": rule, "matcher": matcher, "side_effects_created": False}
 
     def _authorize(self, user_id: int) -> None:
-        role = self.repository.find_active_role(user_id)
-        if role not in {"CLINICAL_GOVERNANCE", "SYSTEM_ADMIN"}:
+        actor = self.repository.find_actor(user_id)
+        if actor is None or actor["role_name"] not in {"CLINICAL_GOVERNANCE", "SYSTEM_ADMIN"}:
             raise AuthorizationException("Only clinical governance users can manage safety rules.", "SAFETY_RULES_ACCESS_DENIED")

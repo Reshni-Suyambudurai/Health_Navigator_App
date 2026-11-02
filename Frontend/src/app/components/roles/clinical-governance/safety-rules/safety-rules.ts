@@ -1,19 +1,36 @@
 import { CommonModule } from '@angular/common';
-import { Component, ElementRef, ViewChild, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { heroBeaker, heroBolt, heroCheckCircle, heroClock, heroDocumentDuplicate, heroExclamationTriangle, heroFunnel, heroMagnifyingGlass, heroPlay, heroShieldCheck } from '@ng-icons/heroicons/outline';
+import {
+  heroBeaker,
+  heroCheckCircle,
+  heroNoSymbol,
+  heroPencilSquare,
+  heroShieldCheck,
+  heroXMark,
+} from '@ng-icons/heroicons/outline';
 import { finalize } from 'rxjs/operators';
+
 import { SafetyRulesApi } from '../../../../api/navigator/safety-rules.api';
 import { getSessionUser } from '../../../../api/tokenstore';
-import { SafetyRule, SafetyRuleUpdate, SafetyRulesOverview, ScenarioTestResult } from '../../../../shared/types/navigator/safety-rules';
+import {
+  SafetyRule,
+  SafetyRulesOverview,
+  SafetyRuleUpdate,
+} from '../../../../shared/types/navigator/safety-rules';
+import { MarkdownPreview } from '../../../../shared/ui/markdown-preview/markdown-preview';
+import { RefreshButton } from '../../../../shared/ui/refresh-button/refresh-button';
 import { ToastState } from '../../../../shared/ui/toast/toast-state';
+
+type ReviewDecision = 'APPROVE' | 'REJECT';
+type GovernanceView = 'PENDING' | 'EXISTING';
 
 @Component({
   selector: 'app-safety-rules',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgIcon],
-  providers: [provideIcons({ heroBeaker, heroBolt, heroCheckCircle, heroClock, heroDocumentDuplicate, heroExclamationTriangle, heroFunnel, heroMagnifyingGlass, heroPlay, heroShieldCheck })],
+  imports: [CommonModule, FormsModule, NgIcon, MarkdownPreview, RefreshButton],
+  providers: [provideIcons({ heroBeaker, heroCheckCircle, heroNoSymbol, heroPencilSquare, heroShieldCheck, heroXMark })],
   templateUrl: './safety-rules.html',
   styleUrl: './safety-rules.scss',
 })
@@ -21,70 +38,203 @@ export class SafetyRules {
   private readonly api = inject(SafetyRulesApi);
   private readonly toast = inject(ToastState);
   private readonly sessionUser = getSessionUser();
-  @ViewChild('scenarioInput') scenarioInput?: ElementRef<HTMLTextAreaElement>;
 
   readonly overview = signal<SafetyRulesOverview | null>(null);
   readonly loading = signal(false);
   readonly saving = signal(false);
-  readonly testing = signal(false);
   readonly error = signal<string | null>(null);
-  readonly selectedRuleId = signal<number | null>(null);
+  readonly activeView = signal<GovernanceView>('PENDING');
   readonly searchTerm = signal('');
   readonly statusFilter = signal('ALL');
-  readonly categoryFilter = signal('ALL');
-  readonly testResult = signal<ScenarioTestResult | null>(null);
-  readonly editingRuleId = signal<number | null>(null);
-  scenarioText = '';
-  approvalNote = '';
-  editForm: SafetyRuleUpdate = this.emptyEditForm();
+  readonly selectedRuleId = signal<number | null>(null);
+  readonly decision = signal<ReviewDecision | null>(null);
+  readonly deactivating = signal(false);
+  readonly activating = signal(false);
+  readonly descriptionMode = signal<'EDIT' | 'PREVIEW'>('EDIT');
+
+  decisionReason = '';
+  effectiveFrom = this.today();
+  changeReason = '';
+  activationForm: SafetyRuleUpdate = this.emptyUpdateForm();
 
   readonly categoryOptions = ['EMERGENCY', 'MEDICATION', 'SYMPTOM', 'PRIVACY', 'CLINICAL_SCOPE', 'SYMPTOM_SAFETY'];
   readonly urgencyOptions = ['ROUTINE', 'SAME_DAY', 'EMERGENCY', 'HIGH'];
   readonly actionOptions = ['SAFE_RESPOND', 'BLOCK_RESPONSE', 'ESCALATE', 'EMERGENCY_PROTOCOL', 'CREATE_ESCALATION'];
-  readonly statusOptions = ['DRAFT', 'ACTIVE', 'INACTIVE', 'RETIRED'];
   readonly queueOptions = ['MEDICATION', 'APPOINTMENT', 'SOCIAL_SUPPORT', 'CLINICAL', 'CLINICAL_REVIEW', 'EMERGENCY'];
   readonly escalationTypeOptions = ['MEDICATION', 'APPOINTMENT', 'SOCIAL_SUPPORT', 'CLINICAL_REVIEW', 'EMERGENCY'];
-  readonly escalationPriorityOptions = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+  readonly priorityOptions = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
 
-  ngOnInit(): void { this.loadRules(); }
+  ngOnInit(): void {
+    this.loadRules();
+  }
 
   loadRules(): void {
-    const userId = this.sessionUser?.user_id ?? this.sessionUser?.userId;
-    if (!userId) { this.error.set('Your session has expired. Please sign in again.'); return; }
-    this.loading.set(true); this.error.set(null);
+    const userId = this.userId;
+    if (!userId) {
+      this.error.set('Your session has expired. Please sign in again.');
+      return;
+    }
+    this.loading.set(true);
+    this.error.set(null);
     this.api.getOverview(userId).pipe(finalize(() => this.loading.set(false))).subscribe({
       next: (response) => {
         this.overview.set(response.data);
-        if (!this.selectedRuleId() && response.data.rules.length) this.selectedRuleId.set(response.data.rules[0].rule_id);
+        const visible = this.visibleRules;
+        if (!visible.some((rule) => rule.rule_id === this.selectedRuleId())) {
+          this.selectedRuleId.set(visible[0]?.rule_id ?? null);
+        }
       },
-      error: (error: { error?: { message?: string } }) => this.error.set(error?.error?.message ?? 'Unable to load safety rules.'),
+      error: (error: { error?: { message?: string } }) => this.error.set(error.error?.message ?? 'Unable to load clinical guardrails.'),
     });
   }
 
-  get filteredRules(): SafetyRule[] {
+  get pendingRules(): SafetyRule[] {
+    return (this.overview()?.rules ?? []).filter((rule) => rule.approval_status === 'PENDING');
+  }
+
+  get existingRules(): SafetyRule[] {
+    return (this.overview()?.rules ?? []).filter((rule) => rule.approval_status !== 'PENDING');
+  }
+
+  get visibleRules(): SafetyRule[] {
+    const source = this.activeView() === 'PENDING' ? this.pendingRules : this.existingRules;
     const search = this.searchTerm().trim().toLowerCase();
-    return (this.overview()?.rules ?? []).filter((rule) =>
-      (this.statusFilter() === 'ALL' || rule.status === this.statusFilter()) &&
-      (this.categoryFilter() === 'ALL' || rule.category === this.categoryFilter()) &&
-      (!search || `${rule.rule_name} ${rule.guardrail_name} ${rule.category}`.toLowerCase().includes(search))
+    return source.filter((rule) =>
+      (this.statusFilter() === 'ALL' || rule.status === this.statusFilter() || rule.approval_status === this.statusFilter()) &&
+      (!search || `${rule.guardrail_name} ${rule.rule_name} ${rule.category} ${rule.created_by_name ?? ''}`.toLowerCase().includes(search)),
     );
   }
 
-  get selectedRule(): SafetyRule | null { return this.overview()?.rules.find((rule) => rule.rule_id === this.selectedRuleId()) ?? null; }
-  get categories(): string[] { return [...new Set((this.overview()?.rules ?? []).map((rule) => rule.category))]; }
+  get selectedRule(): SafetyRule | null {
+    return this.overview()?.rules.find((rule) => rule.rule_id === this.selectedRuleId()) ?? null;
+  }
 
-  selectRule(rule: SafetyRule): void { this.selectedRuleId.set(rule.rule_id); this.testResult.set(null); this.approvalNote = ''; }
+  switchView(view: GovernanceView): void {
+    this.activeView.set(view);
+    this.statusFilter.set('ALL');
+    this.selectedRuleId.set(this.visibleRules[0]?.rule_id ?? null);
+  }
 
-  startEdit(rule: SafetyRule): void {
-    this.editingRuleId.set(rule.rule_id);
-    this.editForm = {
+  selectRule(rule: SafetyRule): void {
+    this.selectedRuleId.set(rule.rule_id);
+  }
+
+  openDecision(decision: ReviewDecision): void {
+    this.decisionReason = '';
+    this.effectiveFrom = this.today();
+    this.decision.set(decision);
+  }
+
+  submitDecision(): void {
+    const userId = this.userId;
+    const rule = this.selectedRule;
+    const decision = this.decision();
+    if (!userId || !rule || !decision || !this.decisionReason.trim()) {
+      this.toast.warning('A review reason is required.');
+      return;
+    }
+    if (decision === 'APPROVE' && !this.effectiveFrom) {
+      this.toast.warning('Select an effective date.');
+      return;
+    }
+    this.saving.set(true);
+    const request = decision === 'APPROVE'
+      ? this.api.approveRule(userId, rule.rule_id, this.decisionReason, this.effectiveFrom)
+      : this.api.rejectRule(userId, rule.rule_id, this.decisionReason);
+    request.pipe(finalize(() => this.saving.set(false))).subscribe({
+      next: () => {
+        this.toast.success(decision === 'APPROVE' ? 'Rule approved and activated.' : 'Rule rejected with feedback.');
+        this.decision.set(null);
+        this.loadRules();
+      },
+      error: (error: { error?: { message?: string } }) => this.showError(error, 'Unable to record this review decision.'),
+    });
+  }
+
+  openDeactivate(): void {
+    this.changeReason = '';
+    this.deactivating.set(true);
+  }
+
+  submitDeactivation(): void {
+    const userId = this.userId;
+    const rule = this.selectedRule;
+    if (!userId || !rule || !this.changeReason.trim()) {
+      this.toast.warning('A deactivation reason is required.');
+      return;
+    }
+    this.saving.set(true);
+    this.api.deactivateRule(userId, rule.rule_id, this.changeReason).pipe(finalize(() => this.saving.set(false))).subscribe({
+      next: () => {
+        this.toast.success('Rule deactivated.');
+        this.deactivating.set(false);
+        this.loadRules();
+      },
+      error: (error: { error?: { message?: string } }) => this.showError(error, 'Unable to deactivate this rule.'),
+    });
+  }
+
+  openActivation(rule: SafetyRule): void {
+    this.activationForm = this.ruleToUpdate(rule);
+    this.changeReason = '';
+    this.effectiveFrom = this.today();
+    this.descriptionMode.set('EDIT');
+    this.activating.set(true);
+  }
+
+  submitActivation(): void {
+    const userId = this.userId;
+    const rule = this.selectedRule;
+    if (!userId || !rule || !this.changeReason.trim() || !this.effectiveFrom || !this.validRule(this.activationForm)) {
+      this.toast.warning('Complete the rule, reason, and effective date fields.');
+      return;
+    }
+    this.saving.set(true);
+    this.api.activateRule(userId, rule.rule_id, this.activationForm, this.changeReason, this.effectiveFrom).pipe(finalize(() => this.saving.set(false))).subscribe({
+      next: () => {
+        this.toast.success('Inactive rule updated and activated.');
+        this.activating.set(false);
+        this.loadRules();
+      },
+      error: (error: { error?: { message?: string } }) => this.showError(error, 'Unable to activate this rule.'),
+    });
+  }
+
+  label(value: string | null): string {
+    return value ? value.replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase()) : 'Not configured';
+  }
+
+  formatDate(value: string | null): string {
+    return value ? new Date(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Not set';
+  }
+
+  eventLabel(event: SafetyRule['activity_history'][number]): string {
+    if (typeof event.details === 'object' && event.details) return this.label(String(event.details['event_type'] ?? event.action));
+    return this.label(event.action);
+  }
+
+  eventReason(event: SafetyRule['activity_history'][number]): string | null {
+    if (typeof event.details === 'object' && event.details && typeof event.details['reason'] === 'string') return event.details['reason'];
+    return null;
+  }
+
+  private get userId(): number | null {
+    return this.sessionUser?.user_id ?? this.sessionUser?.userId ?? null;
+  }
+
+  private validRule(rule: SafetyRuleUpdate): boolean {
+    return !!rule.guardrail_name.trim() && !!rule.description.trim() && !!rule.rule_name.trim();
+  }
+
+  private ruleToUpdate(rule: SafetyRule): SafetyRuleUpdate {
+    return {
       guardrail_name: rule.guardrail_name,
-      guardrail_markdown: rule.guardrail_markdown,
+      description: rule.description,
       rule_name: rule.rule_name,
       category: rule.category,
       urgency: rule.urgency,
+      handler_role_id: rule.handler_role_id,
       action_type: rule.action_type,
-      status: rule.status,
       patient_response_template: rule.patient_response_template,
       target_queue_type: rule.target_queue_type,
       escalation_type: rule.escalation_type,
@@ -92,44 +242,22 @@ export class SafetyRules {
     };
   }
 
-  cancelEdit(): void { this.editingRuleId.set(null); }
-
-  saveEdit(): void {
-    const userId = this.sessionUser?.user_id ?? this.sessionUser?.userId;
-    const ruleId = this.editingRuleId();
-    if (!userId || ruleId === null) return;
-    this.saving.set(true); this.error.set(null);
-    this.api.updateRule(userId, ruleId, this.editForm).pipe(finalize(() => this.saving.set(false))).subscribe({
-      next: () => { this.toast.success('Safety rule updated.'); this.editingRuleId.set(null); this.loadRules(); },
-      error: (error: { error?: { message?: string } }) => this.error.set(error?.error?.message ?? 'Unable to update this safety rule.'),
-    });
+  private emptyUpdateForm(): SafetyRuleUpdate {
+    return {
+      guardrail_name: '', description: '', rule_name: '', category: 'SYMPTOM', urgency: 'ROUTINE',
+      handler_role_id: null, action_type: 'SAFE_RESPOND', patient_response_template: null,
+      target_queue_type: null, escalation_type: null, escalation_priority: null,
+    };
   }
 
-  approveSelected(): void {
-    const userId = this.sessionUser?.user_id ?? this.sessionUser?.userId; const rule = this.selectedRule;
-    if (!userId || !rule || !this.approvalNote.trim()) { this.error.set('Enter an approval note before activating this rule.'); return; }
-    this.saving.set(true); this.error.set(null);
-    this.api.approveRule(userId, rule.rule_id, this.approvalNote).pipe(finalize(() => this.saving.set(false))).subscribe({
-      next: () => { this.toast.success('Rule approved and activated.'); this.loadRules(); },
-      error: (error: { error?: { message?: string } }) => this.error.set(error?.error?.message ?? 'Unable to approve this rule.'),
-    });
+  private today(): string {
+    const now = new Date();
+    return new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
   }
 
-  runScenario(): void {
-    const userId = this.sessionUser?.user_id ?? this.sessionUser?.userId;
-    if (!userId || !this.scenarioText.trim()) { this.error.set('Enter an example patient message to test.'); return; }
-    this.testing.set(true); this.error.set(null);
-    this.api.testScenario(userId, this.scenarioText, this.selectedRuleId()).pipe(finalize(() => this.testing.set(false))).subscribe({
-      next: (response) => this.testResult.set(response.data),
-      error: (error: { error?: { message?: string } }) => this.error.set(error?.error?.message ?? 'Unable to test this scenario.'),
-    });
-  }
-
-  focusScenario(): void { this.scenarioInput?.nativeElement.focus(); }
-  label(value: string | null): string { return value ? value.replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase()) : 'Not configured'; }
-  formatDate(value: string | null): string { return value ? new Date(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Never'; }
-  historyNote(event: SafetyRule['approval_history'][number]): string { return typeof event.details === 'object' && event.details?.note ? event.details.note : 'Rule status updated'; }
-  private emptyEditForm(): SafetyRuleUpdate {
-    return { guardrail_name: '', guardrail_markdown: '', rule_name: '', category: 'EMERGENCY', urgency: 'ROUTINE', action_type: 'SAFE_RESPOND', status: 'DRAFT', patient_response_template: null, target_queue_type: null, escalation_type: null, escalation_priority: null };
+  private showError(error: { error?: { message?: string } }, fallback: string): void {
+    const message = error.error?.message ?? fallback;
+    this.error.set(message);
+    this.toast.error(message);
   }
 }

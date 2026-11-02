@@ -22,6 +22,7 @@ from app.api.routes.navigator import admin_user_routes
 from app.api.routes.navigator import admin_outreach_campaign_routes
 from app.api.routes.navigator import outreach_event_routes
 from app.api.routes.navigator import admin_checkin_template_routes
+from app.api.routes import clinical_guardrail_routes
 from app.api.routes import notification_routes
 from app.api.routes.navigator import patient_dashboard_routes
 from app.api.routes.navigator import care_manager_dashboard_routes
@@ -112,6 +113,7 @@ app.include_router(admin_outreach_campaign_routes.router, prefix="/api/v1")
 app.include_router(outreach_event_routes.router, prefix="/api/v1")
 app.include_router(admin_checkin_template_routes.admin_router, prefix="/api/v1")
 app.include_router(admin_checkin_template_routes.review_router, prefix="/api/v1")
+app.include_router(clinical_guardrail_routes.router, prefix="/api/v1")
 app.include_router(notification_routes.router, prefix="/api/v1")
 app.include_router(patient_dashboard_routes.router, prefix="/api/v1")
 app.include_router(care_manager_dashboard_routes.router, prefix="/api/v1")

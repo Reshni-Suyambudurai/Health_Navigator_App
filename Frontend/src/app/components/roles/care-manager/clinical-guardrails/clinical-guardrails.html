@@ -1,0 +1,103 @@
+<section class="guardrails-page">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Care Manager Workspace</p>
+      <h1>Clinical Guardrails</h1>
+      <p>Draft global safety rules and submit them for clinical review.</p>
+    </div>
+    <div class="header-actions">
+      <app-refresh-button [disabled]="loading()" (refresh)="loadGuardrails()" />
+      <button type="button" (click)="startCreate()"><ng-icon name="heroPlus" /> New guardrail</button>
+    </div>
+  </header>
+
+  @if (loading() && !overview()) { <p class="state">Loading clinical guardrails...</p> }
+  @if (error()) { <p class="state error" role="alert">{{ error() }}</p> }
+
+  @if (overview(); as data) {
+    <section class="metrics" aria-label="Guardrail summary">
+      <article><span>Guardrails</span><strong>{{ data.summary.total_guardrails }}</strong></article>
+      <article><span>Pending review</span><strong>{{ data.summary.pending_rules }}</strong></article>
+      <article><span>Active rules</span><strong>{{ data.summary.active_rules }}</strong></article>
+      <article><span>Rejected</span><strong>{{ data.summary.rejected_rules }}</strong></article>
+    </section>
+
+    <section class="toolbar">
+      <label><span class="sr-only">Search guardrails</span><input type="search" placeholder="Search guardrails or rules" [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)" /></label>
+      <label><span class="sr-only">Approval status</span><select [ngModel]="approvalFilter()" (ngModelChange)="approvalFilter.set($event)"><option value="ALL">All approval states</option><option value="DRAFT">Draft</option><option value="PENDING">Pending</option><option value="APPROVED">Approved</option><option value="REJECTED">Rejected</option></select></label>
+      <button type="button" class="submit-button" [disabled]="saving() || selectedForSubmission().size === 0" (click)="submitSelected()"><ng-icon name="heroPaperAirplane" /> Submit selected ({{ selectedForSubmission().size }})</button>
+    </section>
+
+    @if (filteredRules.length === 0 && !showCreateForm()) {
+      <section class="empty-state"><h2>No guardrails found</h2><p>Create a guardrail or adjust the filters.</p></section>
+    } @else {
+      <div class="workspace">
+        <section class="rules-panel" aria-label="Clinical guardrail rules">
+          @if (filteredRules.length === 0) { <p class="panel-empty">No existing rules match these filters.</p> }
+          @for (rule of filteredRules; track rule.rule_id) {
+            <article class="rule-row" [class.selected]="selectedRuleId() === rule.rule_id" (click)="selectRule(rule)">
+              <div class="selection-cell" (click)="$event.stopPropagation()">
+                @if (canEdit(rule)) { <input type="checkbox" [checked]="selectedForSubmission().has(rule.rule_id)" (change)="toggleSubmission(rule.rule_id)" [attr.aria-label]="'Select ' + rule.rule_name" /> }
+              </div>
+              <div class="rule-copy"><strong>{{ rule.rule_name }}</strong><span>{{ rule.guardrail_name }} · {{ label(rule.category) }}</span></div>
+              <span class="badge approval" [attr.data-status]="rule.approval_status">{{ label(rule.approval_status) }}</span>
+              <span class="badge operational" [attr.data-status]="rule.status">{{ label(rule.status) }}</span>
+              @if (canEdit(rule)) { <button type="button" class="icon-button" title="Edit draft rule" (click)="$event.stopPropagation(); startEdit(rule)"><ng-icon name="heroPencilSquare" /></button> }
+              <ng-icon name="heroChevronRight" class="chevron" />
+            </article>
+          }
+        </section>
+
+        @if (editingRuleId() !== null) {
+          <aside class="detail-panel editor-panel">
+            <header class="panel-heading"><div><p class="eyebrow">Draft update</p><h2>Edit clinical guardrail</h2></div><button type="button" class="icon-button" title="Close editor" (click)="cancelEdit()"><ng-icon name="heroXMark" /></button></header>
+            <label class="field"><span>Guardrail name</span><input [(ngModel)]="editForm.guardrail_name" /></label>
+            <section class="markdown-editor">
+              <header><div><h3>Description</h3><p>Markdown document</p></div><div class="mode-switch" aria-label="Description mode"><button type="button" [class.active]="descriptionMode() === 'EDIT'" (click)="descriptionMode.set('EDIT')">Edit</button><button type="button" [class.active]="descriptionMode() === 'PREVIEW'" (click)="descriptionMode.set('PREVIEW')">Preview</button></div></header>
+              @if (descriptionMode() === 'EDIT') { <textarea rows="16" [(ngModel)]="editForm.description"></textarea> }
+              @else { <div class="markdown-surface"><app-markdown-preview [markdown]="editForm.description" /></div> }
+            </section>
+            <section class="settings-section"><h3>Rule settings</h3><ng-container *ngTemplateOutlet="ruleFields; context: { $implicit: editForm }" /></section>
+            <footer class="panel-actions"><button type="button" class="secondary" (click)="cancelEdit()">Cancel</button><button type="button" [disabled]="saving()" (click)="saveEdit()">{{ saving() ? 'Saving...' : 'Save changes' }}</button></footer>
+          </aside>
+        } @else if (selectedRule; as rule) {
+          <aside class="detail-panel">
+            <div class="detail-heading"><div><p class="eyebrow">GR-{{ rule.rule_id }}</p><h2>{{ rule.rule_name }}</h2></div><span class="badge approval" [attr.data-status]="rule.approval_status">{{ label(rule.approval_status) }}</span></div>
+            <section class="markdown-document"><div class="section-heading"><div><h3>{{ rule.guardrail_name }}</h3><p>Guardrail description</p></div>@if (canEdit(rule)) { <button type="button" class="secondary compact" (click)="startEdit(rule)"><ng-icon name="heroPencilSquare" /> Edit</button> }</div><div class="markdown-surface document-preview"><app-markdown-preview [markdown]="rule.description" /></div></section>
+            @if (rule.rejection_reason) { <div class="rejection"><strong>Changes requested</strong><p>{{ rule.rejection_reason }}</p></div> }
+            <dl class="detail-grid">
+              <div><dt>Category</dt><dd>{{ label(rule.category) }}</dd></div><div><dt>Urgency</dt><dd>{{ label(rule.urgency) }}</dd></div>
+              <div><dt>Expected action</dt><dd>{{ label(rule.action_type) }}</dd></div><div><dt>Handler role</dt><dd>{{ label(rule.handler_role) }}</dd></div>
+              <div><dt>Created by</dt><dd>{{ rule.created_by_name || 'Legacy system rule' }}</dd></div><div><dt>Approved by</dt><dd>{{ rule.approved_by_name || 'Not reviewed' }}</dd></div>
+              <div><dt>Effective from</dt><dd>{{ formatDate(rule.effective_from) }}</dd></div><div><dt>Updated</dt><dd>{{ formatDate(rule.updated_at) }}</dd></div>
+            </dl>
+            <section class="detail-section"><h3>Activity history</h3>@if (!rule.activity_history.length) { <p class="muted">No workflow activity recorded.</p> } @for (event of rule.activity_history; track event.audit_id) { <div class="history-item"><span></span><div><strong>{{ eventLabel(event) }}</strong><p>{{ event.actor_name || 'System' }} · {{ formatDate(event.created_at) }}</p></div></div> }</section>
+          </aside>
+        }
+      </div>
+    }
+  }
+
+  @if (showCreateForm()) {
+    <div class="drawer-backdrop" (click)="cancelCreate()"></div>
+    <aside class="guardrail-drawer" aria-label="Create clinical guardrail" (click)="$event.stopPropagation()">
+      <header><div><p class="eyebrow">New draft</p><h2>Create clinical guardrail</h2></div><button type="button" class="icon-button" title="Close" aria-label="Close guardrail editor" (click)="cancelCreate()"><ng-icon name="heroXMark" /></button></header>
+      <div class="drawer-content">
+        <label class="field"><span>Guardrail name</span><input [(ngModel)]="createForm.guardrail_name" /></label>
+        <section class="markdown-editor">
+          <header><div><h3>Description</h3><p>Markdown document</p></div><div class="mode-switch" aria-label="Description mode"><button type="button" [class.active]="descriptionMode() === 'EDIT'" (click)="descriptionMode.set('EDIT')">Edit</button><button type="button" [class.active]="descriptionMode() === 'PREVIEW'" (click)="descriptionMode.set('PREVIEW')">Preview</button></div></header>
+          @if (descriptionMode() === 'EDIT') { <textarea rows="16" [(ngModel)]="createForm.description" placeholder="# Guardrail purpose&#10;&#10;Describe scope, guidance, and configuration in Markdown."></textarea> }
+          @else { <div class="markdown-surface"><app-markdown-preview [markdown]="createForm.description" /></div> }
+        </section>
+        <section class="settings-section"><h3>Rule settings</h3>@for (rule of createForm.rules; track $index; let ruleIndex = $index) { <section class="rule-editor"><header><h4>Rule {{ ruleIndex + 1 }}</h4><button type="button" class="icon-button danger" title="Remove rule" [disabled]="createForm.rules.length === 1" (click)="removeRuleDraft(ruleIndex)"><ng-icon name="heroTrash" /></button></header><ng-container *ngTemplateOutlet="ruleFields; context: { $implicit: rule }" /></section> }<button type="button" class="secondary" (click)="addRuleDraft()"><ng-icon name="heroPlus" /> Add another rule</button></section>
+      </div>
+      <footer class="drawer-actions"><button type="button" class="secondary" (click)="cancelCreate()">Cancel</button><button type="button" [disabled]="saving()" (click)="createGuardrail()">{{ saving() ? 'Saving...' : 'Save draft' }}</button></footer>
+    </aside>
+  }
+
+  <ng-template #ruleFields let-rule>
+    <div class="form-grid">
+      <label><span>Rule name</span><input [(ngModel)]="rule.rule_name" /></label><label><span>Category</span><select [(ngModel)]="rule.category">@for (value of categoryOptions; track value) { <option [value]="value">{{ label(value) }}</option> }</select></label><label><span>Urgency</span><select [(ngModel)]="rule.urgency">@for (value of urgencyOptions; track value) { <option [value]="value">{{ label(value) }}</option> }</select></label><label><span>Expected action</span><select [(ngModel)]="rule.action_type">@for (value of actionOptions; track value) { <option [value]="value">{{ label(value) }}</option> }</select></label><label><span>Handler role</span><select [(ngModel)]="rule.handler_role_id"><option [ngValue]="null">Not configured</option>@for (role of overview()?.handler_roles ?? []; track role.role_id) { <option [ngValue]="role.role_id">{{ label(role.role_name) }}</option> }</select></label><label><span>Target queue</span><select [(ngModel)]="rule.target_queue_type"><option [ngValue]="null">Not configured</option>@for (value of queueOptions; track value) { <option [value]="value">{{ label(value) }}</option> }</select></label><label><span>Escalation type</span><select [(ngModel)]="rule.escalation_type"><option [ngValue]="null">Not configured</option>@for (value of escalationTypeOptions; track value) { <option [value]="value">{{ label(value) }}</option> }</select></label><label><span>Escalation priority</span><select [(ngModel)]="rule.escalation_priority"><option [ngValue]="null">Not configured</option>@for (value of priorityOptions; track value) { <option [value]="value">{{ label(value) }}</option> }</select></label><label class="wide-field"><span>Patient response</span><textarea rows="2" [(ngModel)]="rule.patient_response_template"></textarea></label>
+    </div>
+  </ng-template>
+</section>
