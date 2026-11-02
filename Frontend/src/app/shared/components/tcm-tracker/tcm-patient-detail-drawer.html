@@ -55,10 +55,12 @@
     @if (patient.escalations.length) {
       <section>
         <h3>Escalations</h3>
-        @for (escalation of patient.escalations; track escalation.checkin_escalation_id) {
+        @for (escalation of patient.escalations; track escalation.escalation_id) {
           <div class="escalation-detail">
             <div><strong>{{ label(escalation.type) }}</strong><span>{{ label(escalation.status) }}</span></div>
-            <p>{{ escalation.reason }}</p>
+            @if (escalation.priority) { <p>Priority: {{ label(escalation.priority) }}</p> }
+            @if (escalation.patient_summary) { <p>{{ escalation.patient_summary }}</p> }
+            <p>{{ escalation.reason || 'No reason recorded' }}</p>
             <p>Assigned staff: {{ escalation.assigned_staff || 'Awaiting assignment' }}</p>
             @if (escalation.action_taken) { <p>Action: {{ escalation.action_taken }}</p> }
             @if (escalation.resolution_notes) { <p>Resolution: {{ escalation.resolution_notes }}</p> }

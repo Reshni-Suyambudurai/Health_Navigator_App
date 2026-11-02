@@ -51,6 +51,7 @@ class CareManagerDashboardService:
         incomplete_task_statuses = {FollowUpTaskStatus.OPEN, FollowUpTaskStatus.IN_PROGRESS}
         active_assigned = [row for row in assigned if row[0].status in active_episode_statuses]
         open_escalations = [row for row in escalation_rows if row[0].status in open_escalation_statuses]
+        latest_escalations = self._latest_escalations(escalation_rows)
         tasks = [row[0] for row in follow_up_rows]
         appointments = appointment_rows
         outreach_events = [row[0] for row in outreach_rows]
@@ -116,6 +117,7 @@ class CareManagerDashboardService:
                 "rows": [],
                 "detail_groups": {
                     "active_care_episodes": [{
+                        "episode_id": row[0].episode_id,
                         "patient": self._name(row[3]),
                         "risk_tier": row[1].risk_tier.value,
                         "enrollment_status": row[2].enrollment_status.value,
@@ -125,6 +127,7 @@ class CareManagerDashboardService:
                         "duration": f"{max((now - row[0].opened_at).days, 0)} days",
                     } for row in active_assigned],
                     "high_risk_patients": [{
+                        "episode_id": row[0].episode_id,
                         "patient": self._name(row[3]),
                         "risk_tier": row[1].risk_tier.value,
                         "enrollment_status": row[2].enrollment_status.value,
@@ -133,6 +136,7 @@ class CareManagerDashboardService:
                         "duration": f"{max((now - row[0].opened_at).days, 0)} days",
                     } for row in high_risk_rows],
                     "open_escalations": [{
+                        "episode_id": row[0].episode_id,
                         "patient": self._name(row[2]),
                         "type": row[0].escalation_type.value,
                         "priority": row[0].priority.value,
@@ -140,8 +144,9 @@ class CareManagerDashboardService:
                         "assigned": "Yes" if row[0].escalation_id in assigned_ids else "No",
                         "guardrail_urgency": row[3].hit_urgency_level.value if row[3] else "Not linked",
                         "created_at": row[0].created_at.isoformat(),
-                    } for row in open_escalations],
+                    } for row in latest_escalations],
                     "overdue_follow_ups": [{
+                        "episode_id": row[0].episode_id,
                         "patient": self._name(row[2]),
                         "title": row[0].title,
                         "task_type": row[0].task_type.value,
@@ -163,6 +168,7 @@ class CareManagerDashboardService:
                     self._metric("Critical risk", sum(1 for row in active_assigned if row[1].risk_tier == RiskTier.CRITICAL), "critical"),
                 ],
                 "rows": [{
+                    "episode_id": row[0].episode_id,
                     "patient": self._name(row[3]),
                     "risk_tier": row[1].risk_tier.value,
                     "enrollment_status": row[2].enrollment_status.value,
@@ -188,9 +194,14 @@ class CareManagerDashboardService:
                     self._metric("No-show", appointment_counts.get("NO_SHOW", 0), "warning"),
                 ],
                 "rows": [{
+                    "episode_id": row.episode_id,
                     "patient": f"{row.first_name} {row.last_name}".strip(),
                     "appointment_type": row.appointment_type,
                     "date_time": row.appointment_datetime.isoformat(),
+                    "assigned_to": (
+                        f"{row.staff_first_name} {row.staff_last_name}".strip()
+                        if row.staff_first_name or row.staff_last_name else "-"
+                    ),
                     "status": row.status,
                     "channel": row.location_or_channel or "Not specified",
                     "latest_resolution": (
@@ -216,12 +227,17 @@ class CareManagerDashboardService:
                     self._metric("Check-in responses", self.repository.count_checkin_responses(user.organization_id)),
                 ],
                 "rows": [{
+                    "episode_id": row[0].episode_id,
                     "patient": self._name(row[4]),
                     "campaign": row[1].campaign_name,
                     "workflow": row[2].step_name,
                     "channel": row[0].channel.value,
                     "delivery": row[0].delivery_status.value,
                     "status": row[0].event_status.value,
+                    "assigned_to": (
+                        f"{row[5]} {row[6]}".strip()
+                        if row[5] or row[6] else "-"
+                    ),
                     "scheduled_at": row[0].scheduled_at.isoformat(),
                 } for row in outreach_rows],
             },
@@ -237,6 +253,7 @@ class CareManagerDashboardService:
                     self._metric("Pending actions", sum(1 for row in open_escalations if row[0].escalation_id not in action_ids)),
                 ],
                 "rows": [{
+                    "episode_id": row[0].episode_id,
                     "patient": self._name(row[2]),
                     "type": row[0].escalation_type.value,
                     "priority": row[0].priority.value,
@@ -322,6 +339,20 @@ class CareManagerDashboardService:
             if current is None or action.created_at > current.created_at:
                 latest[action.appointment_id] = action
         return latest
+
+    @staticmethod
+    def _latest_escalations(escalation_rows):
+        latest = {}
+        for row in escalation_rows:
+            episode_id = row[0].episode_id
+            current = latest.get(episode_id)
+            if current is None or row[0].created_at > current[0].created_at:
+                latest[episode_id] = row
+        return sorted(
+            latest.values(),
+            key=lambda row: row[0].created_at,
+            reverse=True,
+        )
 
     @staticmethod
     def _average_resolution_hours(escalations) -> float:

@@ -68,6 +68,7 @@ class CareManagerDashboardServiceTests(unittest.TestCase):
         now = datetime.now(UTC).replace(tzinfo=None)
         patient_user = SimpleNamespace(first_name="Jordan", last_name="Lee")
         task = SimpleNamespace(
+            episode_id=15,
             patient_id=10,
             title="Call patient",
             task_type=FollowUpTaskType.PATIENT_CONTACT,
@@ -96,11 +97,71 @@ class CareManagerDashboardServiceTests(unittest.TestCase):
         self.assertEqual(metrics["Follow-up-required cases"], 1)
         self.assertEqual(result["follow_up"]["rows"][0]["linked_case"], "Escalation 31")
 
+    def test_appointment_rows_include_assigned_staff_name(self):
+        now = datetime.now(UTC).replace(tzinfo=None)
+        self.service.repository.list_appointments.return_value = [
+            SimpleNamespace(
+                appointment_id=8,
+                episode_id=15,
+                appointment_type="ROUTINE",
+                appointment_datetime=now,
+                status="SCHEDULED",
+                location_or_channel="Clinic",
+                first_name="Jordan",
+                last_name="Lee",
+                staff_first_name="Taylor",
+                staff_last_name="Jones",
+            ),
+            SimpleNamespace(
+                appointment_id=9,
+                episode_id=None,
+                appointment_type="CHECK-IN",
+                appointment_datetime=now,
+                status="REQUESTED",
+                location_or_channel=None,
+                first_name="Alex",
+                last_name="Morgan",
+                staff_first_name=None,
+                staff_last_name=None,
+            ),
+        ]
+
+        rows = self.service.get_analytics(4)["appointments"]["rows"]
+
+        self.assertEqual(rows[0]["assigned_to"], "Taylor Jones")
+        self.assertEqual(rows[0]["episode_id"], 15)
+        self.assertEqual(rows[1]["assigned_to"], "-")
+        self.assertIsNone(rows[1]["episode_id"])
+
+    def test_outreach_rows_include_assigned_staff_name(self):
+        now = datetime.now(UTC).replace(tzinfo=None)
+        event = SimpleNamespace(
+            episode_id=15,
+            channel=SimpleNamespace(value="SMS"),
+            delivery_status=SimpleNamespace(value="PENDING"),
+            event_status=SimpleNamespace(value="PENDING"),
+            scheduled_at=now,
+        )
+        campaign = SimpleNamespace(campaign_name="Post-discharge")
+        workflow = SimpleNamespace(step_name="Initial check-in")
+        patient_user = SimpleNamespace(first_name="Jordan", last_name="Lee")
+        self.service.repository.list_outreach.return_value = [
+            (event, campaign, workflow, SimpleNamespace(), patient_user, "Taylor", "Jones"),
+            (event, campaign, workflow, SimpleNamespace(), patient_user, None, None),
+        ]
+
+        rows = self.service.get_analytics(4)["outreach"]["rows"]
+
+        self.assertEqual(rows[0]["assigned_to"], "Taylor Jones")
+        self.assertEqual(rows[1]["assigned_to"], "-")
+        self.assertEqual(rows[0]["episode_id"], 15)
+
     def test_dashboard_rows_show_patient_episode_and_work_counts(self):
         now = datetime.now(UTC).replace(tzinfo=None)
         patient = SimpleNamespace(patient_id=10, risk_tier=RiskTier.HIGH)
         patient_user = SimpleNamespace(first_name="Jordan", last_name="Lee")
         episode = SimpleNamespace(
+            episode_id=15,
             status=EpisodeStatus.IN_PROGRESS,
             episode_type=EpisodeType.GENERAL_NAVIGATION,
             opened_at=now - timedelta(days=4),
@@ -113,6 +174,7 @@ class CareManagerDashboardServiceTests(unittest.TestCase):
             (
                 SimpleNamespace(
                     escalation_id=31,
+                    episode_id=15,
                     patient_id=10,
                     status=EscalationStatus.OPEN,
                     priority=EscalationPriority.HIGH,
@@ -126,6 +188,7 @@ class CareManagerDashboardServiceTests(unittest.TestCase):
             )
         ]
         task = SimpleNamespace(
+            episode_id=15,
             patient_id=10,
             title="Call patient",
             task_type=FollowUpTaskType.PATIENT_CONTACT,
@@ -140,10 +203,59 @@ class CareManagerDashboardServiceTests(unittest.TestCase):
         details = self.service.get_analytics(4)["dashboard"]["detail_groups"]
 
         self.assertEqual(details["active_care_episodes"][0]["patient"], "Jordan Lee")
+        self.assertEqual(details["active_care_episodes"][0]["episode_id"], 15)
         self.assertEqual(details["active_care_episodes"][0]["duration"], "4 days")
         self.assertEqual(details["high_risk_patients"][0]["risk_tier"], "HIGH")
         self.assertEqual(details["open_escalations"][0]["priority"], "HIGH")
         self.assertEqual(details["overdue_follow_ups"][0]["title"], "Call patient")
+
+        caseload_rows = self.service.get_analytics(4)["caseload"]["rows"]
+        self.assertEqual(caseload_rows[0]["episode_id"], 15)
+
+        escalation_rows = self.service.get_analytics(4)["escalations"]["rows"]
+        self.assertEqual(escalation_rows[0]["episode_id"], 15)
+
+    def test_dashboard_escalations_show_latest_status_per_episode(self):
+        now = datetime.now(UTC).replace(tzinfo=None)
+        patient = SimpleNamespace(patient_id=10)
+        patient_user = SimpleNamespace(first_name="Bettyann83", last_name="Christiansen251")
+        self.service.repository.list_escalations.return_value = [
+            (
+                SimpleNamespace(
+                    escalation_id=21,
+                    episode_id=4,
+                    status=EscalationStatus.OPEN,
+                    priority=EscalationPriority.CRITICAL,
+                    escalation_type=EscalationType.EMERGENCY,
+                    created_at=now + timedelta(minutes=1),
+                    resolved_at=None,
+                ),
+                patient,
+                patient_user,
+                None,
+            ),
+            (
+                SimpleNamespace(
+                    escalation_id=20,
+                    episode_id=4,
+                    status=EscalationStatus.RESOLVED,
+                    priority=EscalationPriority.HIGH,
+                    escalation_type=EscalationType.CLINICAL_REVIEW,
+                    created_at=now,
+                    resolved_at=now,
+                ),
+                patient,
+                patient_user,
+                None,
+            )
+        ]
+
+        rows = self.service.get_analytics(4)["dashboard"]["detail_groups"]["open_escalations"]
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["patient"], "Bettyann83 Christiansen251")
+        self.assertEqual(rows[0]["status"], "OPEN")
+        self.assertEqual(rows[0]["type"], "EMERGENCY")
 
 
 if __name__ == "__main__":

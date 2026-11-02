@@ -1,7 +1,7 @@
 """Database access for care-manager analytics."""
 
 from sqlalchemy import String, cast, exists
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 
 from app.database.models.appointment import Appointment
 from app.database.models.appointment_action import AppointmentAction
@@ -61,18 +61,24 @@ class CareManagerDashboardRepository:
         )
 
     def list_appointments(self, organization_id: int):
+        staff_user = aliased(User)
         return (
             self.db.query(
                 Appointment.appointment_id.label("appointment_id"),
+                Appointment.episode_id.label("episode_id"),
                 cast(Appointment.appointment_type, String).label("appointment_type"),
                 Appointment.appointment_datetime.label("appointment_datetime"),
                 cast(Appointment.status, String).label("status"),
                 Appointment.location_or_channel.label("location_or_channel"),
                 User.first_name.label("first_name"),
                 User.last_name.label("last_name"),
+                staff_user.first_name.label("staff_first_name"),
+                staff_user.last_name.label("staff_last_name"),
             )
             .join(PatientProfile, PatientProfile.patient_id == Appointment.patient_id)
             .join(User, User.user_id == PatientProfile.user_id)
+            .outerjoin(StaffProfile, StaffProfile.staff_id == Appointment.staff_id)
+            .outerjoin(staff_user, staff_user.user_id == StaffProfile.user_id)
             .filter(
                 exists().where(
                     PatientEnrollment.patient_id == PatientProfile.patient_id,
@@ -96,12 +102,24 @@ class CareManagerDashboardRepository:
         )
 
     def list_outreach(self, organization_id: int):
+        staff_user = aliased(User)
         return (
-            self.db.query(OutreachEvent, OutreachCampaign, OutreachWorkflow, PatientProfile, User)
+            self.db.query(
+                OutreachEvent,
+                OutreachCampaign,
+                OutreachWorkflow,
+                PatientProfile,
+                User,
+                staff_user.first_name.label("staff_first_name"),
+                staff_user.last_name.label("staff_last_name"),
+            )
             .join(OutreachCampaign, OutreachCampaign.campaign_id == OutreachEvent.campaign_id)
             .join(OutreachWorkflow, OutreachWorkflow.workflow_id == OutreachEvent.workflow_id)
             .join(PatientProfile, PatientProfile.patient_id == OutreachEvent.patient_id)
             .join(User, User.user_id == PatientProfile.user_id)
+            .outerjoin(CareNavigationEpisode, CareNavigationEpisode.episode_id == OutreachEvent.episode_id)
+            .outerjoin(StaffProfile, StaffProfile.staff_id == CareNavigationEpisode.owner_staff_id)
+            .outerjoin(staff_user, staff_user.user_id == StaffProfile.user_id)
             .filter(OutreachCampaign.organization_id == organization_id)
             .order_by(OutreachEvent.scheduled_at.desc())
             .all()

@@ -72,6 +72,12 @@ export class TcmTrackerApi {
     );
   }
 
+  getEpisodeDetails(userId: number, episodeId: number): Observable<TcmPatientDetailResponse> {
+    return this.http.get<TcmPatientDetailResponse>(
+      `${this.baseUrl}/${userId}/episodes/${episodeId}/details`,
+    );
+  }
+
   private filterParams(filters: TcmTrackerFilters): HttpParams {
     let params = new HttpParams();
     if (filters.campaignId) {

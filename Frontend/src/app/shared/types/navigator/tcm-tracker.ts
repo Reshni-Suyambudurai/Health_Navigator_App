@@ -78,14 +78,19 @@ export interface TcmAppointment {
 }
 
 export interface TcmEscalation {
-  checkin_escalation_id: number;
+  escalation_id: number;
+  checkin_escalation_id: number | null;
   type: string;
+  priority?: string;
   status: string;
-  reason: string;
+  reason: string | null;
+  patient_summary?: string | null;
   assigned_staff: string | null;
   assigned_at: string | null;
   action_taken: string | null;
   resolution_notes: string | null;
+  created_at?: string | null;
+  resolved_at?: string | null;
 }
 
 export interface TcmPatientRow {
