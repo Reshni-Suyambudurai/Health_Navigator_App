@@ -2,7 +2,7 @@
 
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import func
+from sqlalchemy import exists, func, or_
 from sqlalchemy.orm import Session
 
 from app.database.models.appointment import Appointment
@@ -10,6 +10,7 @@ from app.database.models.care_navigation_episode import CareNavigationEpisode, E
 from app.database.models.checkin_escalation import CheckinEscalation
 from app.database.models.checkin_session import CheckinSession
 from app.database.models.checkin_template import CheckinTemplate
+from app.database.models.escalation import Escalation
 from app.database.models.escalation_assignment import EscalationAssignment
 from app.database.models.outreach_campaign import CampaignStatus, OutreachCampaign
 from app.database.models.outreach_event import OutreachEvent
@@ -136,6 +137,35 @@ class TcmTrackerRepository:
             query = query.filter(CareNavigationEpisode.opened_at < to_date)
         return query.order_by(CareNavigationEpisode.opened_at.desc()).all()
 
+    def find_episode(self, episode_id: int, organization_id: int, staff_id: int):
+        return (
+            self.db.query(
+                CareNavigationEpisode.episode_id.label("episode_id"),
+                CareNavigationEpisode.patient_id.label("patient_id"),
+                CareNavigationEpisode.status.label("episode_status"),
+                CareNavigationEpisode.trigger_type.label("trigger_type"),
+                CareNavigationEpisode.opened_at.label("opened_at"),
+                CareNavigationEpisode.closed_at.label("closed_at"),
+                CareNavigationEpisode.owner_staff_id.label("owner_staff_id"),
+                PatientProfile.external_fhir_patient_id.label("external_fhir_patient_id"),
+                User.first_name.label("first_name"),
+                User.last_name.label("last_name"),
+            )
+            .join(PatientProfile, PatientProfile.patient_id == CareNavigationEpisode.patient_id)
+            .join(User, User.user_id == PatientProfile.user_id)
+            .filter(
+                CareNavigationEpisode.episode_id == episode_id,
+                or_(
+                    CareNavigationEpisode.owner_staff_id == staff_id,
+                    exists().where(
+                        PatientEnrollment.patient_id == PatientProfile.patient_id,
+                        PatientEnrollment.organization_id == organization_id,
+                    ),
+                ),
+            )
+            .first()
+        )
+
     def list_events(self, campaign_ids: list[int], episode_ids: list[int]):
         if not campaign_ids or not episode_ids:
             return []
@@ -170,5 +200,32 @@ class TcmTrackerRepository:
             .outerjoin(StaffProfile, StaffProfile.staff_id == EscalationAssignment.assigned_to_staff_id)
             .outerjoin(User, User.user_id == StaffProfile.user_id)
             .filter(CheckinEscalation.checkin_session_id.in_(session_ids))
+            .all()
+        )
+
+    def list_conversation_escalations(self, episode_id: int):
+        latest_assignment = (
+            self.db.query(
+                EscalationAssignment.escalation_id.label("escalation_id"),
+                func.max(EscalationAssignment.assignment_id).label("assignment_id"),
+            )
+            .filter(EscalationAssignment.escalation_id.isnot(None))
+            .group_by(EscalationAssignment.escalation_id)
+            .subquery()
+        )
+        return (
+            self.db.query(Escalation, EscalationAssignment, StaffProfile, User)
+            .outerjoin(
+                latest_assignment,
+                latest_assignment.c.escalation_id == Escalation.escalation_id,
+            )
+            .outerjoin(
+                EscalationAssignment,
+                EscalationAssignment.assignment_id == latest_assignment.c.assignment_id,
+            )
+            .outerjoin(StaffProfile, StaffProfile.staff_id == EscalationAssignment.assigned_to_staff_id)
+            .outerjoin(User, User.user_id == StaffProfile.user_id)
+            .filter(Escalation.episode_id == episode_id)
+            .order_by(Escalation.created_at.desc())
             .all()
         )

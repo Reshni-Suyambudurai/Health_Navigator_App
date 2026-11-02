@@ -26,6 +26,8 @@ class TcmTrackerServiceTests(unittest.TestCase):
         self.service.repository.list_sessions.return_value = []
         self.service.repository.list_appointments.return_value = []
         self.service.repository.list_escalations.return_value = []
+        self.service.repository.list_conversation_escalations.return_value = []
+        self.service.repository.find_episode.return_value = None
 
     def test_care_manager_uses_organization_scope_without_owner_filter(self):
         result = self.service.get_summary(7)
@@ -93,6 +95,58 @@ class TcmTrackerServiceTests(unittest.TestCase):
 
         self.assertEqual(result["total"], 1)
         self.assertEqual(result["patients"][0]["category"], "NEEDS_ATTENTION")
+
+    def test_get_episode_details_resolves_campaign_from_episode(self):
+        self._configure_episode(appointment_required=False)
+        escalation = SimpleNamespace(
+            escalation_id=81,
+            escalation_type=SimpleNamespace(value="CLINICAL_REVIEW"),
+            priority=SimpleNamespace(value="HIGH"),
+            status=SimpleNamespace(value="OPEN"),
+            reason="Patient reported worsening symptoms",
+            patient_summary="Conversation requires clinical review",
+            created_at=datetime.now(),
+            resolved_at=None,
+        )
+        assignment = SimpleNamespace(
+            assigned_at=datetime.now(),
+            action_taken=None,
+            resolution_notes=None,
+        )
+        assigned_user = SimpleNamespace(first_name="Taylor", last_name="Jones")
+        self.service.repository.list_conversation_escalations.return_value = [
+            (escalation, assignment, SimpleNamespace(), assigned_user),
+        ]
+
+        result = self.service.get_episode_details(7, 15)
+
+        self.assertEqual(result["campaign_id"], 9)
+        self.assertEqual(result["episode_id"], 15)
+        self.assertEqual(result["patient_name"], "Alex Morgan")
+        self.assertEqual(result["escalations"][0]["escalation_id"], 81)
+        self.assertEqual(result["escalations"][0]["assigned_staff"], "Taylor Jones")
+
+    def test_get_episode_details_falls_back_for_non_tcm_episode(self):
+        now = datetime.now()
+        self.service.repository.find_episode.return_value = SimpleNamespace(
+            episode_id=4,
+            patient_id=5,
+            episode_status=EpisodeStatus.IN_PROGRESS,
+            trigger_type=TriggerType.PATIENT_REQUEST,
+            opened_at=now,
+            closed_at=None,
+            owner_staff_id=22,
+            external_fhir_patient_id=None,
+            first_name="Alex",
+            last_name="Morgan",
+        )
+
+        result = self.service.get_episode_details(7, 4)
+
+        self.service.repository.find_episode.assert_called_once_with(4, 4, 22)
+        self.assertEqual(result["episode_id"], 4)
+        self.assertEqual(result["campaign_name"], "Not linked to a TCM campaign")
+        self.assertEqual(result["workflows"], [])
 
     def _configure_episode(self, appointment_required: bool):
         now = datetime.now()

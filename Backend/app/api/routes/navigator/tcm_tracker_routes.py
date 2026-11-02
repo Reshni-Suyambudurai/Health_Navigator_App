@@ -108,3 +108,21 @@ async def get_patient_details(
         message="TCM patient details retrieved successfully",
         data=data,
     )
+
+
+@router.get(
+    "/users/{user_id}/episodes/{episode_id}/details",
+    response_model=SuccessResponse,
+)
+async def get_episode_details(
+    user_id: int,
+    episode_id: int,
+    db: Session = Depends(get_db),
+    fhir_db: Session | None = Depends(get_optional_monster_db),
+):
+    data = TcmTrackerService(db, fhir_db).get_episode_details(user_id, episode_id)
+    return SuccessResponse(
+        status="success",
+        message="TCM episode details retrieved successfully",
+        data=data,
+    )

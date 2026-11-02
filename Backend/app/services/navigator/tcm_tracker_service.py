@@ -182,6 +182,47 @@ class TcmTrackerService:
         record = next((item for item in snapshot["records"] if item["episode_id"] == episode_id), None)
         if record is None:
             raise NotFoundException("TCM episode was not found", "TCM_EPISODE_NOT_FOUND")
+        return self._patient_detail(record)
+
+    def get_episode_details(self, user_id: int, episode_id: int) -> dict[str, Any]:
+        user, staff, _ = self._context(user_id)
+        snapshot = self._snapshot(user_id, None, None, None)
+        record = next((item for item in snapshot["records"] if item["episode_id"] == episode_id), None)
+        if record is None:
+            episode = self.repository.find_episode(episode_id, user.organization_id, staff.staff_id)
+            if episode is None:
+                raise NotFoundException("Care episode was not found", "CARE_EPISODE_NOT_FOUND")
+            appointments = self.repository.list_appointments([episode_id])
+            record = {
+                "campaign_id": 0,
+                "campaign_name": "Not linked to a TCM campaign",
+                "episode_id": episode.episode_id,
+                "patient_id": episode.patient_id,
+                "patient_name": f"{episode.first_name} {episode.last_name}".strip(),
+                "external_fhir_patient_id": episode.external_fhir_patient_id,
+                "condition": None,
+                "discharge_date": episode.opened_at if episode.trigger_type == TriggerType.DISCHARGE else None,
+                "episode_status": episode.episode_status,
+                "closed_at": episode.closed_at,
+                "owner_staff_id": episode.owner_staff_id,
+                "workflows": [],
+                "appointments": appointments,
+                "escalations": [],
+                "category": (
+                    "COMPLETE"
+                    if episode.episode_status in {EpisodeStatus.COMPLETED, EpisodeStatus.CLOSED}
+                    else "ACTIVE"
+                ),
+            }
+            self._add_conditions([record])
+        result = self._patient_detail(record)
+        result["escalations"] = [
+            self._conversation_escalation_result(row)
+            for row in self.repository.list_conversation_escalations(episode_id)
+        ]
+        return result
+
+    def _patient_detail(self, record: dict[str, Any]) -> dict[str, Any]:
         result = self._patient_result(record)
         result["workflows"] = [self._workflow_detail(state) for state in record["workflows"]]
         result["appointments"] = [self._appointment_result(item) for item in record["appointments"]]
@@ -459,6 +500,7 @@ class TcmTrackerService:
             return None
         escalation, assignment, _, user = escalation_row
         return {
+            "escalation_id": escalation.checkin_escalation_id,
             "checkin_escalation_id": escalation.checkin_escalation_id,
             "type": escalation.escalation_type.value,
             "status": escalation.escalation_status.value,
@@ -469,6 +511,27 @@ class TcmTrackerService:
             "assigned_at": TcmTrackerService._iso(assignment.assigned_at) if assignment else None,
             "action_taken": escalation.action_taken,
             "resolution_notes": escalation.resolution_notes,
+        }
+
+    @staticmethod
+    def _conversation_escalation_result(escalation_row) -> dict[str, Any]:
+        escalation, assignment, _, user = escalation_row
+        return {
+            "escalation_id": escalation.escalation_id,
+            "checkin_escalation_id": None,
+            "type": escalation.escalation_type.value,
+            "priority": escalation.priority.value,
+            "status": escalation.status.value,
+            "reason": escalation.reason,
+            "patient_summary": escalation.patient_summary,
+            "assigned_staff": (
+                f"{user.first_name} {user.last_name}".strip() if user else None
+            ),
+            "assigned_at": TcmTrackerService._iso(assignment.assigned_at) if assignment else None,
+            "action_taken": assignment.action_taken if assignment else None,
+            "resolution_notes": assignment.resolution_notes if assignment else None,
+            "created_at": TcmTrackerService._iso(escalation.created_at),
+            "resolved_at": TcmTrackerService._iso(escalation.resolved_at),
         }
 
     @staticmethod

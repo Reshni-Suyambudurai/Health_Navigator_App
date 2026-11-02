@@ -54,9 +54,24 @@
                 </thead>
                 <tbody>
                   @for (row of detail.rows; track $index) {
-                    <tr>
+                    <tr
+                      [class.patient-row]="hasPatientDetails(row)"
+                      [attr.tabindex]="hasPatientDetails(row) ? 0 : null"
+                      [attr.aria-label]="hasPatientDetails(row) ? 'View details for ' + row['patient'] : null"
+                      (click)="openPatient(row)"
+                      (keydown.enter)="openPatient(row)"
+                      (keydown.space)="openPatient(row); $event.preventDefault()"
+                    >
                       @for (column of detail.columns; track column.key) {
-                        <td>{{ displayValue(row[column.key]) }}</td>
+                        <td>
+                          @if (column.key === 'episode_status') {
+                            <span class="episode-status-pill" [ngClass]="episodeStatusClass(row[column.key])">{{ displayValue(row[column.key]) }}</span>
+                          } @else if (detail.key === 'open_escalations' && column.key === 'status') {
+                            <span class="escalation-status-pill" [ngClass]="escalationStatusClass(row[column.key])">{{ displayValue(row[column.key]) }}</span>
+                          } @else {
+                            {{ displayValue(row[column.key]) }}
+                          }
+                        </td>
                       }
                     </tr>
                   }
@@ -87,9 +102,28 @@
               </thead>
               <tbody>
                 @for (row of currentSection.rows; track $index) {
-                  <tr>
+                  <tr
+                    [class.patient-row]="supportsPatientDetails() && hasPatientDetails(row)"
+                    [attr.tabindex]="supportsPatientDetails() && hasPatientDetails(row) ? 0 : null"
+                    [attr.aria-label]="supportsPatientDetails() && hasPatientDetails(row) ? 'View details for ' + row['patient'] : null"
+                    (click)="supportsPatientDetails() && openPatient(row)"
+                    (keydown.enter)="supportsPatientDetails() && openPatient(row)"
+                    (keydown.space)="supportsPatientDetails() && hasPatientDetails(row) && openPatient(row); supportsPatientDetails() && hasPatientDetails(row) && $event.preventDefault()"
+                  >
                     @for (column of page().columns; track column.key) {
-                      <td>{{ displayValue(row[column.key]) }}</td>
+                      <td>
+                        @if (column.key === 'episode_status') {
+                          <span class="episode-status-pill" [ngClass]="episodeStatusClass(row[column.key])">{{ displayValue(row[column.key]) }}</span>
+                        } @else if (sectionKey() === 'escalations' && column.key === 'status') {
+                          <span class="escalation-status-pill" [ngClass]="escalationStatusClass(row[column.key])">{{ displayValue(row[column.key]) }}</span>
+                        } @else if (sectionKey() === 'outreach' && column.key === 'status') {
+                          <span class="outreach-status-pill" [ngClass]="outreachStatusClass(row[column.key])">{{ displayValue(row[column.key]) }}</span>
+                        } @else if (sectionKey() === 'appointments' && column.key === 'status') {
+                          <span class="appointment-status-pill" [ngClass]="appointmentStatusClass(row[column.key])">{{ displayValue(row[column.key]) }}</span>
+                        } @else {
+                          {{ displayValue(row[column.key]) }}
+                        }
+                      </td>
                     }
                   </tr>
                 }
@@ -100,8 +134,18 @@
           <p class="empty-state">No records are available for this section.</p>
         }
       </section>
+
     }
 
     <p class="last-updated">Last updated {{ analytics()?.generated_at | date: 'medium' }}</p>
   }
 </section>
+
+@if (selectedEpisodeId()) {
+  <app-tcm-patient-detail-drawer
+    [detail]="patientDetail()"
+    [loading]="patientDetailLoading()"
+    [error]="patientDetailError()"
+    (closed)="closePatient()"
+  />
+}

@@ -115,6 +115,135 @@ tbody tr:nth-child(even) {
   background: var(--table-row-alt-bg);
 }
 
+.patient-row {
+  cursor: pointer;
+}
+
+.patient-row:hover,
+.patient-row:focus-visible {
+  background: var(--hover-bg);
+  outline-offset: -2px;
+}
+
+.episode-status-pill {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 0.18rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.episode-status-positive {
+  background: var(--status-positive-bg);
+  color: var(--status-positive-text);
+}
+
+.episode-status-warning {
+  background: var(--status-warning-bg);
+  color: var(--status-warning-text);
+}
+
+.episode-status-neutral {
+  background: var(--hover-bg);
+  color: var(--muted);
+}
+
+.escalation-status-pill {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 0.18rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.escalation-status-critical {
+  background: var(--status-critical-bg);
+  color: var(--status-critical-text);
+}
+
+.escalation-status-warning {
+  background: var(--status-warning-bg);
+  color: var(--status-warning-text);
+}
+
+.escalation-status-positive {
+  background: var(--status-positive-bg);
+  color: var(--status-positive-text);
+}
+
+.escalation-status-neutral {
+  background: var(--hover-bg);
+  color: var(--muted);
+}
+
+.outreach-status-pill {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 0.18rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.outreach-status-critical {
+  background: var(--status-critical-bg);
+  color: var(--status-critical-text);
+}
+
+.outreach-status-warning {
+  background: var(--status-warning-bg);
+  color: var(--status-warning-text);
+}
+
+.outreach-status-positive {
+  background: var(--status-positive-bg);
+  color: var(--status-positive-text);
+}
+
+.outreach-status-neutral {
+  background: var(--hover-bg);
+  color: var(--muted);
+}
+
+.appointment-status-pill {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 0.18rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.appointment-status-positive {
+  background: var(--status-positive-bg);
+  color: var(--status-positive-text);
+}
+
+.appointment-status-warning {
+  background: var(--status-warning-bg);
+  color: var(--status-warning-text);
+}
+
+.appointment-status-critical {
+  background: var(--status-critical-bg);
+  color: var(--status-critical-text);
+}
+
+.appointment-status-neutral {
+  background: var(--hover-bg);
+  color: var(--muted);
+}
+
 .state-panel,
 .empty-state {
   border: 1px dashed var(--border);
