@@ -20,7 +20,7 @@ export class ClinicalGovernanceDashboardApi {
     endDate?: string,
   ): Observable<ClinicalGovernanceAnalyticsResponse> {
     let params = new HttpParams().set('period', period);
-    if (period === 'custom' && startDate && endDate) {
+    if (startDate && endDate) {
       params = params.set('start_date', startDate).set('end_date', endDate);
     }
     return this.http.get<ClinicalGovernanceAnalyticsResponse>(

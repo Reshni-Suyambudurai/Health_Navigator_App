@@ -1,7 +1,6 @@
 <section class="role-page">
   <div class="page-head">
     <div>
-      <p class="eyebrow">Clinical governance</p>
       <h1>Governance overview</h1>
       <p>Monitor conversation safety signals, escalation handling, and rule performance.</p>
     </div>
@@ -19,11 +18,23 @@
 
   <section class="filter-bar" aria-label="Dashboard date range">
     <div class="period-control" role="group" aria-label="Date period">
-      <button type="button" [class.active]="period() === 'today'" (click)="selectPeriod('today')">Today</button>
-      <button type="button" [class.active]="period() === 'month'" (click)="selectPeriod('month')">This month</button>
-      <button type="button" [class.active]="period() === 'custom'" (click)="selectPeriod('custom')">Custom</button>
+      <button type="button" [class.active]="period() === 'year'" (click)="selectPeriod('year')">Year</button>
+      <button type="button" [class.active]="period() === 'month'" (click)="selectPeriod('month')">Month</button>
+      <button type="button" [class.active]="period() === 'custom'" (click)="selectPeriod('custom')">Date range</button>
     </div>
-    @if (period() === 'custom') {
+    @if (period() === 'year') {
+      <label class="period-value">
+        <span>Year</span>
+        <select [ngModel]="selectedYear()" (ngModelChange)="applyYear($event)">
+          @for (year of yearOptions; track year) { <option [ngValue]="year">{{ year }}</option> }
+        </select>
+      </label>
+    } @else if (period() === 'month') {
+      <label class="period-value">
+        <span>Month</span>
+        <input type="month" [ngModel]="selectedMonth()" (ngModelChange)="applyMonth($event)" />
+      </label>
+    } @else {
       <div class="custom-range">
         <label>
           <span>Start date</span>
@@ -146,25 +157,6 @@
         <app-pagination [start]="pageStart('rules', data.rule_performance.length)" [end]="pageEnd('rules', data.rule_performance.length)" [total]="data.rule_performance.length" [previousDisabled]="page('rules') === 1" [nextDisabled]="pageEnd('rules', data.rule_performance.length) === data.rule_performance.length" ariaLabel="Rule performance pages" (previous)="previousPage('rules')" (next)="nextPage('rules', data.rule_performance.length)" />
       } @else {
         <p class="empty-state">No clinical guardrail rules are configured.</p>
-      }
-    </section>
-
-    <section class="panel" aria-labelledby="audit-title">
-      <div class="panel-head"><div><p class="section-kicker">Traceability</p><h2 id="audit-title">Audit history</h2></div><span>{{ data.audit_history.length }} events</span></div>
-      @if (data.audit_history.length) {
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Time</th><th>Action</th><th>Resource</th><th>Resource ID</th><th>Actor</th><th>Details</th></tr></thead>
-            <tbody>
-              @for (row of pageRows('audit', data.audit_history); track row.created_at + row.action) {
-                <tr><td>{{ displayValue(row.created_at) }}</td><td>{{ displayValue(row.action) }}</td><td>{{ displayValue(row.resource_type) }}</td><td>{{ displayValue(row.resource_id) }}</td><td>{{ row.actor }}</td><td class="message-cell">{{ row.details }}</td></tr>
-              }
-            </tbody>
-          </table>
-        </div>
-        <app-pagination [start]="pageStart('audit', data.audit_history.length)" [end]="pageEnd('audit', data.audit_history.length)" [total]="data.audit_history.length" [previousDisabled]="page('audit') === 1" [nextDisabled]="pageEnd('audit', data.audit_history.length) === data.audit_history.length" ariaLabel="Audit history pages" (previous)="previousPage('audit')" (next)="nextPage('audit', data.audit_history.length)" />
-      } @else {
-        <p class="empty-state">No governance-related audit events were recorded in this period.</p>
       }
     </section>
 

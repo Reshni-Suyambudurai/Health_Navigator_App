@@ -2,20 +2,21 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { heroArrowPath, heroCheckCircle, heroClipboardDocumentList, heroClock, heroXCircle } from '@ng-icons/heroicons/outline';
+import { heroCheckCircle, heroClipboardDocumentList, heroClock, heroXCircle } from '@ng-icons/heroicons/outline';
 import { finalize } from 'rxjs';
 import { ClinicalCheckinTemplateReviewApi } from '../../../../api/navigator/admin-checkin-template.api';
 import { getSessionUser } from '../../../../api/tokenstore';
 import { CheckinTemplateReview, ReviewOrganizationOption } from '../../../../shared/types/navigator/admin-checkin-template';
 import { Breadcrumb, BreadcrumbItem } from '../../../../shared/ui/breadcrumb/breadcrumb';
+import { RefreshButton } from '../../../../shared/ui/refresh-button/refresh-button';
 import { CheckinTemplatePreview } from '../../system-admin/checkin-template/checkin-template-preview/checkin-template-preview';
 import { ToastState } from '../../../../shared/ui/toast/toast-state';
 
 @Component({
   selector: 'app-clinical-checkin-template-reviews',
   standalone: true,
-  imports: [CommonModule, FormsModule, Breadcrumb, CheckinTemplatePreview, NgIcon],
-  providers: [provideIcons({ heroArrowPath, heroCheckCircle, heroClipboardDocumentList, heroClock, heroXCircle })],
+  imports: [CommonModule, FormsModule, Breadcrumb, CheckinTemplatePreview, NgIcon, RefreshButton],
+  providers: [provideIcons({ heroCheckCircle, heroClipboardDocumentList, heroClock, heroXCircle })],
   templateUrl: './checkin-template-reviews.html',
   styleUrl: './checkin-template-reviews.scss',
 })

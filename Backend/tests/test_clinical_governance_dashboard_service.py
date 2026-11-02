@@ -1,5 +1,5 @@
 import unittest
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
@@ -48,6 +48,19 @@ class ClinicalGovernanceDashboardServiceTests(unittest.TestCase):
     def test_requires_both_custom_dates(self):
         with self.assertRaises(ValidationException):
             self.service.get_analytics(4, "custom")
+
+    def test_year_period_covers_selected_calendar_year(self):
+        start_at, end_at = self.service._date_range("year", None, None)
+        today = datetime.now(UTC).date()
+
+        self.assertEqual(start_at.date(), date(today.year, 1, 1))
+        self.assertEqual(end_at.date(), date(today.year + 1, 1, 1))
+
+    def test_month_period_uses_selected_month(self):
+        start_at, end_at = self.service._date_range("month", date(2025, 2, 1), None)
+
+        self.assertEqual(start_at.date(), date(2025, 2, 1))
+        self.assertEqual(end_at.date(), date(2025, 3, 1))
 
     def test_counts_distinct_hits_and_open_escalations(self):
         now = datetime.now(UTC).replace(tzinfo=None)

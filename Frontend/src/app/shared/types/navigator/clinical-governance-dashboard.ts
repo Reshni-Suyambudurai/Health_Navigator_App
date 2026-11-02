@@ -1,6 +1,6 @@
 import { ApiSuccessResponse } from './user';
 
-export type GovernancePeriod = 'today' | 'month' | 'custom';
+export type GovernancePeriod = 'year' | 'month' | 'custom';
 
 export interface GovernanceMetric {
   label: string;

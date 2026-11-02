@@ -32,9 +32,12 @@ export class ClinicalGovernanceDashbaord {
   readonly analytics = signal<ClinicalGovernanceAnalytics | null>(null);
   readonly loading = signal(false);
   readonly error = signal('');
-  readonly period = signal<GovernancePeriod>('today');
+  readonly period = signal<GovernancePeriod>('month');
+  readonly selectedYear = signal(new Date().getFullYear());
+  readonly selectedMonth = signal(this.todayValue().slice(0, 7));
   readonly customStartDate = signal(this.todayValue());
   readonly customEndDate = signal(this.todayValue());
+  readonly yearOptions = Array.from({ length: 6 }, (_, index) => new Date().getFullYear() - index);
   readonly pages = signal<Record<GovernanceTableKey, number>>({
     red_flags: 1,
     documentation: 1,
@@ -76,6 +79,21 @@ export class ClinicalGovernanceDashbaord {
     this.loadAnalytics();
   }
 
+  applyYear(year: number | string): void {
+    this.selectedYear.set(Number(year));
+    this.resetPages();
+    this.loadAnalytics();
+  }
+
+  applyMonth(month: string): void {
+    if (!month) {
+      return;
+    }
+    this.selectedMonth.set(month);
+    this.resetPages();
+    this.loadAnalytics();
+  }
+
   loadAnalytics(): void {
     const userId = this.sessionUser?.user_id;
     if (!userId) {
@@ -84,14 +102,15 @@ export class ClinicalGovernanceDashbaord {
     }
 
     const period = this.period();
+    const range = this.periodRange(period);
     this.loading.set(true);
     this.error.set('');
     this.api
       .getAnalytics(
         userId,
         period,
-        period === 'custom' ? this.customStartDate() : undefined,
-        period === 'custom' ? this.customEndDate() : undefined,
+        range.startDate,
+        range.endDate,
       )
       .pipe(
         takeUntilDestroyed(this.destroyRef),
@@ -154,6 +173,22 @@ export class ClinicalGovernanceDashbaord {
     const today = new Date();
     const timezoneOffset = today.getTimezoneOffset() * 60_000;
     return new Date(today.getTime() - timezoneOffset).toISOString().slice(0, 10);
+  }
+
+  private periodRange(period: GovernancePeriod): { startDate: string; endDate: string } {
+    if (period === 'year') {
+      const year = this.selectedYear();
+      return { startDate: `${year}-01-01`, endDate: `${year}-12-31` };
+    }
+    if (period === 'month') {
+      const [year, month] = this.selectedMonth().split('-').map(Number);
+      const lastDay = new Date(year, month, 0).getDate();
+      return {
+        startDate: `${year}-${String(month).padStart(2, '0')}-01`,
+        endDate: `${year}-${String(month).padStart(2, '0')}-${lastDay}`,
+      };
+    }
+    return { startDate: this.customStartDate(), endDate: this.customEndDate() };
   }
 
   private formatDate(value: string): string {

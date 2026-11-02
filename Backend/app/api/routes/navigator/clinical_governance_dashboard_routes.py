@@ -18,7 +18,7 @@ router = APIRouter(prefix="/clinical-governance/dashboard", tags=["Clinical Gove
 @router.get("/users/{user_id}/analytics", response_model=SuccessResponse)
 async def get_analytics(
     user_id: int,
-    period: str = Query(default="today"),
+    period: str = Query(default="month"),
     start_date: date | None = Query(default=None),
     end_date: date | None = Query(default=None),
     db: Session = Depends(get_db),

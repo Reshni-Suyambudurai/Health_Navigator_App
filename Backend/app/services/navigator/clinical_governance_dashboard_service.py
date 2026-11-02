@@ -16,7 +16,7 @@ from app.database.repositories.navigator.clinical_governance_dashboard_repositor
 
 
 class ClinicalGovernanceDashboardService:
-    VALID_PERIODS = {"today", "month", "custom"}
+    VALID_PERIODS = {"year", "month", "custom"}
 
     def __init__(self, db: Session):
         self.repository = ClinicalGovernanceDashboardRepository(db)
@@ -24,7 +24,7 @@ class ClinicalGovernanceDashboardService:
     def get_analytics(
         self,
         user_id: int,
-        period: str = "today",
+        period: str = "month",
         start_date: date | None = None,
         end_date: date | None = None,
     ) -> dict[str, Any]:
@@ -135,10 +135,19 @@ class ClinicalGovernanceDashboardService:
         if period not in cls.VALID_PERIODS:
             raise ValidationException("Invalid dashboard period.", "GOVERNANCE_PERIOD_INVALID")
         today = datetime.now(UTC).date()
-        if period == "today":
-            first_day = last_day = today
+        if period == "year":
+            selected_date = start_date or today
+            first_day = date(selected_date.year, 1, 1)
+            last_day = date(selected_date.year, 12, 31)
         elif period == "month":
-            first_day, last_day = today.replace(day=1), today
+            selected_date = start_date or today
+            first_day = selected_date.replace(day=1)
+            next_month = (
+                date(selected_date.year + 1, 1, 1)
+                if selected_date.month == 12
+                else date(selected_date.year, selected_date.month + 1, 1)
+            )
+            last_day = next_month - timedelta(days=1)
         else:
             if start_date is None or end_date is None:
                 raise ValidationException(

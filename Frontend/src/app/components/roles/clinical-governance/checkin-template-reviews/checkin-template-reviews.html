@@ -3,14 +3,13 @@
 
   <header class="page-header">
     <div>
-      <p class="eyebrow">Clinical governance</p>
       <h1>Check-in Template Reviews</h1>
       <p>Review clinical appropriateness, versions, required fields and patient-facing answer options.</p>
     </div>
     <div class="queue-actions">
       <label class="organization-filter"><span>Organization</span><select [ngModel]="selectedOrganizationId()" aria-label="Organization" disabled><option *ngFor="let organization of organizations()" [value]="organization.organization_id">{{ organization.organization_name }}</option></select></label>
-      <button type="button" class="queue-refresh-button" title="Refresh review queue" aria-label="Refresh review queue" [disabled]="loading()" (click)="refresh()"><ng-icon name="heroArrowPath" aria-hidden="true" /></button>
-      <span class="queue-count">{{ pendingCount }} pending</span>
+      <div class="queue-summary" aria-label="Review status summary"><span data-status="PENDING"><strong>{{ pendingCount }}</strong> Pending</span><span data-status="REVIEWED"><strong>{{ historyCount }}</strong> Reviewed</span></div>
+      <app-refresh-button label="Refresh review queue" [disabled]="loading()" (refresh)="refresh()" />
     </div>
   </header>
 
@@ -36,7 +35,7 @@
             >
               <strong>{{ review.template.template_name }}</strong>
               <span>Version {{ review.template.version }} · {{ label(review.template.template_type) }}</span>
-              <small><span class="decision-dot" [class.approved]="review.status === 'APPROVED'" [class.rejected]="review.status === 'REJECTED'"></span>{{ label(review.status) }} · {{ review.submitted_at ? (review.submitted_at | date:'mediumDate') : 'recently' }}</small>
+              <footer class="queue-row-meta"><span class="review-status" [attr.data-status]="review.status">{{ label(review.status) }}</span><time>{{ review.submitted_at ? (review.submitted_at | date:'mediumDate') : 'Recently' }}</time></footer>
             </button>
           }
         </div>
@@ -52,7 +51,7 @@
             <div class="title-line"><h2>{{ review.template.template_name }}</h2><span>v{{ review.template.version }}</span></div>
             <p>{{ review.template.description || 'No description provided.' }}</p>
           </div>
-          <span class="pending-badge" [class.approved]="review.status === 'APPROVED'" [class.rejected]="review.status === 'REJECTED'">{{ label(review.status) }}</span>
+          <span class="review-status" [attr.data-status]="review.status">{{ label(review.status) }}</span>
         </header>
 
         <dl class="review-metadata">

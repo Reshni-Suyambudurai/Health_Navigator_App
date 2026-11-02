@@ -78,7 +78,8 @@
   gap: 0.65rem;
 }
 
-.custom-range label {
+.custom-range label,
+.period-value {
   display: grid;
   gap: 0.2rem;
   color: var(--muted);
@@ -86,7 +87,9 @@
   font-weight: 600;
 }
 
-.custom-range input {
+.custom-range input,
+.period-value input,
+.period-value select {
   min-height: 36px;
   background: var(--table-bg);
 }
