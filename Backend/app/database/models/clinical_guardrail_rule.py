@@ -1,7 +1,7 @@
 """Clinical guardrail rule model."""
 
 import enum
-from sqlalchemy import Column, BigInteger, String, Text, ForeignKey, TIMESTAMP, Enum as SQLEnum
+from sqlalchemy import BigInteger, Column, Date, Enum as SQLEnum, ForeignKey, String, Text, TIMESTAMP
 from sqlalchemy.sql import func
 from app.database.connection import Base
 from app.database.models.care_team_queue import QueueType
@@ -42,6 +42,13 @@ class RuleStatus(enum.Enum):
     RETIRED = "RETIRED"
 
 
+class RuleApprovalStatus(enum.Enum):
+    DRAFT = "DRAFT"
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+
+
 class ClinicalGuardrailRule(Base):
     __tablename__ = "clinical_guardrail_rules"
 
@@ -57,5 +64,16 @@ class ClinicalGuardrailRule(Base):
     target_queue_type = Column(SQLEnum(QueueType, name="queue_type"), index=True)
     escalation_type = Column(SQLEnum(EscalationType, name="escalation_type"))
     escalation_priority = Column(SQLEnum(EscalationPriority, name="escalation_priority"))
+    created_by_user_id = Column(BigInteger, ForeignKey("users.user_id", ondelete="RESTRICT"), index=True)
+    approval_status = Column(
+        SQLEnum(RuleApprovalStatus, name="guardrail_rule_approval_status"),
+        nullable=False,
+        server_default="DRAFT",
+        index=True,
+    )
+    approved_by_user_id = Column(BigInteger, ForeignKey("users.user_id", ondelete="SET NULL"), index=True)
+    approved_at = Column(TIMESTAMP)
+    effective_from = Column(Date, index=True)
+    rejection_reason = Column(Text)
     created_at = Column(TIMESTAMP, nullable=False, server_default=func.current_timestamp())
     updated_at = Column(TIMESTAMP, nullable=False, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
